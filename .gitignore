@@ -2,3 +2,6 @@
 *.d
 rundb
 .vscode/
+NB-UpBit/
+build/
+cscope.*

@@ -1,3 +1,5 @@
+#include <mutex>
+
 #include "global.h"
 #include "ycsb.h"
 #include "tpcc.h"
@@ -10,9 +12,15 @@
 #include "occ.h"
 #include "vll.h"
 
+#include "nicolas/util.h"
+
 void * f(void *);
 
 thread_t ** m_thds;
+
+mutex g_dump_results_lock;
+#define N_MAX_WORKERS (256)
+struct ThreadInfo g_ths_info[N_MAX_WORKERS];
 
 // defined in parser.cpp
 void parser(int argc, char * argv[]);

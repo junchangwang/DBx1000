@@ -4,6 +4,16 @@
 #include "wl.h"
 #include "txn.h"
 
+#include "fastbit/bitvector.h"
+#include "nicolas/base_table.h"
+#include "nicolas/util.h"
+#include "ub/table.h"
+#include "ucb/table.h"
+#include "naive/table.h"
+#include "nbub/table_lf.h"
+#include "nbub/table_lk.h"
+#include "nicolas/base_table.h"
+
 class table_t;
 class INDEX;
 class tpcc_query;
@@ -33,6 +43,8 @@ public:
 	INDEX * 	i_order; // key = (w_id, d_id, o_id)
 	INDEX * 	i_orderline; // key = (w_id, d_id, o_id)
 	INDEX * 	i_orderline_wd; // key = (w_id, d_id). 
+
+	BaseTable *bitmap;
 	
 	bool ** delivering;
 	uint32_t next_tid;

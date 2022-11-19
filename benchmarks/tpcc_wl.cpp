@@ -26,6 +26,41 @@ RC tpcc_wl::init() {
 	cout << "TPCC schema initialized" << endl;
 	init_table();
 	next_tid = 0;
+
+	std::string approach = {"nbub-lk"};
+	uint32_t g_cardinality = 100;
+	uint32_t n_rows = 10000;
+	n_workers = 4;
+	n_deletes = 100;
+	n_queries = 900;
+
+	if (approach == "ub") {
+        bitmap = new ub::Table(g_cardinality, n_rows);
+    } else if (approach == "nbub-lk") {
+        bitmap = new nbub_lk::NbubLK(g_cardinality, n_rows);
+    } else if (approach == "nbub-lf" || approach =="nbub") {
+        bitmap = new nbub_lf::NbubLF(g_cardinality, n_rows);
+    } else if (approach == "ucb") {
+        bitmap = new ucb::Table(g_cardinality, n_rows);
+    } else if (approach == "naive") {
+        bitmap = new naive::Table(g_cardinality, n_rows);
+    }
+    else {
+        cerr << "Unknown approach." << endl;
+        exit(-1);
+    }
+
+    if (1) {
+        bitmap->printMemory();
+        bitmap->printUncompMemory();
+    }
+
+	cout << "Bitmap initiate succeed." << bitmap->evaluate(0, 10) << endl;
+	bitmap->append(0, 9);
+	bitmap->append(0, 10);
+	bitmap->append(0, 11);
+	cout << "Bitmap op succeed." << bitmap->evaluate(0, 10) << endl;
+
 	return RCOK;
 }
 
