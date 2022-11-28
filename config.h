@@ -16,7 +16,7 @@
 // # of transactions to run for warmup
 #define WARMUP						0
 // YCSB or TPCC
-#define WORKLOAD 					YCSB
+#define WORKLOAD 					TPCH
 // print the transaction latency distribution
 #define PRT_LAT_DISTR				false
 #define STATS_ENABLE				true
@@ -194,6 +194,7 @@ extern TestCases					g_test_case;
 #define YCSB						1
 #define TPCC						2
 #define TEST						3
+#define TPCH						4
 // Concurrency Control Algorithm
 #define NO_WAIT						1
 #define WAIT_DIE					2
