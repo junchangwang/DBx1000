@@ -32,7 +32,7 @@ RC workload::init_schema(string schema_file) {
 				lines.push_back(line);
 				getline(fin, line);
 			}
-			schema->init( tname.c_str(), lines.size() );
+			schema->init( (char *)tname.c_str(), lines.size() );
 			for (UInt32 i = 0; i < lines.size(); i++) {
 				string line = lines[i];
 			    size_t pos = 0;

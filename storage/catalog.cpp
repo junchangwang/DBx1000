@@ -3,8 +3,10 @@
 #include "helper.h"
 
 void 
-Catalog::init(const char * table_name, int field_cnt) {
-	this->table_name = table_name;
+Catalog::init(char * table_name, int field_cnt) {
+	//this->table_name = table_name;
+	this->table_name = new char[20];
+	strcpy(this->table_name, table_name);
 	this->field_cnt = 0;
 	this->_columns = new Column [field_cnt];
 	this->tuple_size = 0;
