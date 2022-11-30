@@ -13,7 +13,9 @@
 #include "mem_alloc.h"
 #include "tpcc_const.h"
 
-RC tpcc_wl::init() {
+RC tpcc_wl::init() 
+{
+	init_bitmap_c_w_id();
 	workload::init();
 	string path = "./benchmarks/";
 #if TPCC_SMALL
@@ -27,39 +29,59 @@ RC tpcc_wl::init() {
 	init_table();
 	next_tid = 0;
 
-	std::string approach = {"nbub-lk"};
-	uint32_t g_cardinality = 100;
-	uint32_t n_rows = 10000;
-	n_workers = 4;
-	n_deletes = 100;
-	n_queries = 900;
+	return RCOK;
+}
 
-	if (approach == "ub") {
-        bitmap = new ub::Table(g_cardinality, n_rows);
-    } else if (approach == "nbub-lk") {
-        bitmap = new nbub_lk::NbubLK(g_cardinality, n_rows);
-    } else if (approach == "nbub-lf" || approach =="nbub") {
-        bitmap = new nbub_lf::NbubLF(g_cardinality, n_rows);
-    } else if (approach == "ucb") {
-        bitmap = new ucb::Table(g_cardinality, n_rows);
-    } else if (approach == "naive") {
-        bitmap = new naive::Table(g_cardinality, n_rows);
+RC tpcc_wl::init_bitmap_c_w_id( ) 
+{
+	Table_config *config = new Table_config{};
+	config->n_workers = g_thread_cnt;
+	config->DATA_PATH = "";
+	config->INDEX_PATH = "";
+	config->g_cardinality = g_num_wh * DIST_PER_WARE;
+	enable_fence_pointer = config->enable_fence_pointer = true;
+	INDEX_WORDS = 10000;  // Fence length 
+	config->approach = {"nbub-lk"};
+//	config->approach = {"naive"};
+	config->nThreads_for_getval = 4;
+	config->show_memory = true;
+	config->on_disk = false;
+	config->showEB = false;
+    config->decode = false;
+
+	// DBx1000 doesn't use the following parameters;
+	// they are used by nicolas.
+	config->n_rows = 0; 
+	config->n_queries = 900;
+	config->n_deletes = 100;
+	config->n_merge = 16;
+	config->verbose = false;
+	config->time_out = 100;
+	
+	if (config->approach == "ub") {
+        bitmap_c_w_id = new ub::Table(config);
+    } else if (config->approach == "nbub-lk") {
+        bitmap_c_w_id = new nbub_lk::NbubLK(config);
+    } else if (config->approach == "nbub-lf" || config->approach =="nbub") {
+        bitmap_c_w_id = new nbub_lf::NbubLF(config);
+    } else if (config->approach == "ucb") {
+        bitmap_c_w_id = new ucb::Table(config);
+    } else if (config->approach == "naive") {
+        bitmap_c_w_id = new naive::Table(config);
     }
     else {
         cerr << "Unknown approach." << endl;
         exit(-1);
     }
 
-    if (1) {
-        bitmap->printMemory();
-        bitmap->printUncompMemory();
+    if (config->show_memory) {
+        bitmap_c_w_id->printMemory();
+        bitmap_c_w_id->printUncompMemory();
     }
 
-	cout << "Bitmap initiate succeed." << bitmap->evaluate(0, 10) << endl;
-	bitmap->append(0, 9);
-	bitmap->append(0, 10);
-	bitmap->append(0, 11);
-	cout << "Bitmap op succeed." << bitmap->evaluate(0, 10) << endl;
+	cout << "[CUBIT]: Bitmap bitmap_c_w_id initialized successfully. "
+			<< "[Cardinality:" << config->g_cardinality
+			<< "] [Method:" << config->approach << "]" << endl;
 
 	return RCOK;
 }
@@ -313,6 +335,15 @@ void tpcc_wl::init_tab_cust(uint64_t did, uint64_t wid) {
 		index_insert(i_customer_last, key, row, wh_to_part(wid));
 		key = custKey(cid, did, wid);
 		index_insert(i_customer_id, key, row, wh_to_part(wid));
+
+		key = distKey(did - 1, wid - 1);
+		if (bitmap_c_w_id->config->approach == "naive" ) {
+			bitmap_c_w_id->append(0, key);
+		}
+		else if (bitmap_c_w_id->config->approach == "nbub-lk") {
+			nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_c_w_id);
+			bitmap->__init_append(0, key*g_cust_per_dist+(cid-1), key);
+		}
 	}
 }
 

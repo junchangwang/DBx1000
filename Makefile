@@ -11,15 +11,20 @@ CFLAGS += $(INCLUDE) -D NOGRAPHITE=1 -Werror
 LDFLAGS = -L. -pthread -lrt -ljemalloc 
 LDFLAGS += -L./NB-UpBit/build -lbitmap
 LDFLAGS += -L/usr/lib/x86_64-linux-gnu -lboost_filesystem -lboost_program_options -lboost_system -lurcu -latomic
+LIBBITMAP = NB-UpBit/build/libbitmap.a
 
 CPPS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)*.cpp))
 OBJS = $(CPPS:.cpp=.o)
 DEPS = $(CPPS:.cpp=.d)
 
-all:rundb
+all: rundb
 
-rundb : $(OBJS)
+rundb: $(OBJS) $(LIBBITMAP)
 	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(LIBBITMAP):
+	git clone -b multi-threaded git@github.com:junchangwang/NB-UpBit.git
+	cd NB-UpBit && ./build.sh
 
 -include $(OBJS:%.o=%.d)
 
