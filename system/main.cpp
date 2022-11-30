@@ -189,7 +189,7 @@ int verify_bitmap(workload * m_wl)
 	else if (wl->bitmap_c_w_id->config->approach == "nbub-lk") {
 		uint64_t last_rub = 0UL;
 		int ROW_ID = 6;
-		nbub_lk::NbubLK *bitmap = dynamic_cast<nbub_lk::NbubLK*>(wl->bitmap_c_w_id);
+		nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub*>(wl->bitmap_c_w_id);
 		assert(bitmap->get_value_rcu(ROW_ID-1, bitmap->g_timestamp, &last_rub) == 
 					bitmap->get_value_rcu(0, bitmap->g_timestamp, &last_rub));
 		int old_val = bitmap->get_value_rcu(ROW_ID, bitmap->g_timestamp, &last_rub);
@@ -208,9 +208,16 @@ int verify_bitmap(workload * m_wl)
 		bitmap->evaluate(0, to_val);
 		this_thread::sleep_for(1ms);
 		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 0);
+		assert(bitmap->bitmaps[to_val]->btv->getBit(ROW_ID, bitmap->config) == 0);
+		this_thread::sleep_for(1ms);
+		bitmap->evaluate(0, old_val);
+		bitmap->evaluate(0, to_val); 
+		this_thread::sleep_for(1ms);
+		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 0);
 		assert(bitmap->bitmaps[to_val]->btv->getBit(ROW_ID, bitmap->config) == 1);
 
-		cout << "[CUBIT]: verify_bitmap succeeds: " << wl->bitmap_c_w_id->evaluate(0, 0) << endl;
+		cout << "[CUBIT]: verify_bitmap by moving row " << ROW_ID
+		<< " from " << old_val << " to " << to_val << endl;
 	}
 
 	rcu_unregister_thread();
