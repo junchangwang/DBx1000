@@ -24,23 +24,11 @@ public:
 	uint32_t next_tid;
 private:
 	uint64_t num_wh;
-	void init_tab_item();
-	void init_tab_wh(uint32_t wid);
-	void init_tab_dist(uint64_t w_id);
-	void init_tab_stock(uint64_t w_id);
-	void init_tab_cust(uint64_t d_id, uint64_t w_id);
-	void init_tab_hist(uint64_t c_id, uint64_t d_id, uint64_t w_id);
-	void init_tab_order(uint64_t d_id, uint64_t w_id);
+	void init_tab_lineitem();
+	void init_tab_order(uint32_t wid);
 	
-	void init_permutation(uint64_t * perm_c_id, uint64_t wid);
 
-	static void * threadInitItem(void * This);
-	static void * threadInitWh(void * This);
-	static void * threadInitDist(void * This);
-	static void * threadInitStock(void * This);
-	static void * threadInitCust(void * This);
-	static void * threadInitHist(void * This);
-	static void * threadInitOrder(void * This);
+	void init_permutation(uint64_t * perm_c_id, uint64_t wid);
 
 	static void * threadInitWarehouse(void * This);
 };
