@@ -10,6 +10,7 @@
 #include "vll.h"
 #include "ycsb_query.h"
 #include "tpcc_query.h"
+#include "tpch_query.h"
 #include "mem_alloc.h"
 #include "test.h"
 

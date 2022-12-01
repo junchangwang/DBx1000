@@ -63,9 +63,9 @@ RC tpch_wl::init_table() {
 }
 
 RC tpch_wl::get_txn_man(txn_man *& txn_manager, thread_t * h_thd) {
-	// txn_manager = (tpcc_txn_man *) _mm_malloc( sizeof(tpcc_txn_man), 64);
-	// new(txn_manager) tpcc_txn_man();
-	// txn_manager->init(h_thd, this, h_thd->get_thd_id());
+	txn_manager = (tpch_txn_man *) _mm_malloc( sizeof(tpch_txn_man), 64);
+	new(txn_manager) tpch_txn_man();
+	txn_manager->init(h_thd, this, h_thd->get_thd_id());
 	return RCOK;
 }
 
@@ -85,11 +85,11 @@ void tpch_wl::init_tab_lineitem() {
 			row->set_primary_key(i);
 			row->set_value(L_ORDERKEY, i);
 			row->set_value(L_LINENUMBER, lcnt+666);
-			row->set_value(L_TAX, URand(0, 8, 0));
-			row->set_value(L_EXTENDEDPRICE, URand(0, 1000, 0));
-			row->set_value(L_DISCOUNT, URand(0, 10, 0)); 
+			row->set_value(L_TAX, (double)URand(0, 8, 0));
+			row->set_value(L_EXTENDEDPRICE, (double)URand(0, 1000, 0));
+			row->set_value(L_DISCOUNT, (double)URand(0, 10, 0)); 
 			row->set_value(L_SHIPDATE, URand(2000, 2022, 0));
-			row->set_value(L_QUANTITY,URand(0, 1000, 0));
+			row->set_value(L_QUANTITY, (double)URand(0, 1000, 0));
 
 			//Index 
 			index_insert(i_lineitem, i, row, 0);

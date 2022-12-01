@@ -6,7 +6,7 @@
 
 class table_t;
 class INDEX;
-class tpcc_query;
+class tpch_query;
 
 class tpch_wl : public workload {
 public:
@@ -40,11 +40,8 @@ public:
 	RC run_txn(base_query * query);
 private:
 	tpch_wl * _wl;
-	RC run_payment(tpcc_query * m_query);
-	RC run_new_order(tpcc_query * m_query);
-	RC run_order_status(tpcc_query * query);
-	RC run_delivery(tpcc_query * query);
-	RC run_stock_level(tpcc_query * query);
+	RC run_Q6(tpch_query * m_query);
+
 };
 
 #endif
