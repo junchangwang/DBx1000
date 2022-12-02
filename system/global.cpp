@@ -35,6 +35,7 @@ ts_t g_timeout = TIMEOUT;
 ts_t g_dl_loop_detect = DL_LOOP_DETECT;
 bool g_ts_batch_alloc = TS_BATCH_ALLOC;
 UInt32 g_ts_batch_num = TS_BATCH_NUM;
+uint64_t g_total_line_in_lineitems = 0;
 
 bool g_part_alloc = PART_ALLOC;
 bool g_mem_pad = MEM_PAD;

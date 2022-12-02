@@ -27,6 +27,7 @@ public:
 	void init();
 	void insert_item(idx_key_t key, itemid_t * item, int part_id);
 	void read_item(idx_key_t key, itemid_t * &item, const char * tname);
+	bool exist_item(idx_key_t key);
 	BucketNode * 	first_node;
 	uint64_t 		node_cnt;
 	bool 			locked;
@@ -40,7 +41,8 @@ public:
 	RC 			init(int part_cnt, 
 					table_t * table, 
 					uint64_t bucket_cnt);
-	bool 		index_exist(idx_key_t key); // check if the key exist.
+	bool 		index_exist(idx_key_t key, int part_id); // check if the key exist.
+	bool 		index_exist(idx_key_t key); 
 	RC 			index_insert(idx_key_t key, itemid_t * item, int part_id=-1);
 	// the following call returns a single item
 	RC	 		index_read(idx_key_t key, itemid_t * &item, int part_id=-1);	

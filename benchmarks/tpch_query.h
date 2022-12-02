@@ -26,6 +26,7 @@ public:
 	int64_t date;
 	double discount;
 	double quantity;
+	
 
 
 

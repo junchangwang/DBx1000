@@ -31,14 +31,19 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 	INDEX * index = _wl->i_lineitem;
 	
 	//trx d
-	int64_t revenue = 0;
-	uint64_t max_item = 10000;
-	for (uint64_t i = 0; i < max_item; ++i) {
+	double revenue = 0;
+	//uint64_t max_item = 10000;
+	g_total_line_in_lineitems = 10000;
+	for (uint64_t i = 1; i <= g_total_line_in_lineitems; ++i) {
 		//cout << endl << "iiiii = " << i << endl;
+		if ( !index->index_exist(i, 0) ){
+			//cout << i << " NOT EXIST!" << endl;
+			continue;
+		}
 		item = index_read(index, i, 0);
 		assert(item != NULL);
 		row_t * r_lt = ((row_t *)item->location);
-		row_t * r_lt_local = get_row(r_lt, WR);
+		row_t * r_lt_local = get_row(r_lt, RD);
 		if (r_lt_local == NULL) {
 			return finish(Abort);
 		}
@@ -51,8 +56,11 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 		double l_quantity;
 		r_lt_local->get_value(L_QUANTITY, l_quantity);
 
-		if (l_shipdate >= query->date &&
-			l_shipdate <= query->date + 11){
+		if (l_shipdate >= query->date 
+			&& l_shipdate < query->date + 1 
+			&& l_discount >= query->discount - 0.01 
+			&& l_discount <= query->discount + 0.01 
+			&& l_quantity < query->quantity){
 				double l_extendedprice;
 				r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
 				revenue += l_extendedprice * l_discount;

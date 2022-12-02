@@ -71,28 +71,46 @@ RC tpch_wl::get_txn_man(txn_man *& txn_manager, thread_t * h_thd) {
 
 void tpch_wl::init_tab_lineitem() {
 	cout << "initializing LINEITEM table" << endl;
-	//uint64_t lines = URand(1, 7, 0);
-	uint64_t lines = 1;
+	//uint64_t lines = 1;
 	uint64_t max_lineitem = 10000;
-
-	for (uint64_t i = 0; i < max_lineitem; i++) {
-		for (uint64_t lcnt = 0; lcnt < lines; lcnt++) {
+	g_total_line_in_lineitems += max_lineitem ;
+	for (uint64_t i = 1; i <= max_lineitem; i++) {
+		uint64_t lines = URand(1, 7, 0);
+		g_total_line_in_lineitems += lines;
+		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
 			row_t * row;
 			uint64_t row_id;
 			t_lineitem->get_new_row(row, 0, row_id);
 
-			//Populate data
+			// Populate data
+			// Primary key
 			row->set_primary_key(i);
 			row->set_value(L_ORDERKEY, i);
-			row->set_value(L_LINENUMBER, lcnt+666);
+			row->set_value(L_LINENUMBER, lcnt);
+
+			// Related data
+			row->set_value(L_EXTENDEDPRICE, (double)URand(0, 1000, 0)); // To be fixed
+			row->set_value(L_DISCOUNT, ((double)URand(0, 10, 0)) / 100); 
+			row->set_value(L_SHIPDATE, URand(1990, 2020, 0));	 // To be fixed, O_ORDERDATE + random value[1.. 121]
+			// O_ORDERDATE(in table ORDER)should be chosen randomly from [1992.01.01-1998.12.31]. 
+			row->set_value(L_QUANTITY, (double)URand(1, 50, 0)); 
+			row->set_value(L_PARTKEY, (uint64_t)123456); //May be used 
+
+			//Unrelated data
+			row->set_value(L_SUPPKEY, (uint64_t)123456);
 			row->set_value(L_TAX, (double)URand(0, 8, 0));
-			row->set_value(L_EXTENDEDPRICE, (double)URand(0, 1000, 0));
-			row->set_value(L_DISCOUNT, (double)URand(0, 10, 0)); 
-			row->set_value(L_SHIPDATE, URand(2000, 2022, 0));
-			row->set_value(L_QUANTITY, (double)URand(0, 1000, 0));
+			row->set_value(L_RETURNFLAG, 'a');
+			row->set_value(L_LINESTATUS, 'b');
+			row->set_value(L_COMMITDATE, (uint64_t)2022);
+			row->set_value(L_RECEIPTDATE, (uint64_t)2022);
+			char temp[20];
+			MakeAlphaString(10, 19, temp, 0);
+			row->set_value(L_SHIPINSTRUCT, temp);
+			row->set_value(L_SHIPMODE, temp);
+			row->set_value(L_COMMENT, temp);
 
 			//Index 
-			index_insert(i_lineitem, i, row, 0);
+			index_insert(i_lineitem, i + lcnt, row, 0);
 		}
 	}
 	

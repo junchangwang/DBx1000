@@ -86,6 +86,7 @@ extern ts_t g_timeout;
 extern ts_t g_dl_loop_detect;
 extern bool g_ts_batch_alloc;
 extern UInt32 g_ts_batch_num;
+extern uint64_t g_total_line_in_lineitems;
 
 extern map<string, string> g_params;
 
