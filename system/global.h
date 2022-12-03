@@ -86,7 +86,6 @@ extern ts_t g_timeout;
 extern ts_t g_dl_loop_detect;
 extern bool g_ts_batch_alloc;
 extern UInt32 g_ts_batch_num;
-extern uint64_t g_total_line_in_lineitems;
 
 extern map<string, string> g_params;
 
@@ -112,6 +111,13 @@ extern UInt32 g_max_items;
 extern UInt32 g_cust_per_dist;
 
 enum RC { RCOK, Commit, Abort, WAIT, ERROR, FINISH};
+
+//TPCH
+extern uint64_t g_total_line_in_lineitems;
+extern uint64_t g_max_lineitem;
+extern uint64_t STARTDATE;
+extern uint64_t ENDDATE;
+extern uint64_t CURRENTDATE;
 
 /* Thread */
 typedef uint64_t txnid_t;

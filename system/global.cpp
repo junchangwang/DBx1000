@@ -35,7 +35,6 @@ ts_t g_timeout = TIMEOUT;
 ts_t g_dl_loop_detect = DL_LOOP_DETECT;
 bool g_ts_batch_alloc = TS_BATCH_ALLOC;
 UInt32 g_ts_batch_num = TS_BATCH_NUM;
-uint64_t g_total_line_in_lineitems = 0;
 
 bool g_part_alloc = PART_ALLOC;
 bool g_mem_pad = MEM_PAD;
@@ -59,6 +58,13 @@ UInt32 g_num_wh = NUM_WH;
 double g_perc_payment = PERC_PAYMENT;
 bool g_wh_update = WH_UPDATE;
 char * output_file = NULL;
+
+// TPCH
+uint64_t g_total_line_in_lineitems = 0;
+uint64_t g_max_lineitem = 10000;
+uint64_t STARTDATE = 92001; // 1992.01.01
+uint64_t ENDDATE = 98365; // 1998.12.31
+uint64_t CURRENTDATE = 95168; //1995.06.17
 
 map<string, string> g_params;
 

@@ -24,7 +24,10 @@ void tpch_query::gen_Q6(uint64_t thd_id) {
 	part_num = 1;
 
 	//Q6 related vars
-	date = URand(1993, 1997, 0);
+	// from 93~97,+(1,365)
+	uint64_t year = URand(93, 97, 0);
+	uint64_t day = URand(1, 365, 0);
+	date = (uint64_t)(year * 1000 + day);
 	discount = ((double)URand(2, 9, 0)) / 100;
 	quantity = URand(24, 25, 0);
 

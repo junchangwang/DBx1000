@@ -30,14 +30,15 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 	itemid_t * item;
 	INDEX * index = _wl->i_lineitem;
 	
-	//trx d
+	// txn
 	double revenue = 0;
-	//uint64_t max_item = 10000;
-	g_total_line_in_lineitems = 10000;
-	for (uint64_t i = 1; i <= g_total_line_in_lineitems; ++i) {
-		//cout << endl << "iiiii = " << i << endl;
+	// uint64_t max_item = 10000;
+	g_total_line_in_lineitems = 10000;	// To be fixed
+	uint64_t max_number = 7*10000;
+	for (uint64_t i = 1; i <= max_number; ++i) {
+		// cout << endl << "iiiii = " << i << endl;
 		if ( !index->index_exist(i, 0) ){
-			//cout << i << " NOT EXIST!" << endl;
+			// cout << i << " NOT EXIST!" << endl;
 			continue;
 		}
 		item = index_read(index, i, 0);
@@ -48,8 +49,8 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 			return finish(Abort);
 		}
 
-		//begin
-		int64_t l_shipdate;
+		// begin
+		uint64_t l_shipdate;
 		r_lt_local->get_value(L_SHIPDATE, l_shipdate);
 		double l_discount;
 		r_lt_local->get_value(L_DISCOUNT, l_discount);
@@ -57,7 +58,7 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 		r_lt_local->get_value(L_QUANTITY, l_quantity);
 
 		if (l_shipdate >= query->date 
-			&& l_shipdate < query->date + 1 
+			&& l_shipdate < (uint64_t)(query->date + 100) 
 			&& l_discount >= query->discount - 0.01 
 			&& l_discount <= query->discount + 0.01 
 			&& l_quantity < query->quantity){

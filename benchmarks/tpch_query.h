@@ -23,7 +23,7 @@ public:
 	// txn input for Q6
 	/**********************************************/	
 	uint64_t id; // Not used in tpch query
-	int64_t date;
+	uint64_t date;
 	double discount;
 	double quantity;
 	
