@@ -17,6 +17,9 @@ void tpcc_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 
 RC tpcc_txn_man::run_txn(base_query * query) {
 	tpcc_query * m_query = (tpcc_query *) query;
+#if TPCC_EVA_CUBIT
+	return evaluate_index(m_query);
+#else
 	switch (m_query->type) {
 		case TPCC_PAYMENT :
 			return run_payment(m_query); break;
@@ -31,7 +34,86 @@ RC tpcc_txn_man::run_txn(base_query * query) {
 		default:
 			assert(false);
 	}
+#endif
 }
+
+RC tpcc_txn_man::evaluate_index(tpcc_query * query) 
+{
+	RC rc = RCOK;
+	itemid_t * item;
+
+	// m_lock is used to sequentially debug and execute evaluate_index()
+	// to evaluate CUBIT. It can be removed in real code.
+	static std::mutex m_lock;
+	std::lock_guard<std::mutex> gard(m_lock);
+
+	// Assume the query arguments specified by the programmer.
+	uint64_t c_w_id = 0;
+	uint64_t c_d_id = 4;
+	std::string t_last = "OUGHTESEPRI";
+
+	/*==========================================================+
+		To evaluate CUBIT, we perform the following query:
+
+		EXEC SQL SELECT c_id INTO :c_ids
+		FROM customer
+		WHERE c_d_id=:c_d_id AND c_w_id=:c_w_id;
+
+		which is a notable sub query of use cases such as the following
+
+		EXEC SQL SELECT count(c_id) INTO :namecnt
+		FROM customer
+		WHERE c_last=:c_last AND c_d_id=:c_d_id AND c_w_id=:c_w_id;
+	+==========================================================*/
+
+	int cnt = 0;
+	int tmp = 0;
+	uint64_t key = distKey(c_d_id, c_w_id);
+	INDEX * index = _wl->i_customers;
+	item = index_read(index, key, wh_to_part(query->c_w_id));
+	assert(item != NULL);
+
+	auto start = std::chrono::high_resolution_clock::now();
+	for (tmp = 0; item; tmp++) {
+		row_t *r_cust = ((row_t *)item->location);
+		row_t *r_cust_local = get_row(r_cust, RD);
+		if (r_cust_local == NULL) {
+			return RCOK;
+		}
+
+		// For a fair comparasion, we don't touch the memory of the tuple
+		// to avoid cache misses.
+
+		// char c_last[LASTNAME_LEN];
+		// char *tmp_str = r_cust_local->get_value(C_LAST);
+		// memcpy(c_last, tmp_str, LASTNAME_LEN-1);
+		// c_last[LASTNAME_LEN-1] = '\0';
+
+		// if (!strcmp(t_last.c_str(), c_last)) {
+		// 	cnt ++;
+		// }
+
+		item = item->next;
+	}
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout << "HashTable: Loop times: " << tmp << ". Found string times: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	cout << "Memory concumption (Bytes): " << index->index_size() << endl;
+
+	start = std::chrono::high_resolution_clock::now();
+	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_c_w_id);
+	tmp = bitmap->evaluate(0, key);
+	tmp = bitmap->bitmaps[key]->btv->count();
+	end = std::chrono::high_resolution_clock::now();
+	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout << "Bitmap: Loop times: " << tmp << ". Found string times: " << cnt << 
+			". Microseconds: " << time_elapsed_ms << ". Memory concumption (Bytes): " << endl;
+	dynamic_cast<nbub_lk::NbubLK *>(bitmap)->printMemory();
+
+	exit(rc);
+	return rc;
+}
+
 
 RC tpcc_txn_man::run_payment(tpcc_query * query) {
 	RC rc = RCOK;

@@ -39,6 +39,7 @@ public:
 	INDEX * 	i_district;
 	INDEX * 	i_customer_id;
 	INDEX * 	i_customer_last;
+	INDEX *		i_customers;
 	INDEX * 	i_stock;
 	INDEX * 	i_order; // key = (w_id, d_id, o_id)
 	INDEX * 	i_orderline; // key = (w_id, d_id, o_id)
@@ -83,6 +84,7 @@ private:
 	RC run_order_status(tpcc_query * query);
 	RC run_delivery(tpcc_query * query);
 	RC run_stock_level(tpcc_query * query);
+	RC evaluate_index(tpcc_query *query);
 };
 
 #endif

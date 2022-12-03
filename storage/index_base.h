@@ -25,6 +25,8 @@ public:
 
 	// TODO implement index_remove
 	virtual RC 			index_remove(idx_key_t key) { return RCOK; };
+
+	virtual int 		index_size() = 0;
 	
 	// the index in on "table". The key is the merged key of "fields"
 	table_t * 			table;

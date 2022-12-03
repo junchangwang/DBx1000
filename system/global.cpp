@@ -62,8 +62,8 @@ char * output_file = NULL;
 map<string, string> g_params;
 
 #if TPCC_SMALL
-UInt32 g_max_items = 10000;
-UInt32 g_cust_per_dist = 2000;
+UInt32 g_max_items = 15000;
+UInt32 g_cust_per_dist = 3000;
 #else 
 UInt32 g_max_items = 100000;
 UInt32 g_cust_per_dist = 3000;

@@ -25,6 +25,12 @@ RC index_btree::init(uint64_t part_cnt, table_t * table) {
 	return RCOK;
 }
 
+int index_btree::index_size() {
+	cout << "FIXME: To be implemented" << endl;
+
+	return -1;
+}
+
 bt_node * index_btree::find_root(uint64_t part_id) {
 	assert (part_id < part_cnt);
 	return roots[part_id];

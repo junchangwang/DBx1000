@@ -108,7 +108,7 @@
 // Benchmark
 /***********************************************/
 // max number of rows touched per transaction
-#define MAX_ROW_PER_TXN				64
+#define MAX_ROW_PER_TXN				6400
 #define QUERY_INTVL 				1UL
 #define MAX_TXN_PER_PART 			100000
 #define FIRST_PART_LOCAL 			true
@@ -134,7 +134,8 @@
 // are not modeled.
 #define TPCC_ACCESS_ALL 			false 
 #define WH_UPDATE					true
-#define NUM_WH 						1
+#define NUM_WH 						4
+#define TPCC_EVA_CUBIT				true
 //
 enum TPCCTxnType {TPCC_ALL, 
 				TPCC_PAYMENT, 

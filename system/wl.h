@@ -21,7 +21,6 @@ public:
 	// tables indexed by table name
 	map<string, table_t *> tables;
 	map<string, INDEX *> indexes;
-
 	
 	// initialize the tables and indexes.
 	virtual RC init();

@@ -15,6 +15,37 @@ RC IndexHash::init(uint64_t bucket_cnt, int part_cnt) {
 	return RCOK;
 }
 
+int IndexHash::index_size() 
+{
+	int size = 0;
+	int item_cnt = 0;
+	BucketHeader * bucket;
+	BucketNode * cur_node;
+	itemid_t * item;
+	int part_cnt = _bucket_cnt / _bucket_cnt_per_part;
+	int bucket_cnt_per_part = _bucket_cnt_per_part;
+
+	for (int i = 0; i < part_cnt; i++) {
+		for (int j = 0; j < bucket_cnt_per_part; j++) {
+				bucket = &_buckets[i][j];
+				cur_node = bucket->first_node;
+				while (cur_node != NULL) {
+					item = cur_node->items;
+					while (item != NULL) {
+						item_cnt ++;
+						size += sizeof(*item);
+						item = item->next;
+					}
+					cur_node = cur_node->next;
+				}
+		}
+	}
+
+	cout << "Number of items in the Hashtable: " << item_cnt <<
+			". Size in bytes: " << size << endl;
+	return size;
+}
+
 RC 
 IndexHash::init(int part_cnt, table_t * table, uint64_t bucket_cnt) {
 	init(bucket_cnt, part_cnt);
