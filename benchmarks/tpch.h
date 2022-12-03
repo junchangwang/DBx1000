@@ -19,7 +19,8 @@ public:
 
 	INDEX * 	i_orders;
 	INDEX * 	i_lineitem;
-	
+	INDEX * 	i_Q6_index;
+
 	bool ** delivering;
 	uint32_t next_tid;
 private:
@@ -42,6 +43,7 @@ public:
 private:
 	tpch_wl * _wl;
 	RC run_Q6(tpch_query * m_query);
+	RC run_Q6_index(tpch_query * m_query);
 
 };
 

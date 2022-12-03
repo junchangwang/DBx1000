@@ -31,7 +31,8 @@ RC tpch_wl::init_schema(const char * schema_file) {
     t_orders = tables["ORDERS"];
 
 	i_lineitem = indexes["LINEITEM_IDX"];
-	i_orders = indexes["ORDERS_IDX"];
+	i_orders = indexes["ORDERS_IDX"];\
+	i_Q6_index = indexes["Q6_IDX"];
 	return RCOK;
 }
 
@@ -195,7 +196,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			row2->set_value(L_PARTKEY, partkey); //To be fixed, it is an unique number! and related to SF*200,000
 			uint64_t p_retailprice = (uint64_t)((90000 + ((partkey / 10) % 20001) + 100 *(partkey % 1000)) /100); // Defined in table PART
 			row2->set_value(L_EXTENDEDPRICE, (double)(quntity * p_retailprice)); // 
-			row2->set_value(L_DISCOUNT, ((double)URand(0, 10, 0)) / 100); 
+			uint64_t discount = URand(0, 10, 0); //discount is defined as int for Q6
+			row2->set_value(L_DISCOUNT, ((double)discount) / 100); 
 			uint64_t shipdate = orderdate + URand(1, 121, 0);
 			row2->set_value(L_SHIPDATE, shipdate);	 //  O_ORDERDATE + random value[1.. 121]
 
@@ -217,6 +219,10 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			index_insert(i_lineitem, (uint64_t)(i * 8 + lcnt), row2, 0);
 			//index_insert(i_lineitem, i, row2, 0);
 
+
+			// Q6 index
+			uint64_t Q6_key = (uint64_t)((shipdate * 12 + discount) * 26 + quntity); 
+			index_insert(i_Q6_index, Q6_key, row2, 0);
 		}
 	}	
 }

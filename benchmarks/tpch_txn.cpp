@@ -19,7 +19,8 @@ RC tpch_txn_man::run_txn(base_query * query) {
 	tpch_query * m_query = (tpch_query *) query;
 	switch (m_query->type) {
 		case TPCH_Q6 :
-			return run_Q6(m_query); break;
+			//return run_Q6(m_query); break;
+			return run_Q6_index(m_query); break;
 		default:
 			assert(false);
 	}
@@ -69,6 +70,65 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 	}
 	cout << endl << "********revenue is *********" << revenue << endl; 
 
+	assert( rc == RCOK );
+	return finish(rc);
+}
+
+RC tpch_txn_man::run_Q6_index(tpch_query * query) {
+	RC rc = RCOK;
+	itemid_t * item;
+	uint64_t key;
+	double revenue;
+	INDEX * index = _wl->i_Q6_index;
+	uint64_t date = query->date;	// + 1 year
+	uint64_t discount = (uint64_t)(query->discount * 100); // +1 -1
+	double quantity = query->quantity;
+	uint64_t year = date / 1000;
+	uint64_t day = date % 1000;
+	uint64_t diff = 365 - day;
+	uint64_t year1 = date;
+	for (uint64_t i = year1; i <= year1 + diff; i++) {
+		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
+			key = (uint64_t)((i * 12 + j) * 26 + (uint64_t)quantity);
+			if ( !index->index_exist(key, 0) ){
+				// cout << i << " NOT EXIST!" << endl;
+				continue;
+			}	
+			item = index_read(index, key, 0);
+			assert(item != NULL);
+			row_t * r_lt = ((row_t *)item->location);
+			row_t * r_lt_local = get_row(r_lt, RD);
+			if (r_lt_local == NULL) {
+				return finish(Abort);
+			}
+			double l_extendedprice;
+			r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+			revenue += l_extendedprice * discount;
+		}
+	}
+
+	// year2
+	uint64_t year2 = (uint64_t)((year + 1)*1000 + 1);
+	for (uint64_t i = year2; i <= year2 + day; i++) {
+		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
+			key = (uint64_t)((i * 12 + j) * 26 + (uint64_t)quantity);
+			if ( !index->index_exist(key, 0) ){
+				// cout << i << " NOT EXIST!" << endl;
+				continue;
+			}	
+			item = index_read(index, key, 0);
+			assert(item != NULL);
+			row_t * r_lt = ((row_t *)item->location);
+			row_t * r_lt_local = get_row(r_lt, RD);
+			if (r_lt_local == NULL) {
+				return finish(Abort);
+			}
+			double l_extendedprice;
+			r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+			revenue += l_extendedprice * discount;
+		}
+	}
+	cout << endl << "********revenue is *********" << revenue << endl;
 	assert( rc == RCOK );
 	return finish(rc);
 }
