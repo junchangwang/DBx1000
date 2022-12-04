@@ -28,6 +28,7 @@ private:
 	void init_tab_lineitem();
 	void init_tab_order();
 	void init_tab_orderAndLineitem();
+	void init_test();
 	
 
 	void init_permutation(uint64_t * perm_c_id, uint64_t wid);
