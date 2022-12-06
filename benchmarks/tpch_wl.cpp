@@ -31,7 +31,7 @@ RC tpch_wl::init_schema(const char * schema_file) {
     t_orders = tables["ORDERS"];
 
 	i_lineitem = indexes["LINEITEM_IDX"];
-	i_orders = indexes["ORDERS_IDX"];\
+	i_orders = indexes["ORDERS_IDX"];
 	i_Q6_index = indexes["Q6_IDX"];
 	return RCOK;
 }
@@ -97,7 +97,7 @@ void tpch_wl::init_tab_lineitem() {
 			row->set_value(L_COMMENT, temp);
 
 			//Index 
-			index_insert(i_lineitem, i + lcnt, row, 0);
+			index_insert(i_lineitem, i, row, 0);
 		}
 	}
 	
@@ -138,7 +138,7 @@ void tpch_wl::init_tab_order() {
 }
 
 void tpch_wl::init_tab_orderAndLineitem() {
-	cout << "initializing ORDER table" << endl;	
+	cout << "initializing ORDER and LINEITEM table" << endl;	
 	for (uint64_t i = 1; i <= g_max_lineitem; ++i) {
 		row_t * row;
 		uint64_t row_id;
@@ -176,8 +176,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 
 		// **********************Lineitems*****************************************
 
-		// uint64_t lines = URand(1, 7, 0);
-		uint64_t lines = 1;
+		uint64_t lines = URand(1, 7, 0);
+		// uint64_t lines = 1;
 		g_total_line_in_lineitems += lines;
 		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
 			row_t * row2;
@@ -186,7 +186,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 
 			// Populate data
 			// Primary key
-			row2->set_primary_key((uint64_t)(i * 8 + lcnt));
+			row2->set_primary_key(tpch_lineitemKey(i, lcnt));
 			row2->set_value(L_ORDERKEY, i);
 			row2->set_value(L_LINENUMBER, lcnt);
 
@@ -201,7 +201,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			row2->set_value(L_DISCOUNT, ((double)discount) / 100); 
 			uint64_t shipdate;
 			uint64_t dayAdd = URand(1, 121, 0);
-			if (day + dayAdd > 365) {
+			if (day + dayAdd > (uint64_t)365) {
 				shipdate = (uint64_t)((year+1) * 1000 + day + dayAdd - 365);
 			} else {
 				shipdate = (uint64_t) (year *1000 + day + dayAdd);
@@ -234,14 +234,12 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			row2->set_value(L_COMMENT, temp);
 
 			//Index 
-			// cout << " lineitem key = " << (uint64_t)(i * 8 + lcnt) << endl;
-			// index_insert(i_lineitem, (uint64_t)(i * 10 + lcnt), row2, 0);
-			index_insert(i_lineitem, i, row2, 0);
+			uint64_t key = tpch_lineitemKey(i, lcnt);
+			index_insert(i_lineitem, key, row2, 0);
 
 
 			// Q6 index
-			// uint64_t Q6_key = (uint64_t)((shipdate * 12 + discount) * 26 + (uint64_t)quntity); 
-			uint64_t Q6_key = tpch_lineitemKey(shipdate, discount, (uint64_t)quntity);
+			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quntity);
 			// cout << "Q6_insert_key = " << Q6_key << endl; 
 			index_insert(i_Q6_index, Q6_key, row2, 0);
 		}
@@ -273,89 +271,90 @@ void tpch_wl::init_test() {
 
 		// **********************Lineitems*****************************************
 	// ###################################11111111111111
-	row_t * row2;
-	uint64_t row_id2;
-	t_lineitem->get_new_row(row2, 0, row_id2);
-	// Primary key
-	uint64_t i = 1;
-	uint64_t lcnt = 1;
-	uint64_t key1 = (uint64_t)(i * 8 + lcnt);
-	row2->set_primary_key(key1);
-	row2->set_value(L_ORDERKEY, i);
-	row2->set_value(L_LINENUMBER, lcnt);
+	for (uint64_t i = 1; i <= g_max_lineitem; ++i) {
+		row_t * row2;
+		uint64_t row_id2;
+		t_lineitem->get_new_row(row2, 0, row_id2);
+		// Primary key
+		// uint64_t i = 1;
+		uint64_t lcnt = 1;
+		// uint64_t key1 = (uint64_t)(i * 8 + lcnt);
+		row2->set_primary_key(i);
+		row2->set_value(L_ORDERKEY, i);
+		row2->set_value(L_LINENUMBER, lcnt);
 
-	// Related data
-	double quntity = (double)23;
-	double exprice = (double)100;
-	double discount = (double)0.06;
-	uint64_t shipdate = (uint64_t) 96221;
-	row2->set_value(L_QUANTITY, quntity); 	
-	row2->set_value(L_EXTENDEDPRICE, exprice); 
-	row2->set_value(L_DISCOUNT, discount);
-	row2->set_value(L_SHIPDATE,shipdate );	
+		// Related data
+		double quntity = (double)23;
+		double exprice = (double)100;
+		double discount = (double)0.06;
+		uint64_t shipdate = (uint64_t) 96221;
+		row2->set_value(L_QUANTITY, quntity); 	
+		row2->set_value(L_EXTENDEDPRICE, exprice); 
+		row2->set_value(L_DISCOUNT, discount);
+		row2->set_value(L_SHIPDATE,shipdate );	
+
+		//Index 
+		index_insert(i_lineitem, tpch_lineitemKey(i,lcnt), row2, 0);
+		// Q6 index
+		uint64_t Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+		index_insert(i_Q6_index, Q6_key, row2, 0);
+	}
+
+	// // ###################################222222222222222
+	// // row_t * row2;
+	// // uint64_t row_id2;
+	// t_lineitem->get_new_row(row2, 0, row_id2);
+	// // Primary key
+	// i = 1000;
+	// lcnt = 1;
+	// key1 = (uint64_t)(i * 8 + lcnt);
+	// row2->set_primary_key(key1);
+	// row2->set_value(L_ORDERKEY, i);
+	// row2->set_value(L_LINENUMBER, lcnt);
+
+	// // Related data
+	// quntity = (double)23;
+	// exprice = (double)100;
+	// discount = (double)0.06;
+	// shipdate = (uint64_t) 96222;
+	// row2->set_value(L_QUANTITY, quntity); 	
+	// row2->set_value(L_EXTENDEDPRICE, exprice); 
+	// row2->set_value(L_DISCOUNT, discount);
+	// row2->set_value(L_SHIPDATE,shipdate );	
 	
-	//Index 
-	index_insert(i_lineitem, key1, row2, 0);
-	// Q6 index
-	uint64_t Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
-	index_insert(i_Q6_index, Q6_key, row2, 0);
-
-
-	// ###################################222222222222222
-	// row_t * row2;
-	// uint64_t row_id2;
-	t_lineitem->get_new_row(row2, 0, row_id2);
-	// Primary key
-	i = 1000;
-	lcnt = 1;
-	key1 = (uint64_t)(i * 8 + lcnt);
-	row2->set_primary_key(key1);
-	row2->set_value(L_ORDERKEY, i);
-	row2->set_value(L_LINENUMBER, lcnt);
-
-	// Related data
-	quntity = (double)23;
-	exprice = (double)100;
-	discount = (double)0.06;
-	shipdate = (uint64_t) 96222;
-	row2->set_value(L_QUANTITY, quntity); 	
-	row2->set_value(L_EXTENDEDPRICE, exprice); 
-	row2->set_value(L_DISCOUNT, discount);
-	row2->set_value(L_SHIPDATE,shipdate );	
-	
-	//Index 
-	index_insert(i_lineitem, key1, row2, 0);
-	// Q6 index
-	Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
-	index_insert(i_Q6_index, Q6_key, row2, 0);
+	// //Index 
+	// index_insert(i_lineitem, key1, row2, 0);
+	// // Q6 index
+	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+	// index_insert(i_Q6_index, Q6_key, row2, 0);
 		
-	// ###################################333333333333333333
-	// row_t * row2;
-	// row_id2;
-	t_lineitem->get_new_row(row2, 0, row_id2);
-	// Primary key
-	i = 1000;
-	lcnt = 2;
-	key1 = (uint64_t)(i * 8 + lcnt);
-	row2->set_primary_key(key1);
-	row2->set_value(L_ORDERKEY, i);
-	row2->set_value(L_LINENUMBER, lcnt);
+	// // ###################################333333333333333333
+	// // row_t * row2;
+	// // row_id2;
+	// t_lineitem->get_new_row(row2, 0, row_id2);
+	// // Primary key
+	// i = 1000;
+	// lcnt = 2;
+	// key1 = (uint64_t)(i * 8 + lcnt);
+	// row2->set_primary_key(key1);
+	// row2->set_value(L_ORDERKEY, i);
+	// row2->set_value(L_LINENUMBER, lcnt);
 
-	// Related data
-	quntity = (double)23;
-	exprice = (double)100;
-	discount = (double)0.06;
-	shipdate = (uint64_t) 96223;
-	row2->set_value(L_QUANTITY, quntity); 	
-	row2->set_value(L_EXTENDEDPRICE, exprice); 
-	row2->set_value(L_DISCOUNT, discount);
-	row2->set_value(L_SHIPDATE,shipdate );	
+	// // Related data
+	// quntity = (double)23;
+	// exprice = (double)100;
+	// discount = (double)0.06;
+	// shipdate = (uint64_t) 96223;
+	// row2->set_value(L_QUANTITY, quntity); 	
+	// row2->set_value(L_EXTENDEDPRICE, exprice); 
+	// row2->set_value(L_DISCOUNT, discount);
+	// row2->set_value(L_SHIPDATE,shipdate );	
 	
-	//Index 
-	index_insert(i_lineitem, key1, row2, 0);
-	// Q6 index
-	Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
-	index_insert(i_Q6_index, Q6_key, row2, 0);
+	// //Index 
+	// index_insert(i_lineitem, key1, row2, 0);
+	// // Q6 index
+	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+	// index_insert(i_Q6_index, Q6_key, row2, 0);
 
 
 	// 	// ###################################4444444444444
