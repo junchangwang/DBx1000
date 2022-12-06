@@ -70,11 +70,11 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 			&& (uint64_t)l_quantity < (uint64_t)query->quantity){
 				
 				// debug
-				cout << "B query_date " << query->date << " " << l_shipdate << endl;
-				cout << "B query_discount " << query->discount << " " << l_discount << endl;
-				cout << "B query_quantity " << query->quantity << " " << l_quantity << endl << endl;
+				// cout << "B query_date " << query->date << " " << l_shipdate << endl;
+				// cout << "B query_discount " << query->discount << " " << l_discount << endl;
+				// cout << "B query_quantity " << query->quantity << " " << l_quantity << endl << endl;
 				
-				cout << "address = " << &r_lt_local->data << endl;
+				// cout << "address = " << &r_lt_local->data << endl;
 
 				double l_extendedprice;
 				r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
@@ -119,18 +119,22 @@ RC tpch_txn_man::run_Q6_index(tpch_query * query) {
 				// cout << "index query_quantity " << query->quantity << " " << k << endl << endl;
 				
 				item = index_read(index, key, 0);
+				itemid_t * local_item = item;
 				assert(item != NULL);
-				row_t * r_lt = ((row_t *)item->location);
-				row_t * r_lt_local = get_row(r_lt, RD);
-				if (r_lt_local == NULL) {
-					return finish(Abort);
+				while (local_item != NULL) {
+					row_t * r_lt = ((row_t *)local_item->location);
+					row_t * r_lt_local = get_row(r_lt, RD);
+					if (r_lt_local == NULL) {
+						return finish(Abort);
+					}
+					// cout << "address = " << &r_lt_local->data << endl;
+					double l_extendedprice;
+					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+					revenue += l_extendedprice * ((double)j / 100);
+
+					local_item = local_item->next;
 				}
 
-				cout << "address = " << &r_lt_local->data << endl;
-
-				double l_extendedprice;
-				r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-				revenue += l_extendedprice * ((double)j / 100);
 			}
 		}
 	}
@@ -154,13 +158,21 @@ RC tpch_txn_man::run_Q6_index(tpch_query * query) {
 				// cout << "index query_quantity " << query->quantity << " " << k << endl << endl;	
 
 				item = index_read(index, key, 0);
+				itemid_t * local_item = item;
 				assert(item != NULL);
-				row_t * r_lt = ((row_t *)item->location);
-				row_t * r_lt_local = get_row(r_lt, RD);
-				if (r_lt_local == NULL) {
-					return finish(Abort);
+				while (local_item != NULL) {
+					row_t * r_lt = ((row_t *)local_item->location);
+					row_t * r_lt_local = get_row(r_lt, RD);
+					if (r_lt_local == NULL) {
+						return finish(Abort);
+					}
+					// cout << "address = " << &r_lt_local->data << endl;
+					double l_extendedprice;
+					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+					revenue += l_extendedprice * ((double)j / 100);
+
+					local_item = local_item->next;
 				}
-				cout << "address = " << &r_lt_local->data << endl;
 				
 				// // debug
 				// uint64_t l_shipdate;
@@ -173,11 +185,6 @@ RC tpch_txn_man::run_Q6_index(tpch_query * query) {
 				// cout << "real row query_discount " << query->discount << " " << l_discount << endl;
 				// cout << "real row query_quantity " << query->quantity << " " << l_quantity << endl << endl;	
 				// cout << "real key" << tpch_lineitemKey_index(l_shipdate, (uint64_t)(l_discount*100), (uint64_t) quantity); 
-
-
-				double l_extendedprice;
-				r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-				revenue += l_extendedprice * ((double)j / 100);
 			}
 		}
 	}

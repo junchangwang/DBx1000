@@ -108,7 +108,7 @@
 // Benchmark
 /***********************************************/
 // max number of rows touched per transaction
-#define MAX_ROW_PER_TXN				100000
+#define MAX_ROW_PER_TXN				1000000
 #define QUERY_INTVL 				1UL
 #define MAX_TXN_PER_PART 			1
 #define FIRST_PART_LOCAL 			true

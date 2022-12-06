@@ -33,7 +33,6 @@ uint64_t stockKey(uint64_t s_i_id, uint64_t s_w_id) {
 }
 uint64_t tpch_lineitemKey_index(uint64_t shipdate, uint64_t discount, uint64_t quantity) {
   //return (uint64_t)((shipdate * 12 + discount) * 52 + quantity);
-  //return (uint64_t)((shipdate * 12 + discount) * 52 + quantity);
   return (uint64_t)((shipdate * 12 + discount) * 52 + quantity);
 
 }

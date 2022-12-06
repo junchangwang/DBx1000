@@ -61,7 +61,7 @@ char * output_file = NULL;
 
 // TPCH
 uint64_t g_total_line_in_lineitems = 0;
-uint64_t g_max_lineitem = (uint64_t)1000;
+uint64_t g_max_lineitem = (uint64_t)100000;
 uint64_t STARTDATE = (uint64_t)92001; // 1992.01.01
 uint64_t ENDDATE = (uint64_t)98365; // 1998.12.31
 uint64_t CURRENTDATE = (uint64_t)95168; //1995.06.17
