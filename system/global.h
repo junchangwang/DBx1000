@@ -118,6 +118,7 @@ extern uint64_t g_max_lineitem;
 extern uint64_t STARTDATE;
 extern uint64_t ENDDATE;
 extern uint64_t CURRENTDATE;
+extern uint64_t SF;
 
 /* Thread */
 typedef uint64_t txnid_t;

@@ -93,6 +93,34 @@ RC IndexHash::index_read(idx_key_t key, itemid_t * &item,
 	return rc;
 }
 
+RC IndexHash::index_remove(idx_key_t key) {
+	uint64_t bkt_idx = hash(key);
+
+	assert(bkt_idx < _bucket_cnt_per_part);
+	BucketHeader * cur_bkt = &_buckets[0][bkt_idx];
+	bool ret = cur_bkt->exist_item(key);
+	if ( !ret ) {
+		// cout << "index_remove! Key " << key << " NOT EXIST!" << endl;
+		return RCOK;
+	} else {
+		BucketNode * cur_node = cur_bkt->first_node;
+		BucketNode * prev_node = NULL;
+		while (cur_node != NULL) {
+			if (cur_node->key == key)
+				break;
+			prev_node = cur_node;
+			cur_node = cur_node->next;
+		}	
+		if (prev_node == NULL) { // head
+			cur_bkt->first_node = cur_node->next; 
+		} else {
+			prev_node->next = cur_node->next;
+		}
+		delete cur_node; // To be fixed!  Memory should be reclaimed!
+	} 
+	return RCOK;
+}
+
 /************** BucketHeader Operations ******************/
 
 void BucketHeader::init() {

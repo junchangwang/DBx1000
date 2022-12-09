@@ -193,8 +193,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			// Related data
 			double quntity = (double)URand(1, 50, 0);
 			row2->set_value(L_QUANTITY, quntity); 
-			uint64_t partkey = URand(1, 10000, 0);	// To be fixed! Related to SF
-			row2->set_value(L_PARTKEY, partkey); //To be fixed, it is an unique number! and related to SF*200,000
+			uint64_t partkey = URand(1, SF * 200000, 0);	// Related to SF
+			row2->set_value(L_PARTKEY, partkey); 
 			uint64_t p_retailprice = (uint64_t)((90000 + ((partkey / 10) % 20001) + 100 *(partkey % 1000)) /100); // Defined in table PART
 			row2->set_value(L_EXTENDEDPRICE, (double)(quntity * p_retailprice)); // 
 			uint64_t discount = URand(0, 10, 0); // discount is defined as int for Q6
@@ -271,7 +271,7 @@ void tpch_wl::init_test() {
 
 		// **********************Lineitems*****************************************
 	// ###################################11111111111111
-	for (uint64_t i = 1; i <= g_max_lineitem; ++i) {
+	for (uint64_t i = 1; i <= 10; ++i) {
 		row_t * row2;
 		uint64_t row_id2;
 		t_lineitem->get_new_row(row2, 0, row_id2);
@@ -294,17 +294,31 @@ void tpch_wl::init_test() {
 		row2->set_value(L_SHIPDATE,shipdate );	
 
 		//Index 
-		index_insert(i_lineitem, tpch_lineitemKey(i,lcnt), row2, 0);
+		// index_insert(i_lineitem, tpch_lineitemKey(i,lcnt), row2, 0);
+		index_insert(i_lineitem, i, row2, 0);
+		
 		// Q6 index
-		uint64_t Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
-		index_insert(i_Q6_index, Q6_key, row2, 0);
+		// uint64_t Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+		// index_insert(i_Q6_index, Q6_key, row2, 0);
 	}
+	uint64_t toDeleteKey = (uint64_t)1;
+	i_lineitem->index_remove(toDeleteKey);
+	row_t * row2;
+	uint64_t row_id2;
+	t_lineitem->get_new_row(row2, 0, row_id2);		
+	index_insert(i_lineitem, toDeleteKey, row2, 0);
+	index_insert(i_lineitem, toDeleteKey, row2, 0);
+	index_insert(i_lineitem, toDeleteKey, row2, 0);
+	index_insert(i_lineitem, toDeleteKey, row2, 0);
+	index_insert(i_lineitem, toDeleteKey, row2, 0);
+	index_insert(i_lineitem, toDeleteKey, row2, 0);
 
-	// // ###################################222222222222222
-	// // row_t * row2;
-	// // uint64_t row_id2;
+
+	// ###################################222222222222222
+	// row_t * row2;
+	// uint64_t row_id2;
 	// t_lineitem->get_new_row(row2, 0, row_id2);
-	// // Primary key
+	// Primary key
 	// i = 1000;
 	// lcnt = 1;
 	// key1 = (uint64_t)(i * 8 + lcnt);
@@ -312,7 +326,7 @@ void tpch_wl::init_test() {
 	// row2->set_value(L_ORDERKEY, i);
 	// row2->set_value(L_LINENUMBER, lcnt);
 
-	// // Related data
+	// Related data
 	// quntity = (double)23;
 	// exprice = (double)100;
 	// discount = (double)0.06;
@@ -322,9 +336,9 @@ void tpch_wl::init_test() {
 	// row2->set_value(L_DISCOUNT, discount);
 	// row2->set_value(L_SHIPDATE,shipdate );	
 	
-	// //Index 
+	//Index 
 	// index_insert(i_lineitem, key1, row2, 0);
-	// // Q6 index
+	// Q6 index
 	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
 	// index_insert(i_Q6_index, Q6_key, row2, 0);
 		
@@ -445,32 +459,7 @@ void tpch_wl::init_test() {
 
 			
 }
-// /*==================================================================+
-// | ROUTINE NAME
-// | InitPermutation
-// +==================================================================*/
 
-// void 
-// tpcc_wl::init_permutation(uint64_t * perm_c_id, uint64_t wid) {
-// 	uint32_t i;
-// 	// Init with consecutive values
-// 	for(i = 0; i < g_cust_per_dist; i++) 
-// 		perm_c_id[i] = i+1;
-
-// 	// shuffle
-// 	for(i=0; i < g_cust_per_dist-1; i++) {
-// 		uint64_t j = URand(i+1, g_cust_per_dist-1, wid-1);
-// 		uint64_t tmp = perm_c_id[i];
-// 		perm_c_id[i] = perm_c_id[j];
-// 		perm_c_id[j] = tmp;
-// 	}
-// }
-
-
-// /*==================================================================+
-// | ROUTINE NAME
-// | GetPermutation
-// +==================================================================*/
 
 void * tpch_wl::threadInitWarehouse(void * This) {
 	tpch_wl * wl = (tpch_wl *) This;

@@ -43,8 +43,11 @@ public:
 	RC run_txn(base_query * query);
 private:
 	tpch_wl * _wl;
+	
 	RC run_Q6(tpch_query * m_query);
 	RC run_Q6_index(tpch_query * m_query);
+	RC run_RF1();
+	RC run_RF2();
 
 };
 
