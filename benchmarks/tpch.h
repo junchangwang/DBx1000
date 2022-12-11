@@ -51,4 +51,12 @@ private:
 
 };
 
+static inline uint64_t tpch_lineitemKey_index(uint64_t shipdate, uint64_t discount, uint64_t quantity) {
+	return (uint64_t)((shipdate * 12 + discount) * 52 + quantity);
+}
+
+static inline uint64_t tpch_lineitemKey(uint64_t i, uint64_t lcnt) {
+  return (uint64_t)(i * 8 + lcnt);
+}
+
 #endif

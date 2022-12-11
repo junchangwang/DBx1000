@@ -31,17 +31,6 @@ uint64_t custNPKey(char * c_last, uint64_t c_d_id, uint64_t c_w_id) {
 uint64_t stockKey(uint64_t s_i_id, uint64_t s_w_id) {
 	return s_w_id * g_max_items + s_i_id;
 }
-uint64_t tpch_lineitemKey_index(uint64_t shipdate, uint64_t discount, uint64_t quantity) {
-  //return (uint64_t)((shipdate * 12 + discount) * 52 + quantity);
-  return (uint64_t)((shipdate * 12 + discount) * 52 + quantity);
-
-}
-
-uint64_t tpch_lineitemKey(uint64_t i, uint64_t lcnt) {
-  return (uint64_t)(i * 8 + lcnt);
-  // return (uint64_t)(i);
-
-}
 
 uint64_t Lastname(uint64_t num, char* name) {
   	static const char *n[] =
