@@ -97,33 +97,33 @@ int main(int argc, char* argv[])
 	BaseTable *bitmap = NULL;
 	Table_config *config = NULL;
 	
-	if (WORKLOAD == TPCC) {
-		bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_c_w_id;
-		config = bitmap->config;
+#if (TPCC_EVA_CUBIT == true)
+	bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_c_w_id;
+	config = bitmap->config;
 
-		if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
-		{
-			merge_ths = new thread[config->n_workers / WORKERS_PER_MERGE_TH + 1];
+	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
+	{
+		merge_ths = new thread[config->n_workers / WORKERS_PER_MERGE_TH + 1];
 
-			__atomic_store_n(&run_merge_func, true, MM_CST);
+		__atomic_store_n(&run_merge_func, true, MM_CST);
 
-			n_merge_ths = config->n_workers / WORKERS_PER_MERGE_TH;
-			for (int i = 0; i < n_merge_ths; i++) {
-				int begin = i * WORKERS_PER_MERGE_TH;
-				int range = WORKERS_PER_MERGE_TH;
-				cout << "[CUBIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
-				merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config);
-			}
-			if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
-				int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
-				int range = (config->n_workers % WORKERS_PER_MERGE_TH);
-				cout << "[CUBIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
-				merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config);
-				n_merge_ths ++;
-			}
-			cout << "[CUBIT]: Creating " << n_merge_ths << " merging threads" << endl;
+		n_merge_ths = config->n_workers / WORKERS_PER_MERGE_TH;
+		for (int i = 0; i < n_merge_ths; i++) {
+			int begin = i * WORKERS_PER_MERGE_TH;
+			int range = WORKERS_PER_MERGE_TH;
+			cout << "[CUBIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
+			merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config);
 		}
+		if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
+			int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
+			int range = (config->n_workers % WORKERS_PER_MERGE_TH);
+			cout << "[CUBIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
+			merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config);
+			n_merge_ths ++;
+		}
+		cout << "[CUBIT]: Creating " << n_merge_ths << " merging threads" << endl;
 	}
+#endif
 
 	// spawn and run txns again.
 	int64_t starttime = get_server_clock();
@@ -140,17 +140,17 @@ int main(int argc, char* argv[])
 		pthread_join(p_thds[i], NULL);
 	int64_t endtime = get_server_clock();
 
-	if (WORKLOAD == TPCC) {
-		if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
-		{
-			__atomic_store_n(&run_merge_func, false, MM_CST);
+#if (TPCC_EVA_CUBIT == true)
+	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
+	{
+		__atomic_store_n(&run_merge_func, false, MM_CST);
 
-			for (int i = 0; i < n_merge_ths; i++) {
-				merge_ths[i].join();
-			}
-			delete[] merge_ths;
+		for (int i = 0; i < n_merge_ths; i++) {
+			merge_ths[i].join();
 		}
+		delete[] merge_ths;
 	}
+#endif
 	
 	if (WORKLOAD != TEST) {
 		printf("PASS! SimTime = %ld\n", endtime - starttime);
