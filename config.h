@@ -16,11 +16,7 @@
 // # of transactions to run for warmup
 #define WARMUP						0
 // YCSB or TPCC
-<<<<<<< HEAD
-#define WORKLOAD 				        TPCC	
-=======
 #define WORKLOAD 					TPCH
->>>>>>> TPC-H
 // print the transaction latency distribution
 #define PRT_LAT_DISTR				false
 #define STATS_ENABLE				true
@@ -112,7 +108,7 @@
 // Benchmark
 /***********************************************/
 // max number of rows touched per transaction
-#define MAX_ROW_PER_TXN				6400
+#define MAX_ROW_PER_TXN				(1500000 * 9)
 #define QUERY_INTVL 				1UL
 #define MAX_TXN_PER_PART 			100
 #define FIRST_PART_LOCAL 			true
