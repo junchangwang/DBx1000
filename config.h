@@ -16,7 +16,11 @@
 // # of transactions to run for warmup
 #define WARMUP						0
 // YCSB or TPCC
+<<<<<<< HEAD
 #define WORKLOAD 				        TPCC	
+=======
+#define WORKLOAD 					TPCH
+>>>>>>> TPC-H
 // print the transaction latency distribution
 #define PRT_LAT_DISTR				false
 #define STATS_ENABLE				true
@@ -110,7 +114,7 @@
 // max number of rows touched per transaction
 #define MAX_ROW_PER_TXN				6400
 #define QUERY_INTVL 				1UL
-#define MAX_TXN_PER_PART 			100000
+#define MAX_TXN_PER_PART 			100
 #define FIRST_PART_LOCAL 			true
 #define MAX_TUPLE_SIZE				1024 // in bytes
 // ==== [YCSB] ====
@@ -144,6 +148,13 @@ enum TPCCTxnType {TPCC_ALL,
 				TPCC_DELIVERY, 
 				TPCC_STOCK_LEVEL};
 extern TPCCTxnType 					g_tpcc_txn_type;
+
+enum TPCHTxnType {TPCH_ALL,
+				TPCH_Q6,
+				TPCH_Q6_index,
+				TPCH_RF1,
+				TPCH_RF2};
+extern TPCHTxnType 					g_tpch_txn_type;
 
 //#define TXN_TYPE					TPCC_ALL
 #define PERC_PAYMENT 				0.5
@@ -195,6 +206,7 @@ extern TestCases					g_test_case;
 #define YCSB						1
 #define TPCC						2
 #define TEST						3
+#define TPCH						4
 // Concurrency Control Algorithm
 #define NO_WAIT						1
 #define WAIT_DIE					2

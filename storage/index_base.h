@@ -11,6 +11,8 @@ public:
 
 	virtual bool 		index_exist(idx_key_t key)=0; // check if the key exist.
 
+	bool 				index_exist(idx_key_t key, int part_id=-1);
+	
 	virtual RC 			index_insert(idx_key_t key, 
 							itemid_t * item, 
 							int part_id=-1)=0;

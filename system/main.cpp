@@ -3,6 +3,7 @@
 #include "global.h"
 #include "ycsb.h"
 #include "tpcc.h"
+#include "tpch.h"
 #include "test.h"
 #include "thread.h"
 #include "manager.h"
@@ -43,6 +44,8 @@ int main(int argc, char* argv[])
 			m_wl = new TestWorkload; 
 			((TestWorkload *)m_wl)->tick();
 			break;
+		case TPCH :
+			m_wl = new tpch_wl; break;
 		default:
 			assert(false);
 	}

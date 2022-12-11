@@ -53,6 +53,17 @@ IndexHash::init(int part_cnt, table_t * table, uint64_t bucket_cnt) {
 	return RCOK;
 }
 
+bool IndexHash::index_exist(idx_key_t key, int part_id) {
+	uint64_t bkt_idx = hash(key);
+	assert(bkt_idx < _bucket_cnt_per_part);
+	BucketHeader * cur_bkt = &_buckets[part_id][bkt_idx];
+	// 1. get the sh latch
+//	get_latch(cur_bkt);
+	return cur_bkt->exist_item(key);
+	// 3. release the latch
+//	release_latch(cur_bkt);	
+}
+
 bool IndexHash::index_exist(idx_key_t key) {
 	assert(false);
 }
@@ -113,6 +124,34 @@ RC IndexHash::index_read(idx_key_t key, itemid_t * &item,
 	return rc;
 }
 
+RC IndexHash::index_remove(idx_key_t key) {
+	uint64_t bkt_idx = hash(key);
+
+	assert(bkt_idx < _bucket_cnt_per_part);
+	BucketHeader * cur_bkt = &_buckets[0][bkt_idx];
+	bool ret = cur_bkt->exist_item(key);
+	if ( !ret ) {
+		// cout << "index_remove! Key " << key << " NOT EXIST!" << endl;
+		return ERROR;
+	} else {
+		BucketNode * cur_node = cur_bkt->first_node;
+		BucketNode * prev_node = NULL;
+		while (cur_node != NULL) {
+			if (cur_node->key == key)
+				break;
+			prev_node = cur_node;
+			cur_node = cur_node->next;
+		}	
+		if (prev_node == NULL) { // head
+			cur_bkt->first_node = cur_node->next; 
+		} else {
+			prev_node->next = cur_node->next;
+		}
+		delete cur_node; // FIXME
+	} 
+	return RCOK;
+}
+
 /************** BucketHeader Operations ******************/
 
 void BucketHeader::init() {
@@ -161,4 +200,18 @@ void BucketHeader::read_item(idx_key_t key, itemid_t * &item, const char * tname
 	}
 	M_ASSERT(cur_node->key == key, "Key does not exist!");
 	item = cur_node->items;
+}
+
+bool BucketHeader::exist_item(idx_key_t key) 
+{
+	BucketNode * cur_node = first_node;
+	while (cur_node != NULL) {
+		if (cur_node->key == key){
+			return 1;
+			break;
+		}
+		cur_node = cur_node->next;
+	}
+	//M_ASSERT(cur_node->key == key, "Key does not exist!");
+	return 0;
 }
