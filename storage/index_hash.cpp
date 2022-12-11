@@ -101,7 +101,7 @@ RC IndexHash::index_remove(idx_key_t key) {
 	bool ret = cur_bkt->exist_item(key);
 	if ( !ret ) {
 		// cout << "index_remove! Key " << key << " NOT EXIST!" << endl;
-		return RCOK;
+		return ERROR;
 	} else {
 		BucketNode * cur_node = cur_bkt->first_node;
 		BucketNode * prev_node = NULL;
@@ -116,7 +116,7 @@ RC IndexHash::index_remove(idx_key_t key) {
 		} else {
 			prev_node->next = cur_node->next;
 		}
-		delete cur_node; // To be fixed!  Memory should be reclaimed!
+		delete cur_node; // FIXME
 	} 
 	return RCOK;
 }

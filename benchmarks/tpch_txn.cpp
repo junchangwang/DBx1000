@@ -38,10 +38,9 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 	
 	// txn
 	double revenue = 0;
-	// g_total_line_in_lineitems = 10000;	// To be fixed
 	uint64_t max_number = (uint64_t) (tpch_lineitemKey(g_max_lineitem, (uint64_t)9));
 	for (uint64_t i = 1; i <= max_number; ++i) {
-		// cout << endl << "iiiii = " << i << endl;
+		// cout << "i = " << i << endl;
 		if ( !index->index_exist(i, 0) ){
 			// cout << i << " NOT EXIST!" << endl;
 			continue;
@@ -84,7 +83,7 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 				revenue += l_extendedprice * l_discount;
 			}
 	}
-	cout << endl << "********Q6            revenue is *********" << revenue << endl; 
+	cout << "********Q6            revenue is *********" << revenue << endl; 
 
 	assert( rc == RCOK );
 	return finish(rc);
@@ -191,7 +190,7 @@ RC tpch_txn_man::run_Q6_index(tpch_query * query) {
 			}
 		}
 	}
-	cout << endl << "********Q6 with index revenue is *********" << revenue << endl << endl;
+	cout << "********Q6 with index revenue is *********" << revenue << endl << endl;
 	assert( rc == RCOK );
 	return finish(rc);
 }

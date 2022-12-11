@@ -160,7 +160,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 		//Unrelated data
 		row->set_value(O_CUSTKEY, (uint64_t)123456);
 		row->set_value(O_ORDERSTATUS, 'A');
-		row->set_value(O_TOTALPRICE, (double)12345.56); // May be used
+		row->set_value(O_TOTALPRICE, (double)12345.56); 
 		char temp[20];
 		MakeAlphaString(10, 19, temp, 0);
 		row->set_value(O_ORDERPRIORITY, temp);
