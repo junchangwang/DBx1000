@@ -37,14 +37,13 @@ RC tpch_wl::init_schema(const char * schema_file) {
 }
 
 RC tpch_wl::init_table() {
-	num_wh = g_num_wh;
-	tpcc_buffer = new drand48_data * [g_num_wh];
-	pthread_t * p_thds = new pthread_t[g_num_wh - 1];
-	for (uint32_t i = 0; i < g_num_wh - 1; i++) 
-		pthread_create(&p_thds[i], NULL, threadInitWarehouse, this);
-	threadInitWarehouse(this);
-	for (uint32_t i = 0; i < g_num_wh - 1; i++) 
-		pthread_join(p_thds[i], NULL);
+	tpcc_buffer = new drand48_data * [1];
+	tpcc_buffer[0] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
+	int tid = ATOM_FETCH_ADD(next_tid, 1);
+	assert(tid == 0);
+	srand48_r(1, tpcc_buffer[tid]);
+	
+	init_tab_orderAndLineitem();
 
 	printf("TPCH Data Initialization Complete!\n");
 	return RCOK;
@@ -454,26 +453,4 @@ void tpch_wl::init_test() {
 	// // Q6 index
 	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
 	// index_insert(i_Q6_index, Q6_key, row2, 0);
-
-
-
-			
-}
-
-
-void * tpch_wl::threadInitWarehouse(void * This) {
-	tpch_wl * wl = (tpch_wl *) This;
-	int tid = ATOM_FETCH_ADD(wl->next_tid, 1);
-	uint32_t wid = tid + 1;
-	tpcc_buffer[tid] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
-	assert((uint64_t)tid < g_num_wh);
-	srand48_r(wid, tpcc_buffer[tid]);
-	
-	// wl->init_tab_lineitem();
-	// wl->init_tab_order();
-
-	wl->init_tab_orderAndLineitem();
-	// wl->init_test();
-
-	return NULL;
 }

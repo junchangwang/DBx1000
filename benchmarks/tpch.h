@@ -30,10 +30,7 @@ private:
 	void init_tab_orderAndLineitem();
 	void init_test();
 	
-
 	void init_permutation(uint64_t * perm_c_id, uint64_t wid);
-
-	static void * threadInitWarehouse(void * This);
 };
 
 class tpch_txn_man : public txn_man
