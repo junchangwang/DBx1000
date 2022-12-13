@@ -5,7 +5,7 @@
 #include "table.h"
 #include "ycsb_query.h"
 #include "tpcc_query.h"
-#include "tpcc_helper.h"
+#include "tpc_helper.h"
 #include "tpch_query.h"
 
 /*************************************************/
@@ -23,9 +23,9 @@ Query_queue::init(workload * h_wl) {
 #if WORKLOAD == YCSB	
 	ycsb_query::calculateDenom();
 #elif WORKLOAD == TPCC
-	assert(tpcc_buffer != NULL);
+	assert(tpc_buffer != NULL);
 #elif WORKLOAD == TPCH
-	assert(tpcc_buffer != NULL);
+	assert(tpc_buffer != NULL);
 #endif
 	int64_t begin = get_server_clock();
 	pthread_t p_thds[g_thread_cnt - 1];

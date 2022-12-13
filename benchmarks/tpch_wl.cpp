@@ -1,6 +1,6 @@
 #include "global.h"
 #include "helper.h"
-#include "tpcc_helper.h"
+#include "tpc_helper.h"
 #include "tpch.h"
 #include "wl.h"
 #include "thread.h"
@@ -37,12 +37,12 @@ RC tpch_wl::init_schema(const char * schema_file) {
 }
 
 RC tpch_wl::init_table() {
-	tpcc_buffer = new drand48_data * [1];
-	tpcc_buffer[0] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
+	tpc_buffer = new drand48_data * [1];
+	tpc_buffer[0] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
 	int tid = ATOM_FETCH_ADD(next_tid, 1);
 	assert(tid == 0);
-	srand48_r(1, tpcc_buffer[tid]);
-	
+	srand48_r(1, tpc_buffer[tid]);
+
 	init_tab_orderAndLineitem();
 
 	printf("TPCH Data Initialization Complete!\n");

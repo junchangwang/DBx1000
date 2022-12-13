@@ -1,7 +1,7 @@
 #include "query.h"
 #include "tpch_query.h"
 #include "tpch.h"
-#include "tpcc_helper.h"
+#include "tpc_helper.h"
 #include "mem_alloc.h"
 #include "wl.h"
 #include "table.h"

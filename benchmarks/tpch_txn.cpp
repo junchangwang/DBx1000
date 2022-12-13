@@ -1,6 +1,6 @@
 #include "tpch.h"
 #include "tpch_query.h"
-#include "tpcc_helper.h"
+#include "tpc_helper.h"
 #include "query.h"
 #include "wl.h"
 #include "thread.h"
