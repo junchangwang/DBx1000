@@ -2,13 +2,11 @@
 
 #include "global.h"
 
-// TODO sequential scan is not supported yet.
 // only index access is supported for table. 
 class Catalog;
 class row_t;
 
-class table_t
-{
+class table_t {
 public:
 	void init(Catalog * schema);
 	// row lookup should be done with index. But index does not have
@@ -24,6 +22,15 @@ public:
 	const char * get_table_name() { return table_name; };
 
 	Catalog * 		schema;
+
+	// Sequential layout version
+	RC init_row_buffer(int n_size);
+	RC get_new_row_seq(row_t *& row, uint64_t part_id, uint64_t &row_id);
+	
+private:
+	row_t *row_buffer;
+	int max_rows;
+
 private:
 	const char * 	table_name;
 	uint64_t  		cur_tab_size;

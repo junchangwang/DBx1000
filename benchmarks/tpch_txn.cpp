@@ -83,7 +83,7 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 				revenue += l_extendedprice * l_discount;
 			}
 	}
-	cout << "********Q6            revenue is *********" << revenue << endl; 
+	// cout << "********Q6            revenue is *********" << revenue << endl; 
 
 	assert( rc == RCOK );
 	return finish(rc);
@@ -136,7 +136,7 @@ RC tpch_txn_man::run_Q6_index(tpch_query * query) {
 			}
 		}
 	}
-	cout << "********Q6 with index revenue is *********" << revenue << endl << endl;
+	//cout << "********Q6 with index revenue is *********" << revenue << endl << endl;
 	assert( rc == RCOK );
 	return finish(rc);
 }

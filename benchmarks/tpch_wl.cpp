@@ -13,16 +13,21 @@
 #include "mem_alloc.h"
 #include "tpch_const.h"
 
-RC tpch_wl::init() {
+RC tpch_wl::init() 
+{
+#if TPCH_EVA_CUBIT
+	init_bitmap();
+#endif
 	workload::init();
 	string path = "./benchmarks/";
 	path += "TPCH_schema.txt";
 	cout << "reading TPCH schema file: " << path << endl;
 	init_schema( path.c_str() );
 	cout << "TPCH schema initialized" << endl;
+	t_lineitem->init_row_buffer(g_max_lineitem*6);
 	init_table();
 	next_tid = 0;
-	return RCOK;
+	return RCOK; 
 }
 
 RC tpch_wl::init_schema(const char * schema_file) {
@@ -54,86 +59,6 @@ RC tpch_wl::get_txn_man(txn_man *& txn_manager, thread_t * h_thd) {
 	new(txn_manager) tpch_txn_man();
 	txn_manager->init(h_thd, this, h_thd->get_thd_id());
 	return RCOK;
-}
-
-void tpch_wl::init_tab_lineitem() {
-	cout << "initializing LINEITEM table" << endl;
-	g_total_line_in_lineitems += g_max_lineitem ;
-	for (uint64_t i = 1; i <= g_max_lineitem; i++) {
-		uint64_t lines = URand(1, 7, 0);
-		g_total_line_in_lineitems += lines;
-		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
-			row_t * row;
-			uint64_t row_id;
-			t_lineitem->get_new_row(row, 0, row_id);
-
-			// Populate data
-			// Primary key
-			row->set_primary_key(i * 8 + lcnt);
-			row->set_value(L_ORDERKEY, i);
-			row->set_value(L_LINENUMBER, lcnt);
-
-			// Related data
-			row->set_value(L_EXTENDEDPRICE, (double)URand(0, 1000, 0)); // To be fixed
-			row->set_value(L_DISCOUNT, ((double)URand(0, 10, 0)) / 100); 
-			
-			row->set_value(L_SHIPDATE, URand(1990, 2020, 0));	 // To be fixed, O_ORDERDATE + random value[1.. 121]
-			// O_ORDERDATE(in table ORDER)should be chosen randomly from [1992.01.01-1998.12.31]. 
-			row->set_value(L_QUANTITY, (double)URand(1, 50, 0)); 
-			row->set_value(L_PARTKEY, (uint64_t)123456); //May be used 
-
-			//Unrelated data
-			row->set_value(L_SUPPKEY, (uint64_t)123456);
-			row->set_value(L_TAX, (double)URand(0, 8, 0));
-			row->set_value(L_RETURNFLAG, 'a');
-			row->set_value(L_LINESTATUS, 'b');
-			row->set_value(L_COMMITDATE, (uint64_t)2022);
-			row->set_value(L_RECEIPTDATE, (uint64_t)2022);
-			char temp[20];
-			MakeAlphaString(10, 19, temp, 0);
-			row->set_value(L_SHIPINSTRUCT, temp);
-			row->set_value(L_SHIPMODE, temp);
-			row->set_value(L_COMMENT, temp);
-
-			//Index 
-			index_insert(i_lineitem, i, row, 0);
-		}
-	}
-	
-}
-
-void tpch_wl::init_tab_order() {
-	cout << "initializing ORDER table" << endl;	
-	for (uint64_t i = 1; i <= g_max_lineitem; ++i) {
-		row_t * row;
-		uint64_t row_id;
-		t_orders->get_new_row(row, 0, row_id);		
-
-		//Primary key
-		row->set_primary_key(i);
-		row->set_value(O_ORDERKEY, i);
-
-		//Related data
-		uint64_t year = URand(92, 98, 0);
-		uint64_t day = URand(1, 365, 0);
-		if (year == 98) {
-			day = day % 214;
-		} 
-		row->set_value(O_ORDERDATE, (uint64_t)(year*1000 + day)); 
-
-		//Unrelated data
-		row->set_value(O_CUSTKEY, (uint64_t)123456);
-		row->set_value(O_ORDERSTATUS, 'A');
-		row->set_value(O_TOTALPRICE, (double)12345.56); // May be used
-		char temp[20];
-		MakeAlphaString(10, 19, temp, 0);
-		row->set_value(O_ORDERPRIORITY, temp);
-		row->set_value(O_CLERK, temp);
-		row->set_value(O_SHIPPRIORITY, (uint64_t)654321);
-		row->set_value(O_COMMENT, temp);
-
-		index_insert(i_orders, i, row, 0);
-	}
 }
 
 void tpch_wl::init_tab_orderAndLineitem() {
@@ -169,10 +94,6 @@ void tpch_wl::init_tab_orderAndLineitem() {
 
 		index_insert(i_orders, i, row, 0);
 
-
-
-
-
 		// **********************Lineitems*****************************************
 
 		uint64_t lines = URand(1, 7, 0);
@@ -180,8 +101,9 @@ void tpch_wl::init_tab_orderAndLineitem() {
 		g_total_line_in_lineitems += lines;
 		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
 			row_t * row2;
-			uint64_t row_id2;
-			t_lineitem->get_new_row(row2, 0, row_id2);
+			uint64_t row_id2 = 0;
+			// t_lineitem->get_new_row(row2, 0, row_id2);
+			t_lineitem->get_new_row_seq(row2, 0, row_id2);
 
 			// Populate data
 			// Primary key
@@ -218,7 +140,6 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			// cout << "L_DISCOUNT " << ((double)discount) / 100 << endl;	
 			// cout << "L_SHIPDATE " << shipdate << endl;	
 
-
 			//Unrelated data
 			row2->set_value(L_SUPPKEY, (uint64_t)123456);
 			row2->set_value(L_TAX, (double)URand(0, 8, 0));
@@ -236,18 +157,26 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			uint64_t key = tpch_lineitemKey(i, lcnt);
 			index_insert(i_lineitem, key, row2, 0);
 
-
 			// Q6 index
 			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quntity);
 			// cout << "Q6_insert_key = " << Q6_key << endl; 
 			index_insert(i_Q6_index, Q6_key, row2, 0);
+
+#if TPCH_EVA_CUBIT
+			if (bitmap_shipdate->config->approach == "naive" ) {
+				bitmap_shipdate->append(0, row_id2);
+			}
+			else if (bitmap_shipdate->config->approach == "nbub-lk") {
+				nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
+				bitmap->__init_append(0, row_id2, (year-92));
+			}
+#endif
 		}
-	}	
+	}
 }
 
 void tpch_wl::init_test() {
 	cout << "initializing TEST table" << endl;	
-
 
 	// // ###################1
 	// row_t * row;
@@ -273,7 +202,8 @@ void tpch_wl::init_test() {
 	for (uint64_t i = 1; i <= 10; ++i) {
 		row_t * row2;
 		uint64_t row_id2;
-		t_lineitem->get_new_row(row2, 0, row_id2);
+		// t_lineitem->get_new_row(row2, 0, row_id2);
+		t_lineitem->get_new_row_seq(row2, 0, row_id2);
 		// Primary key
 		// uint64_t i = 1;
 		uint64_t lcnt = 1;
@@ -304,7 +234,8 @@ void tpch_wl::init_test() {
 	i_lineitem->index_remove(toDeleteKey);
 	row_t * row2;
 	uint64_t row_id2;
-	t_lineitem->get_new_row(row2, 0, row_id2);		
+	// t_lineitem->get_new_row(row2, 0, row_id2);		
+	t_lineitem->get_new_row_seq(row2, 0, row_id2);
 	index_insert(i_lineitem, toDeleteKey, row2, 0);
 	index_insert(i_lineitem, toDeleteKey, row2, 0);
 	index_insert(i_lineitem, toDeleteKey, row2, 0);
@@ -453,4 +384,53 @@ void tpch_wl::init_test() {
 	// // Q6 index
 	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
 	// index_insert(i_Q6_index, Q6_key, row2, 0);
+}
+
+
+RC tpch_wl::init_bitmap()
+{
+	Table_config *config_shipdate = new Table_config{};
+	config_shipdate->n_workers = g_thread_cnt;
+	config_shipdate->DATA_PATH = "";
+	config_shipdate->INDEX_PATH = "";
+	config_shipdate->g_cardinality = 7; // [92, 98]
+	enable_fence_pointer = config_shipdate->enable_fence_pointer = true;
+	INDEX_WORDS = 10000;  // Fence length 
+	config_shipdate->approach = {"nbub-lk"};
+	config_shipdate->nThreads_for_getval = 4;
+	config_shipdate->show_memory = true;
+	config_shipdate->on_disk = false;
+	config_shipdate->showEB = false;
+    config_shipdate->decode = false;
+
+	// DBx1000 doesn't use the following parameters;
+	// they are used by nicolas.
+	config_shipdate->n_rows = 0; 
+	config_shipdate->n_queries = 900;
+	config_shipdate->n_deletes = 100;
+	config_shipdate->n_merge = 16;
+	config_shipdate->verbose = false;
+	config_shipdate->time_out = 100;
+	
+	if (config_shipdate->approach == "ub") {
+        bitmap_shipdate = new ub::Table(config_shipdate);
+    } else if (config_shipdate->approach == "nbub-lk") {
+        bitmap_shipdate = new nbub_lk::NbubLK(config_shipdate);
+    } else if (config_shipdate->approach == "nbub-lf" || config_shipdate->approach =="nbub") {
+        bitmap_shipdate = new nbub_lf::NbubLF(config_shipdate);
+    } else if (config_shipdate->approach == "ucb") {
+        bitmap_shipdate = new ucb::Table(config_shipdate);
+    } else if (config_shipdate->approach == "naive") {
+        bitmap_shipdate = new naive::Table(config_shipdate);
+    }
+    else {
+        cerr << "Unknown approach." << endl;
+        exit(-1);
+    }
+
+	cout << "[CUBIT]: Bitmap bitmap_shipdate initialized successfully. "
+			<< "[Cardinality:" << config_shipdate->g_cardinality
+			<< "] [Method:" << config_shipdate->approach << "]" << endl;
+
+	return RCOK;
 }
