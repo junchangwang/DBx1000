@@ -7,13 +7,6 @@
 
 class workload;
 
-// items of new order transaction
-// struct Item_no {
-// 	uint64_t ol_i_id;
-// 	uint64_t ol_supply_w_id;
-// 	uint64_t ol_quantity;
-// };
-
 class tpch_query : public base_query {
 public:
 	void init(uint64_t thd_id, workload * h_wl);
@@ -22,14 +15,11 @@ public:
 	/**********************************************/	
 	// txn input for Q6
 	/**********************************************/	
-	uint64_t id; // Not used in tpch query
+
 	uint64_t date;
 	double discount;
 	double quantity;
 	
-
-
-
 private:
 //	uint64_t wh_to_part(uint64_t wid);
 	void gen_Q6(uint64_t thd_id);
