@@ -24,7 +24,7 @@ RC tpch_wl::init()
 	cout << "reading TPCH schema file: " << path << endl;
 	init_schema( path.c_str() );
 	cout << "TPCH schema initialized" << endl;
-	t_lineitem->init_row_buffer(g_max_lineitem*6);
+	t_lineitem->init_row_buffer(g_max_lineitems);
 	init_table();
 	next_tid = 0;
 	return RCOK; 
@@ -63,7 +63,7 @@ RC tpch_wl::get_txn_man(txn_man *& txn_manager, thread_t * h_thd) {
 
 void tpch_wl::init_tab_orderAndLineitem() {
 	cout << "initializing ORDER and LINEITEM table" << endl;	
-	for (uint64_t i = 1; i <= g_max_lineitem; ++i) {
+	for (uint64_t i = 1; i <= g_num_orders; ++i) {
 		row_t * row;
 		uint64_t row_id;
 		t_orders->get_new_row(row, 0, row_id);		

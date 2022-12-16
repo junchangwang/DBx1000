@@ -38,7 +38,7 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 	
 	// txn
 	double revenue = 0;
-	uint64_t max_number = (uint64_t) (tpch_lineitemKey(g_max_lineitem, (uint64_t)9));
+	uint64_t max_number = (uint64_t) (tpch_lineitemKey(g_num_orders, (uint64_t)9));
 	for (uint64_t i = 1; i <= max_number; ++i) {
 		// cout << "i = " << i << endl;
 		if ( !index->index_exist(i, 0) ){
@@ -83,7 +83,7 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 				revenue += l_extendedprice * l_discount;
 			}
 	}
-	// cout << "********Q6            revenue is *********" << revenue << endl; 
+	cout << "********Q6            revenue is *********" << revenue << endl; 
 
 	assert( rc == RCOK );
 	return finish(rc);
@@ -136,13 +136,13 @@ RC tpch_txn_man::run_Q6_index(tpch_query * query) {
 			}
 		}
 	}
-	//cout << "********Q6 with index revenue is *********" << revenue << endl << endl;
+	cout << "********Q6 with index revenue is *********" << revenue << endl << endl;
 	assert( rc == RCOK );
 	return finish(rc);
 }
 
 RC tpch_txn_man::run_RF1() {
-	for (uint64_t i = (uint64_t)(g_max_lineitem + 1); i < (uint64_t)(SF * 1500 + g_max_lineitem + 1); ++i) {
+	for (uint64_t i = (uint64_t)(g_num_orders + 1); i < (uint64_t)(SF * 1500 + g_num_orders + 1); ++i) {
 		row_t * row;
 		uint64_t row_id;
 		_wl->t_orders->get_new_row(row, 0, row_id);		
@@ -251,7 +251,7 @@ RC tpch_txn_man::run_RF1() {
 
 RC tpch_txn_man::run_RF2() {
 	for (uint64_t i = 1; i < (uint64_t)(SF * 1500); ++i) {
-		uint64_t key = URand(1, g_max_lineitem, 0);
+		uint64_t key = URand(1, g_num_orders, 0);
 		_wl->i_orders->index_remove(key);
 		for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt){
 			_wl->i_lineitem->index_remove(tpch_lineitemKey(key, lcnt));
