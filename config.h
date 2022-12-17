@@ -147,7 +147,7 @@ extern TPCCTxnType 					g_tpcc_txn_type;
 
 enum TPCHTxnType {TPCH_ALL,
 				TPCH_Q6,
-				TPCH_Q6_index,
+				TPCH_Q6_HT,
 				TPCH_RF1,
 				TPCH_RF2};
 extern TPCHTxnType 					g_tpch_txn_type;

@@ -56,6 +56,8 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	assert(quantity_val >= 0);
 	assert(quantity_val <= 49);
 
+	auto start = std::chrono::high_resolution_clock::now();
+
 	bitmap_sd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
 	ibis::bitvector *btv_shipdate = bitmap_sd->bitmaps[year_val]->btv;
 
@@ -82,7 +84,8 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	row_t *row_buffer = _wl->t_lineitem->row_buffer;
 	for (uint64_t pos = 0; pos < bitmap_sd->g_number_of_rows ; pos++) {
 		if (result.getBit(pos, bitmap_sd->config)) {
-			row_t *row = (row_t *) &row_buffer[pos];
+			row_t *row_tmp = (row_t *) &row_buffer[pos];
+			row_t *row = get_row(row_tmp, RD);
 			// row_t *row_local = get_row(row, RD);
 			double l_extendedprice;
 			row->get_value(L_EXTENDEDPRICE, l_extendedprice);
@@ -93,7 +96,10 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 			cnt ++;
 		}
 	}
-	cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << endl << endl; 
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
 
 	return rc;
 }
@@ -104,6 +110,8 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	int cnt = 0;
 	INDEX * index = _wl->i_lineitem;
 	
+	auto start = std::chrono::high_resolution_clock::now();
+
 	// txn
 	double revenue = 0;
 	uint64_t max_items = (uint64_t) (tpch_lineitemKey(g_num_orders, 8));
@@ -152,7 +160,10 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 				cnt ++;
 		}
 	}
-	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << endl; 
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 
 	assert( rc == RCOK );
 	return finish(rc);
@@ -168,6 +179,9 @@ RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) {
 	uint64_t date = query->date;	// e.g., 1st Jan. 97
 	uint64_t discount = (uint64_t)(query->discount * 100); // +1 -1
 	double quantity = query->quantity;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--){
@@ -207,7 +221,10 @@ RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) {
 			}
 		}
 	}
-	cout << "********Q6 with index revenue is : " << revenue << "  . Number of items: " << cnt << endl; 
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout << "********Q6 with index revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	assert( rc == RCOK );
 	return finish(rc);
 }
