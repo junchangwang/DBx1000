@@ -9,7 +9,7 @@
 void tpch_query::init(uint64_t thd_id, workload * h_wl) 
 {
 	// gen_Q6(thd_id);
-	gen_Q6_index(thd_id);
+	gen_Q6_ht(thd_id);
 	// gen_RF1(thd_id);
 	// gen_RF2(thd_id);
 }
@@ -25,8 +25,8 @@ void tpch_query::gen_Q6(uint64_t thd_id) {
 
 }
 
-void tpch_query::gen_Q6_index(uint64_t thd_id) {
-	type = TPCH_Q6_index;
+void tpch_query::gen_Q6_ht(uint64_t thd_id) {
+	type = TPCH_Q6_HT;
 
 	//Q6 related vars
 	uint64_t year = URand(93, 97, 0);

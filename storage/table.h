@@ -27,7 +27,6 @@ public:
 	RC init_row_buffer(int n_size);
 	RC get_new_row_seq(row_t *& row, uint64_t part_id, uint64_t &row_id);
 	
-private:
 	row_t *row_buffer;
 	int max_rows;
 

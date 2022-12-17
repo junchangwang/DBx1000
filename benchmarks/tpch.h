@@ -29,7 +29,7 @@ public:
 
 	INDEX * 	i_orders;
 	INDEX * 	i_lineitem;
-	INDEX * 	i_Q6_index;
+	INDEX * 	i_Q6_hashtable;
 
 	BaseTable *bitmap_shipdate;
 	BaseTable *bitmap_discount;
@@ -53,8 +53,8 @@ public:
 private:
 	tpch_wl * _wl;
 	
-	RC run_Q6(tpch_query * m_query);
-	RC run_Q6_index(tpch_query * m_query);
+	RC run_Q6_scan(tpch_query * m_query);
+	RC run_Q6_hashtable(tpch_query * m_query);
 	RC run_Q6_bitmap(tpch_query *query);
 	RC run_RF1();
 	RC run_RF2();

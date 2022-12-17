@@ -37,7 +37,7 @@ RC tpch_wl::init_schema(const char * schema_file) {
 
 	i_lineitem = indexes["LINEITEM_IDX"];
 	i_orders = indexes["ORDERS_IDX"];
-	i_Q6_index = indexes["Q6_IDX"];
+	i_Q6_hashtable = indexes["Q6_IDX"];
 	return RCOK;
 }
 
@@ -160,7 +160,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			// Q6 index
 			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
 			// cout << "Q6_insert_key = " << Q6_key << endl; 
-			index_insert(i_Q6_index, Q6_key, row2, 0);
+			index_insert(i_Q6_hashtable, Q6_key, row2, 0);
 
 #if TPCH_EVA_CUBIT
 			if (bitmap_shipdate->config->approach == "naive" ) {
@@ -234,7 +234,7 @@ void tpch_wl::init_test() {
 		
 		// Q6 index
 		// uint64_t Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
-		// index_insert(i_Q6_index, Q6_key, row2, 0);
+		// index_insert(i_Q6_hashtable, Q6_key, row2, 0);
 	}
 	uint64_t toDeleteKey = (uint64_t)1;
 	i_lineitem->index_remove(toDeleteKey);
@@ -276,7 +276,7 @@ void tpch_wl::init_test() {
 	// index_insert(i_lineitem, key1, row2, 0);
 	// Q6 index
 	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
-	// index_insert(i_Q6_index, Q6_key, row2, 0);
+	// index_insert(i_Q6_hashtable, Q6_key, row2, 0);
 		
 	// // ###################################333333333333333333
 	// // row_t * row2;
@@ -304,7 +304,7 @@ void tpch_wl::init_test() {
 	// index_insert(i_lineitem, key1, row2, 0);
 	// // Q6 index
 	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
-	// index_insert(i_Q6_index, Q6_key, row2, 0);
+	// index_insert(i_Q6_hashtable, Q6_key, row2, 0);
 
 
 	// 	// ###################################4444444444444
@@ -333,7 +333,7 @@ void tpch_wl::init_test() {
 	// index_insert(i_lineitem, key1, row2, 0);
 	// // Q6 index
 	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
-	// index_insert(i_Q6_index, Q6_key, row2, 0);
+	// index_insert(i_Q6_hashtable, Q6_key, row2, 0);
 
 	// 	// ###################################55555555555555
 	// // row_t * row2;
@@ -361,7 +361,7 @@ void tpch_wl::init_test() {
 	// index_insert(i_lineitem, key1, row2, 0);
 	// // Q6 index
 	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
-	// index_insert(i_Q6_index, Q6_key, row2, 0);
+	// index_insert(i_Q6_hashtable, Q6_key, row2, 0);
 
 	// 	// #################################666666666666666
 	// // row_t * row2;
@@ -389,7 +389,7 @@ void tpch_wl::init_test() {
 	// index_insert(i_lineitem, key1, row2, 0);
 	// // Q6 index
 	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
-	// index_insert(i_Q6_index, Q6_key, row2, 0);
+	// index_insert(i_Q6_hashtable, Q6_key, row2, 0);
 }
 
 
