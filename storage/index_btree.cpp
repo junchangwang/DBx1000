@@ -49,8 +49,11 @@ int index_btree::index_size() {
 			for (int i = 0; i < c->num_keys; i++) {
 				// cout << "key = " << c->keys[i] << endl;
 				item = (itemid_t*)c->pointers[i];
-				size += sizeof(*item);
-				item_cnt ++;
+				while (item != NULL) {
+					item_cnt ++;
+					size += sizeof(*item);
+					item = item->next;
+					}
 			}
 			c = c->next;
 		}
