@@ -112,12 +112,12 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			row2->set_value(L_LINENUMBER, lcnt);
 
 			// Related data
-			double quntity = (double)URand(1, 50, 0);
-			row2->set_value(L_QUANTITY, quntity); 
+			double quantity = (double)URand(1, 50, 0);
+			row2->set_value(L_QUANTITY, quantity); 
 			uint64_t partkey = URand(1, SF * 200000, 0);	// Related to SF
 			row2->set_value(L_PARTKEY, partkey); 
 			uint64_t p_retailprice = (uint64_t)((90000 + ((partkey / 10) % 20001) + 100 *(partkey % 1000)) /100); // Defined in table PART
-			row2->set_value(L_EXTENDEDPRICE, (double)(quntity * p_retailprice)); // 
+			row2->set_value(L_EXTENDEDPRICE, (double)(quantity * p_retailprice)); // 
 			uint64_t discount = URand(0, 10, 0); // discount is defined as int for Q6
 			row2->set_value(L_DISCOUNT, ((double)discount) / 100); 
 			uint64_t shipdate;
@@ -134,9 +134,9 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			// cout << "O_ORDERKEY " << i << endl;	
 			// cout << "O_ORDERDATE " << orderdate << endl ;	
 			// cout << "-----------lineitem--- " << endl;
-			// cout << "L_QUANTITY " << quntity<< endl;	
+			// cout << "L_QUANTITY " << quantity<< endl;	
 			// cout << "L_PARTKEY " << partkey<< endl;	
-			// cout << "L_EXTENDEDPRICE " << (double)(quntity * p_retailprice) << endl;	
+			// cout << "L_EXTENDEDPRICE " << (double)(quantity * p_retailprice) << endl;	
 			// cout << "L_DISCOUNT " << ((double)discount) / 100 << endl;	
 			// cout << "L_SHIPDATE " << shipdate << endl;	
 
@@ -158,7 +158,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			index_insert(i_lineitem, key, row2, 0);
 
 			// Q6 index
-			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quntity);
+			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
 			// cout << "Q6_insert_key = " << Q6_key << endl; 
 			index_insert(i_Q6_index, Q6_key, row2, 0);
 
@@ -168,7 +168,13 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			}
 			else if (bitmap_shipdate->config->approach == "nbub-lk") {
 				nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
-				bitmap->__init_append(0, row_id2, (year-92));
+				bitmap->__init_append(0, row_id2, (shipdate/1000-92));
+
+				bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
+				bitmap->__init_append(0, row_id2, discount);
+
+				bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
+				bitmap->__init_append(0, row_id2, quantity-1);
 			}
 #endif
 		}
@@ -213,11 +219,11 @@ void tpch_wl::init_test() {
 		row2->set_value(L_LINENUMBER, lcnt);
 
 		// Related data
-		double quntity = (double)23;
+		double quantity = (double)23;
 		double exprice = (double)100;
 		double discount = (double)0.06;
 		uint64_t shipdate = (uint64_t) 96221;
-		row2->set_value(L_QUANTITY, quntity); 	
+		row2->set_value(L_QUANTITY, quantity); 	
 		row2->set_value(L_EXTENDEDPRICE, exprice); 
 		row2->set_value(L_DISCOUNT, discount);
 		row2->set_value(L_SHIPDATE,shipdate );	
@@ -227,7 +233,7 @@ void tpch_wl::init_test() {
 		index_insert(i_lineitem, i, row2, 0);
 		
 		// Q6 index
-		// uint64_t Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+		// uint64_t Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
 		// index_insert(i_Q6_index, Q6_key, row2, 0);
 	}
 	uint64_t toDeleteKey = (uint64_t)1;
@@ -257,11 +263,11 @@ void tpch_wl::init_test() {
 	// row2->set_value(L_LINENUMBER, lcnt);
 
 	// Related data
-	// quntity = (double)23;
+	// quantity = (double)23;
 	// exprice = (double)100;
 	// discount = (double)0.06;
 	// shipdate = (uint64_t) 96222;
-	// row2->set_value(L_QUANTITY, quntity); 	
+	// row2->set_value(L_QUANTITY, quantity); 	
 	// row2->set_value(L_EXTENDEDPRICE, exprice); 
 	// row2->set_value(L_DISCOUNT, discount);
 	// row2->set_value(L_SHIPDATE,shipdate );	
@@ -269,7 +275,7 @@ void tpch_wl::init_test() {
 	//Index 
 	// index_insert(i_lineitem, key1, row2, 0);
 	// Q6 index
-	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
 	// index_insert(i_Q6_index, Q6_key, row2, 0);
 		
 	// // ###################################333333333333333333
@@ -285,11 +291,11 @@ void tpch_wl::init_test() {
 	// row2->set_value(L_LINENUMBER, lcnt);
 
 	// // Related data
-	// quntity = (double)23;
+	// quantity = (double)23;
 	// exprice = (double)100;
 	// discount = (double)0.06;
 	// shipdate = (uint64_t) 96223;
-	// row2->set_value(L_QUANTITY, quntity); 	
+	// row2->set_value(L_QUANTITY, quantity); 	
 	// row2->set_value(L_EXTENDEDPRICE, exprice); 
 	// row2->set_value(L_DISCOUNT, discount);
 	// row2->set_value(L_SHIPDATE,shipdate );	
@@ -297,7 +303,7 @@ void tpch_wl::init_test() {
 	// //Index 
 	// index_insert(i_lineitem, key1, row2, 0);
 	// // Q6 index
-	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
 	// index_insert(i_Q6_index, Q6_key, row2, 0);
 
 
@@ -314,11 +320,11 @@ void tpch_wl::init_test() {
 	// row2->set_value(L_LINENUMBER, lcnt);
 
 	// // Related data
-	// quntity = (double)27;
+	// quantity = (double)27;
 	// exprice = (double)100;
 	// discount = (double)0.03;
 	// shipdate = (uint64_t) 92132;
-	// row2->set_value(L_QUANTITY, quntity); 	
+	// row2->set_value(L_QUANTITY, quantity); 	
 	// row2->set_value(L_EXTENDEDPRICE, exprice); 
 	// row2->set_value(L_DISCOUNT, discount);
 	// row2->set_value(L_SHIPDATE,shipdate );	
@@ -326,7 +332,7 @@ void tpch_wl::init_test() {
 	// //Index 
 	// index_insert(i_lineitem, key1, row2, 0);
 	// // Q6 index
-	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
 	// index_insert(i_Q6_index, Q6_key, row2, 0);
 
 	// 	// ###################################55555555555555
@@ -342,11 +348,11 @@ void tpch_wl::init_test() {
 	// row2->set_value(L_LINENUMBER, lcnt);
 
 	// // Related data
-	// quntity = (double)20;
+	// quantity = (double)20;
 	// exprice = (double)100;
 	// discount = (double)0.04;
 	// shipdate = (uint64_t) 95222;
-	// row2->set_value(L_QUANTITY, quntity); 	
+	// row2->set_value(L_QUANTITY, quantity); 	
 	// row2->set_value(L_EXTENDEDPRICE, exprice); 
 	// row2->set_value(L_DISCOUNT, discount);
 	// row2->set_value(L_SHIPDATE,shipdate );	
@@ -354,7 +360,7 @@ void tpch_wl::init_test() {
 	// //Index 
 	// index_insert(i_lineitem, key1, row2, 0);
 	// // Q6 index
-	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
 	// index_insert(i_Q6_index, Q6_key, row2, 0);
 
 	// 	// #################################666666666666666
@@ -370,11 +376,11 @@ void tpch_wl::init_test() {
 	// row2->set_value(L_LINENUMBER, lcnt);
 
 	// // Related data
-	// quntity = (double)10;
+	// quantity = (double)10;
 	// exprice = (double)100;
 	// discount = (double)0.05;
 	// shipdate = (uint64_t) 95365;
-	// row2->set_value(L_QUANTITY, quntity); 	
+	// row2->set_value(L_QUANTITY, quantity); 	
 	// row2->set_value(L_EXTENDEDPRICE, exprice); 
 	// row2->set_value(L_DISCOUNT, discount);
 	// row2->set_value(L_SHIPDATE,shipdate );	
@@ -382,13 +388,16 @@ void tpch_wl::init_test() {
 	// //Index 
 	// index_insert(i_lineitem, key1, row2, 0);
 	// // Q6 index
-	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quntity); 
+	// Q6_key = (uint64_t)((shipdate * 12 + (uint64_t)(discount*100)) * 26 + (uint64_t)quantity); 
 	// index_insert(i_Q6_index, Q6_key, row2, 0);
 }
 
 
-RC tpch_wl::init_bitmap()
+RC tpch_wl::init_bitmap() 
 {
+
+/********************* bitmap_shipdate ******************************/
+	{
 	Table_config *config_shipdate = new Table_config{};
 	config_shipdate->n_workers = g_thread_cnt;
 	config_shipdate->DATA_PATH = "";
@@ -431,6 +440,99 @@ RC tpch_wl::init_bitmap()
 	cout << "[CUBIT]: Bitmap bitmap_shipdate initialized successfully. "
 			<< "[Cardinality:" << config_shipdate->g_cardinality
 			<< "] [Method:" << config_shipdate->approach << "]" << endl;
+	}
+
+/********************* bitmap_discount ******************************/
+	{
+	Table_config *config_discount = new Table_config{};
+	config_discount->n_workers = g_thread_cnt;
+	config_discount->DATA_PATH = "";
+	config_discount->INDEX_PATH = "";
+	config_discount->g_cardinality = 11; // [0, 10]
+	enable_fence_pointer = config_discount->enable_fence_pointer = true;
+	INDEX_WORDS = 10000;  // Fence length 
+	config_discount->approach = {"nbub-lk"};
+	config_discount->nThreads_for_getval = 4;
+	config_discount->show_memory = true;
+	config_discount->on_disk = false;
+	config_discount->showEB = false;
+    config_discount->decode = false;
+
+	// DBx1000 doesn't use the following parameters;
+	// they are used by nicolas.
+	config_discount->n_rows = 0; 
+	config_discount->n_queries = 900;
+	config_discount->n_deletes = 100;
+	config_discount->n_merge = 16;
+	config_discount->verbose = false;
+	config_discount->time_out = 100;
+	
+	if (config_discount->approach == "ub") {
+        bitmap_discount = new ub::Table(config_discount);
+    } else if (config_discount->approach == "nbub-lk") {
+        bitmap_discount = new nbub_lk::NbubLK(config_discount);
+    } else if (config_discount->approach == "nbub-lf" || config_discount->approach =="nbub") {
+        bitmap_discount = new nbub_lf::NbubLF(config_discount);
+    } else if (config_discount->approach == "ucb") {
+        bitmap_discount = new ucb::Table(config_discount);
+    } else if (config_discount->approach == "naive") {
+        bitmap_discount = new naive::Table(config_discount);
+    }
+    else {
+        cerr << "Unknown approach." << endl;
+        exit(-1);
+    }
+
+	cout << "[CUBIT]: Bitmap bitmap_discount initialized successfully. "
+			<< "[Cardinality:" << config_discount->g_cardinality
+			<< "] [Method:" << config_discount->approach << "]" << endl;
+	}
+
+/********************* bitmap_quantity ******************************/
+	{
+	Table_config *config_quantity = new Table_config{};
+	config_quantity->n_workers = g_thread_cnt;
+	config_quantity->DATA_PATH = "";
+	config_quantity->INDEX_PATH = "";
+	config_quantity->g_cardinality = 50; // [0, 49]
+	enable_fence_pointer = config_quantity->enable_fence_pointer = true;
+	INDEX_WORDS = 10000;  // Fence length 
+	config_quantity->approach = {"nbub-lk"};
+	config_quantity->nThreads_for_getval = 4;
+	config_quantity->show_memory = true;
+	config_quantity->on_disk = false;
+	config_quantity->showEB = false;
+    config_quantity->decode = false;
+
+	// DBx1000 doesn't use the following parameters;
+	// they are used by nicolas.
+	config_quantity->n_rows = 0; 
+	config_quantity->n_queries = 900;
+	config_quantity->n_deletes = 100;
+	config_quantity->n_merge = 16;
+	config_quantity->verbose = false;
+	config_quantity->time_out = 100;
+	
+	if (config_quantity->approach == "ub") {
+        bitmap_quantity = new ub::Table(config_quantity);
+    } else if (config_quantity->approach == "nbub-lk") {
+        bitmap_quantity = new nbub_lk::NbubLK(config_quantity);
+    } else if (config_quantity->approach == "nbub-lf" || config_quantity->approach =="nbub") {
+        bitmap_quantity = new nbub_lf::NbubLF(config_quantity);
+    } else if (config_quantity->approach == "ucb") {
+        bitmap_quantity = new ucb::Table(config_quantity);
+    } else if (config_quantity->approach == "naive") {
+        bitmap_quantity = new naive::Table(config_quantity);
+    }
+    else {
+        cerr << "Unknown approach." << endl;
+        exit(-1);
+    }
+
+	cout << "[CUBIT]: Bitmap bitmap_quantity initialized successfully. "
+			<< "[Cardinality:" << config_quantity->g_cardinality
+			<< "] [Method:" << config_quantity->approach << "]" << endl;
+	}
 
 	return RCOK;
 }

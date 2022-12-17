@@ -15,31 +15,89 @@ void tpch_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	_wl = (tpch_wl *) h_wl;
 }
 
-RC tpch_txn_man::run_txn(base_query * query) {
+RC tpch_txn_man::run_txn(base_query * query) 
+{
+	RC rc = RCOK;
 	tpch_query * m_query = (tpch_query *) query;
-	switch (m_query->type) {
-		case TPCH_Q6 :
-			return run_Q6(m_query); break;
-		case TPCH_Q6_index :
-			return run_Q6_index(m_query); break;
-		case TPCH_RF1 :
-			return run_RF1(); break;
-		case TPCH_RF2 :
-			return run_RF2(); break;			
-		default:
-			assert(false);
+
+	run_Q6_bitmap(m_query);
+	run_Q6(m_query);
+	run_Q6_index(m_query);
+
+	// switch (m_query->type) {
+	// 	case TPCH_Q6 :
+	// 		return run_Q6(m_query); break;
+	// 	case TPCH_Q6_index :
+	// 		return run_Q6_index(m_query); break;
+	// 	case TPCH_RF1 :
+	// 		return run_RF1(); break;
+	// 	case TPCH_RF2 :
+	// 		return run_RF2(); break;			
+	// 	default:
+	// 		assert(false);
+	// }
+
+	return rc;
+}
+
+RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
+{
+	RC rc = RCOK;
+	ibis::bitvector result{};
+	nbub::Nbub *bitmap_sd, *bitmap_dc, *bitmap_qt;
+	
+	int year_val = (query->date / 1000) - 92;  // [0, 7]
+	assert(year_val >= 1);
+	assert(year_val <= 7);
+	int discount_val = query->discount * 100; // [0, 10]
+	assert(discount_val >= 2);
+	assert(discount_val <= 9);
+	int quantity_val = query->quantity - 1; // [0, 49]
+	assert(quantity_val >= 0);
+	assert(quantity_val <= 49);
+
+	bitmap_sd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
+	ibis::bitvector *btv_shipdate = bitmap_sd->bitmaps[year_val]->btv;
+
+	bitmap_dc = dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount);
+	ibis::bitvector btv_discount;
+	btv_discount.copy(*bitmap_dc->bitmaps[discount_val-1]->btv);
+	btv_discount |= *bitmap_dc->bitmaps[discount_val]->btv;
+	btv_discount |= *bitmap_dc->bitmaps[discount_val+1]->btv;
+
+	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
+	ibis::bitvector btv_quantity;
+	btv_quantity.copy(*bitmap_qt->bitmaps[0]->btv);
+	for (int i = 1; i < quantity_val; i++) {
+		btv_quantity |= *bitmap_qt->bitmaps[i]->btv;
 	}
+
+	result.copy(*btv_shipdate);
+	result &= btv_discount;
+	result &= btv_quantity;
+
+	// result.decompress();
+	int cnt = 0;
+	for (uint64_t pos = 0; pos < bitmap_sd->g_number_of_rows ; pos++) {
+		if (result.getBit(pos, bitmap_sd->config)) {
+			cnt ++;
+		}
+	}
+	cout << "[run_Q6_bitmap : after merging] sizeof(result btv): " << cnt << endl; 
+
+	return rc;
 }
 
 RC tpch_txn_man::run_Q6(tpch_query * query) {
 	RC rc = RCOK;
 	itemid_t * item;
+	int cnt = 0;
 	INDEX * index = _wl->i_lineitem;
 	
 	// txn
 	double revenue = 0;
-	uint64_t max_number = (uint64_t) (tpch_lineitemKey(g_num_orders, (uint64_t)9));
-	for (uint64_t i = 1; i <= max_number; ++i) {
+	uint64_t max_items = (uint64_t) (tpch_lineitemKey(g_num_orders, 8));
+	for (uint64_t i = 1; i <= max_items ; ++i) {
 		// cout << "i = " << i << endl;
 		if ( !index->index_exist(i, 0) ){
 			// cout << i << " NOT EXIST!" << endl;
@@ -65,8 +123,7 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 		// cout << "A query_discount " << query->discount << " " << l_discount << endl;
 		// cout << "A query_quantity " << query->quantity << " " << l_quantity << endl << endl;		
 
-		if (l_shipdate >= query->date 
-			&& l_shipdate < (uint64_t)(query->date + 1000) 
+		if ((l_shipdate / 1000) == (query->date / 1000)
 			&& (uint64_t)(l_discount*100) >= (uint64_t)((uint64_t)(query->discount*100) - 1) 
 			&& (uint64_t)(l_discount*100) <= (uint64_t)((uint64_t)(query->discount*100) + 1) 
 			&& (uint64_t)l_quantity < (uint64_t)query->quantity){
@@ -81,9 +138,11 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 				double l_extendedprice;
 				r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
 				revenue += l_extendedprice * l_discount;
-			}
+
+				cnt ++;
+		}
 	}
-	cout << "********Q6            revenue is *********" << revenue << endl; 
+	cout << "********Q6            revenue is : " << revenue << "  . Number of items: " << cnt << endl; 
 
 	assert( rc == RCOK );
 	return finish(rc);
@@ -92,10 +151,11 @@ RC tpch_txn_man::run_Q6(tpch_query * query) {
 RC tpch_txn_man::run_Q6_index(tpch_query * query) {
 	RC rc = RCOK;
 	itemid_t * item;
+	int cnt = 0;
 	uint64_t key;
 	double revenue = 0;
 	INDEX * index = _wl->i_Q6_index;
-	uint64_t date = query->date;	// + 1 year
+	uint64_t date = query->date;	// e.g., 1st Jan. 97
 	uint64_t discount = (uint64_t)(query->discount * 100); // +1 -1
 	double quantity = query->quantity;
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
@@ -130,13 +190,14 @@ RC tpch_txn_man::run_Q6_index(tpch_query * query) {
 					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
 					revenue += l_extendedprice * ((double)j / 100);
 
+					cnt ++;
 					local_item = local_item->next;
 				}
 
 			}
 		}
 	}
-	cout << "********Q6 with index revenue is *********" << revenue << endl << endl;
+	cout << "********Q6 with index revenue is : " << revenue << "  . Number of items: " << cnt << endl << endl; 
 	assert( rc == RCOK );
 	return finish(rc);
 }
@@ -193,12 +254,12 @@ RC tpch_txn_man::run_RF1() {
 			row2->set_value(L_LINENUMBER, lcnt);
 
 			// Related data
-			double quntity = (double)URand(1, 50, 0);
-			row2->set_value(L_QUANTITY, quntity); 
+			double quantity = (double)URand(1, 50, 0);
+			row2->set_value(L_QUANTITY, quantity); 
 			uint64_t partkey = URand(1, SF * 200000, 0);	// Related to SF
 			row2->set_value(L_PARTKEY, partkey); 
 			uint64_t p_retailprice = (uint64_t)((90000 + ((partkey / 10) % 20001) + 100 *(partkey % 1000)) /100); // Defined in table PART
-			row2->set_value(L_EXTENDEDPRICE, (double)(quntity * p_retailprice)); // 
+			row2->set_value(L_EXTENDEDPRICE, (double)(quantity * p_retailprice)); // 
 			uint64_t discount = URand(0, 10, 0); // discount is defined as int for Q6
 			row2->set_value(L_DISCOUNT, ((double)discount) / 100); 
 			uint64_t shipdate;
@@ -215,9 +276,9 @@ RC tpch_txn_man::run_RF1() {
 			// cout << "O_ORDERKEY " << i << endl;	
 			// cout << "O_ORDERDATE " << orderdate << endl ;	
 			// cout << "-----------lineitem--- " << endl;
-			// cout << "L_QUANTITY " << quntity<< endl;	
+			// cout << "L_QUANTITY " << quantity<< endl;	
 			// cout << "L_PARTKEY " << partkey<< endl;	
-			// cout << "L_EXTENDEDPRICE " << (double)(quntity * p_retailprice) << endl;	
+			// cout << "L_EXTENDEDPRICE " << (double)(quantity * p_retailprice) << endl;	
 			// cout << "L_DISCOUNT " << ((double)discount) / 100 << endl;	
 			// cout << "L_SHIPDATE " << shipdate << endl;	
 
@@ -241,7 +302,7 @@ RC tpch_txn_man::run_RF1() {
 
 
 			// Q6 index
-			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quntity);
+			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
 			// cout << "Q6_insert_key = " << Q6_key << endl; 
 			_wl->index_insert(_wl->i_Q6_index, Q6_key, row2, 0);
 		}
