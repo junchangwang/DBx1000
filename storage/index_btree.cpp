@@ -548,6 +548,7 @@ RC index_btree::insert_into_parent(
 		for (UInt32 i = parent->num_keys-1; i >= insert_idx; i--) {
 			parent->keys[i + 1] = parent->keys[i];
 			parent->pointers[i+2] = parent->pointers[i+1];
+			if (!i) break;
 		}
 		parent->num_keys ++;
 		parent->keys[insert_idx] = key;
