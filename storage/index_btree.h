@@ -37,6 +37,7 @@ public:
 	RC	 		index_read(idx_key_t key, itemid_t * &item);
 	RC 			index_next(uint64_t thd_id, itemid_t * &item, bool samekey = false);
 	int 		index_size();
+	RC 			index_remove(idx_key_t key);
 
 private:
 	// index structures may have part_cnt = 1 or PART_CNT.

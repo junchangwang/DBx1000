@@ -69,6 +69,48 @@ bt_node * index_btree::find_root(uint64_t part_id) {
 	return roots[part_id];
 }
 
+RC 	index_btree::index_remove(idx_key_t key) {
+	glob_param params;
+	params.part_id = 0; // Fixme
+	RC rc = RCOK;
+	bt_node * root = find_root(params.part_id);
+	assert(root != NULL);
+	int depth = 0;
+	// TODO tree depth < 100
+	bt_node * ex_list[100];
+	bt_node * leaf = NULL;
+	bt_node * last_ex = NULL;
+	rc = find_leaf(params, key, INDEX_INSERT, leaf, last_ex);
+	assert(rc == RCOK);
+	
+	bt_node * tmp_node = leaf;
+	if (last_ex != NULL) {
+		while (tmp_node != last_ex) {
+	//		assert( tmp_node->latch_type == LATCH_EX );
+			ex_list[depth++] = tmp_node;
+			tmp_node = tmp_node->parent;
+			assert (depth < 100);
+		}
+		ex_list[depth ++] = last_ex;
+	} else
+		ex_list[depth++] = leaf;
+	
+	// remove item
+	int idx = leaf_has_key(leaf, key);	
+	if (idx != -1) {
+		leaf->pointers[idx] = NULL;
+		cout << "key = " << key << " deleted!" << endl;
+		return RCOK;
+	} else {
+		cout << "WARNING! key = " << key << " NOT exist!" << endl;
+		rc = Abort;
+	}
+
+	for (int i = 0; i < depth; i++)
+		release_latch(ex_list[i]);
+	return rc;
+}
+
 bool index_btree::index_exist(idx_key_t key) {
 	assert(false); // part_id is not correct now.
 	glob_param params;
@@ -94,8 +136,11 @@ bool index_btree::index_exist(idx_key_t key, int part_id) {
 	if (leaf == NULL) return false;
 	for (UInt32 i = 0; i < leaf->num_keys; i++)
 		if (leaf->keys[i] == key) {
-			// the record is found!
-			return true;
+			if (leaf->pointers[i] == NULL){
+				return false;
+			} else {
+				return true;
+			}
 		}
 	return false;
 }
