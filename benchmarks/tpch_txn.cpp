@@ -20,22 +20,24 @@ RC tpch_txn_man::run_txn(base_query * query)
 	RC rc = RCOK;
 	tpch_query * m_query = (tpch_query *) query;
 
-	run_Q6_scan(m_query);
-	run_Q6_hashtable(m_query);
-	run_Q6_bitmap(m_query);
-
-	// switch (m_query->type) {
-	// 	case TPCH_Q6 :
-	// 		return run_Q6(m_query); break;
-	// 	case TPCH_Q6_HT :
-	// 		return run_Q6_hashtable(m_query); break;
-	// 	case TPCH_RF1 :
-	// 		return run_RF1(); break;
-	// 	case TPCH_RF2 :
-	// 		return run_RF2(); break;			
-	// 	default:
-	// 		assert(false);
-	// }
+	switch (m_query->type) {
+		case TPCH_Q6 :
+			rc = run_Q6_scan(m_query);
+			assert(rc == RCOK);
+			rc = run_Q6_hashtable(m_query);
+			assert(rc == RCOK);
+			rc = run_Q6_bitmap(m_query);
+			assert(rc == RCOK);
+			break;
+		case TPCH_RF1 :
+			rc = run_RF1(); 
+			break;
+		case TPCH_RF2 :
+			rc = run_RF2(); 
+			break;			
+		default:
+			assert(false);
+	}
 
 	return rc;
 }
@@ -262,8 +264,6 @@ RC tpch_txn_man::run_RF1() {
 		_wl->index_insert(_wl->i_orders, i, row, 0);
 
 
-
-
 		// **********************Lineitems*****************************************
 
 		uint64_t lines = URand(1, 7, 0);
@@ -347,5 +347,4 @@ RC tpch_txn_man::run_RF2() {
 	}
 
 	return RCOK;
-
 }
