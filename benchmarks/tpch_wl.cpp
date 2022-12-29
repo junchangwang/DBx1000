@@ -98,7 +98,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 
 		uint64_t lines = URand(1, 7, 0);
 		// uint64_t lines = 1;
-		g_total_line_in_lineitems += lines;
+		g_nor_in_lineitems += lines;
 		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
 			row_t * row2;
 			uint64_t row_id2 = 0;

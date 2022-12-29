@@ -198,8 +198,12 @@ void BucketHeader::read_item(idx_key_t key, itemid_t * &item, const char * tname
 			break;
 		cur_node = cur_node->next;
 	}
-	M_ASSERT(cur_node->key == key, "Key does not exist!");
-	item = cur_node->items;
+	// M_ASSERT(cur_node->key == key, "Key does not exist!");
+
+	if (cur_node)
+		item = cur_node->items;
+	else
+		item = NULL;
 }
 
 bool BucketHeader::exist_item(idx_key_t key) 

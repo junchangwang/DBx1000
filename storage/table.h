@@ -29,9 +29,9 @@ public:
 	
 	row_t *row_buffer;
 	int max_rows;
+	uint64_t cur_tab_size;
 
 private:
 	const char * 	table_name;
-	uint64_t  		cur_tab_size;
 	char 			pad[CL_SIZE - sizeof(void *)*3];
 };

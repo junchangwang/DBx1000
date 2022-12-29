@@ -22,12 +22,10 @@ RC tpch_txn_man::run_txn(base_query * query)
 
 	switch (m_query->type) {
 		case TPCH_Q6 :
-			rc = run_Q6_scan(m_query);
-			assert(rc == RCOK);
-			rc = run_Q6_hashtable(m_query);
-			assert(rc == RCOK);
-			rc = run_Q6_bitmap(m_query);
-			assert(rc == RCOK);
+			assert(run_Q6_scan(m_query) == RCOK);
+			assert(run_Q6_hashtable(m_query) == RCOK);
+			assert(run_Q6_bitmap(m_query) == RCOK);
+			finish(rc);
 			break;
 		case TPCH_RF1 :
 			rc = run_RF1(); 
@@ -45,8 +43,6 @@ RC tpch_txn_man::run_txn(base_query * query)
 RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 {
 	RC rc = RCOK;
-	ibis::bitvector result{};
-	nbub::Nbub *bitmap_sd, *bitmap_dc, *bitmap_qt;
 	
 	int year_val = (query->date / 1000) - 92;  // [0, 7]
 	assert(year_val >= 1);
@@ -60,6 +56,7 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 
 	auto start = std::chrono::high_resolution_clock::now();
 
+	nbub::Nbub *bitmap_sd, *bitmap_dc, *bitmap_qt;
 	bitmap_sd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
 	ibis::bitvector *btv_shipdate = bitmap_sd->bitmaps[year_val]->btv;
 
@@ -70,21 +67,22 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	btv_discount |= *bitmap_dc->bitmaps[discount_val+1]->btv;
 
 	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
-	ibis::bitvector btv_quantity;
-	btv_quantity.copy(*bitmap_qt->bitmaps[0]->btv);
+	ibis::bitvector result;
+	result.copy(*bitmap_qt->bitmaps[0]->btv);
 	for (int i = 1; i < quantity_val; i++) {
-		btv_quantity |= *bitmap_qt->bitmaps[i]->btv;
+		result |= *bitmap_qt->bitmaps[i]->btv;
 	}
 
-	result.copy(*btv_shipdate);
 	result &= btv_discount;
-	result &= btv_quantity;
+	result &= *btv_shipdate;
 
-	// result.decompress();
 	int cnt = 0;
 	double revenue = 0;
 	row_t *row_buffer = _wl->t_lineitem->row_buffer;
-	for (uint64_t pos = 0; pos < bitmap_sd->g_number_of_rows ; pos++) {
+
+	// TODO: Extend fastbit to support the API to give the array of positions containing 1's.
+	result.decompress();
+	for (uint64_t pos = 0; pos < _wl->t_lineitem->cur_tab_size ; pos++) {
 		if (result.getBit(pos, bitmap_sd->config)) {
 			row_t *row_tmp = (row_t *) &row_buffer[pos];
 			row_t *row = get_row(row_tmp, RD);
@@ -114,23 +112,27 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	
 	auto start = std::chrono::high_resolution_clock::now();
 
-	// txn
+	// uint64_t max_items = (uint64_t) (tpch_lineitemKey(g_num_orders, 8));
+	// for (uint64_t i = 1; i <= max_items ; ++i) {
+	// 	// cout << "i = " << i << endl;
+	// 	if ( !index->index_exist(i, 0) ){
+	// 		// cout << i << " NOT EXIST!" << endl;
+	// 		continue;
+	// 	}
+	// 	item = index_read(index, i, 0);
+	//  assert(item != NULL);
+	//  row_t * r_lt = ((row_t *)item->location);
+
 	double revenue = 0;
-	uint64_t max_items = (uint64_t) (tpch_lineitemKey(g_num_orders, 8));
-	for (uint64_t i = 1; i <= max_items ; ++i) {
-		// cout << "i = " << i << endl;
-		if ( !index->index_exist(i, 0) ){
-			// cout << i << " NOT EXIST!" << endl;
-			continue;
-		}
-		item = index_read(index, i, 0);
-		assert(item != NULL);
-		row_t * r_lt = ((row_t *)item->location);
+	uint64_t max_items = (uint64_t) _wl->t_lineitem->cur_tab_size;
+	for (uint64_t row_id = 0; row_id < max_items; row_id ++) {
+		row_t * r_lt = (row_t *) &_wl->t_lineitem->row_buffer[row_id];
+		assert(r_lt != NULL);
 		row_t * r_lt_local = get_row(r_lt, RD);
 		if (r_lt_local == NULL) {
 			return finish(Abort);
 		}
-		// begin
+
 		uint64_t l_shipdate;
 		r_lt_local->get_value(L_SHIPDATE, l_shipdate);
 		double l_discount;
@@ -138,7 +140,6 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 		double l_quantity;
 		r_lt_local->get_value(L_QUANTITY, l_quantity);
 		
-		// debug
 		// cout << "A query_date " << query->date << " " << l_shipdate << endl;
 		// cout << "A query_discount " << query->discount << " " << l_discount << endl;
 		// cout << "A query_quantity " << query->quantity << " " << l_quantity << endl << endl;		
@@ -146,9 +147,8 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 		if ((l_shipdate / 1000) == (query->date / 1000)
 			&& (uint64_t)(l_discount*100) >= (uint64_t)((uint64_t)(query->discount*100) - 1) 
 			&& (uint64_t)(l_discount*100) <= (uint64_t)((uint64_t)(query->discount*100) + 1) 
-			&& (uint64_t)l_quantity < (uint64_t)query->quantity){
-				
-				// debug
+			&& (uint64_t)l_quantity < (uint64_t)query->quantity)
+		{
 				// cout << "B query_date " << query->date << " " << l_shipdate << endl;
 				// cout << "B query_discount " << query->discount << " " << l_discount << endl;
 				// cout << "B query_quantity " << query->quantity << " " << l_quantity << endl << endl;
@@ -171,7 +171,8 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	return finish(rc);
 }
 
-RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) {
+RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) 
+{
 	RC rc = RCOK;
 	itemid_t * item;
 	int cnt = 0;
@@ -179,32 +180,28 @@ RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) {
 	double revenue = 0;
 	INDEX * index = _wl->i_Q6_hashtable;
 	uint64_t date = query->date;	// e.g., 1st Jan. 97
-	uint64_t discount = (uint64_t)(query->discount * 100); // +1 -1
+	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
 
 	auto start = std::chrono::high_resolution_clock::now();
 
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
-			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--){
-	
-				// key = (uint64_t)((i * 12 + j) * 26 + k);
+			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
+			{
 				key = tpch_lineitemKey_index(i, j, k);
-				// cout << "Q6_txn_key = " << key << endl; 
 				if ( !index->index_exist(key, 0) ){
-					// cout << i << " NOT EXIST!" << endl;
 					continue;
 				}	
 
-				// debug
 				// cout << "Q6_txn_key = " << key << endl;
 				// cout << "index query_date " << query->date << " " << i << endl;
 				// cout << "index query_discount " << query->discount << " " << j << endl;
 				// cout << "index query_quantity " << query->quantity << " " << k << endl << endl;
 				
 				item = index_read(index, key, 0);
-				itemid_t * local_item = item;
 				assert(item != NULL);
+				itemid_t * local_item = item;
 				while (local_item != NULL) {
 					row_t * r_lt = ((row_t *)local_item->location);
 					row_t * r_lt_local = get_row(r_lt, RD);
@@ -215,8 +212,8 @@ RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) {
 					double l_extendedprice;
 					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
 					revenue += l_extendedprice * ((double)j / 100);
-
 					cnt ++;
+
 					local_item = local_item->next;
 				}
 
@@ -268,7 +265,7 @@ RC tpch_txn_man::run_RF1() {
 
 		uint64_t lines = URand(1, 7, 0);
 		// uint64_t lines = 1;
-		g_total_line_in_lineitems += lines;
+		g_nor_in_lineitems += lines;
 		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
 			row_t * row2;
 			uint64_t row_id2;
@@ -338,13 +335,74 @@ RC tpch_txn_man::run_RF1() {
 }
 
 RC tpch_txn_man::run_RF2() {
-	for (uint64_t i = 1; i < (uint64_t)(SF * 1500); ++i) {
-		uint64_t key = URand(1, g_num_orders, 0);
-		_wl->i_orders->index_remove(key);
-		for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt){
-			_wl->i_lineitem->index_remove(tpch_lineitemKey(key, lcnt));
+	// for (uint64_t i = 1; i < (uint64_t)(SF * 1500); ++i)
+	// RF2 is generated one thousandth.
+
+	RC rc = RCOK;
+
+	uint64_t key1 = URand(1, g_num_orders, 0);
+
+	/****** Process Table ORDER ******/
+	{
+		INDEX *index1 = _wl->i_orders;
+		// Process tuple
+		itemid_t * item1 = index_read(index1, key1, 0);
+		assert(item1);
+		row_t * row1 = ((row_t *)item1->location);
+		row_t * row1_local = get_row(row1, WR);
+		if (row1_local == NULL) {
+			assert(false);
+			return finish(Abort);
 		}
+		// TODO: invalidate row
+
+		// Process index
+		_wl->i_orders->index_remove(key1);
 	}
 
-	return RCOK;
+	/****** Process Table LINEITEM ******/
+
+	for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt)
+	{
+		uint64_t key2 = tpch_lineitemKey(key1, lcnt);
+		INDEX *index2 = _wl->i_lineitem;
+
+		itemid_t * item2 = index_read(index2, key2, 0);
+		if (!item2)
+			continue;
+		row_t * row2 = ((row_t *)item2->location);
+		row_t * row2_local = get_row(row2, WR);
+		if (row2_local == NULL) {
+			assert(false);
+			return finish(Abort);
+		}
+		// TODO: invalidate row
+		
+		// Index
+		_wl->i_lineitem->index_remove(key2);
+
+
+		// Q6_hashtable
+		uint64_t l_shipdate;
+		row2_local->get_value(L_SHIPDATE, l_shipdate);
+		double l_discount;
+		row2_local->get_value(L_DISCOUNT, l_discount);
+		double l_quantity;
+		row2_local->get_value(L_QUANTITY, l_quantity);
+
+		uint64_t Q6_key = tpch_lineitemKey_index(l_shipdate, (int)(l_discount*100), l_quantity);
+		rc = _wl->i_Q6_hashtable->index_remove(Q6_key);
+		assert(rc == RCOK);
+
+		// Bitmap
+		uint64_t row_id = row2 - _wl->t_lineitem->row_buffer;
+		_wl->bitmap_discount->remove(0, row_id);
+		_wl->bitmap_quantity->remove(0, row_id);
+		_wl->bitmap_shipdate->remove(0, row_id);
+	}
+
+	cout << "******** RF2 is done ********" << endl << endl;
+
+	assert(rc == RCOK);
+	return finish(rc);
 }

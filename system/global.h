@@ -113,7 +113,7 @@ extern UInt32 g_cust_per_dist;
 enum RC { RCOK, Commit, Abort, WAIT, ERROR, FINISH};
 
 //TPCH
-extern uint64_t g_total_line_in_lineitems;
+extern uint64_t g_nor_in_lineitems;
 extern uint64_t g_num_orders;
 extern uint64_t g_max_lineitems;
 extern uint64_t STARTDATE;
