@@ -1,6 +1,7 @@
 #ifndef _BTREE_H_
 #define _BTREE_H_
 
+#include <shared_mutex>
 #include "global.h"
 #include "helper.h"
 #include "index_base.h"
@@ -38,6 +39,8 @@ public:
 	RC 			index_next(uint64_t thd_id, itemid_t * &item, bool samekey = false);
 	int 		index_size();
 	RC 			index_remove(idx_key_t key);
+
+	std::shared_mutex rw_lock;
 
 private:
 	// index structures may have part_cnt = 1 or PART_CNT.
