@@ -26,7 +26,7 @@ public:
 	void 			init(row_t * row);
 	RC 				access(txn_man * txn, TsType type, row_t * row);
 	RC 				prepare_read(txn_man * txn, row_t * row, ts_t commit_ts);
-	void 			post_process(txn_man * txn, ts_t commit_ts, RC rc);
+	void 			post_process(txn_man * txn, ts_t commit_ts, access_t type, RC rc);
 
 private:
 	volatile bool 	blatch;

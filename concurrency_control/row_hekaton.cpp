@@ -52,6 +52,11 @@ RC Row_hekaton::access(txn_man * txn, TsType type, row_t * row) {
 	ts_t ts = txn->get_ts();
 	while (!ATOM_CAS(blatch, false, true))
 		PAUSE
+	if (!_write_history[_his_latest].end_txn && _write_history[_his_latest].end < ts) {
+		// cout << "===========Skiping tuple================" << endl;
+		rc = ERROR;
+		goto out;
+	}
 	assert(_write_history[_his_latest].end == INF || _write_history[_his_latest].end_txn);
 	if (type == R_REQ) {
 		if (ISOLATION_LEVEL == REPEATABLE_READ) {
@@ -99,9 +104,20 @@ RC Row_hekaton::access(txn_man * txn, TsType type, row_t * row) {
 			res_row->copy(_write_history[_his_latest].row);
 			txn->cur_row = res_row;
 		}
+	} else if (type == D_REQ) {
+		if (_exists_prewrite || ts < _write_history[_his_latest].begin) {
+			rc = Abort;
+		} else {
+			rc = RCOK;
+			_exists_prewrite = true;
+			_write_history[_his_latest].end_txn = true;
+			_write_history[_his_latest].end = txn->get_txn_id();
+			txn->cur_row = _write_history[_his_latest].row;
+		}
 	} else 
 		assert(false);
 
+out:
 	blatch = false;
 	return rc;
 }
@@ -180,25 +196,43 @@ Row_hekaton::prepare_read(txn_man * txn, row_t * row, ts_t commit_ts)
 }
 
 void
-Row_hekaton::post_process(txn_man * txn, ts_t commit_ts, RC rc)
+Row_hekaton::post_process(txn_man * txn, ts_t commit_ts, access_t type, RC rc)
 {
 	while (!ATOM_CAS(blatch, false, true))
 		PAUSE
 
-	WriteHisEntry * entry = &_write_history[ (_his_latest + 1) % _his_len ];
-	assert(entry->begin_txn && entry->begin == txn->get_txn_id());
-	_write_history[ _his_latest ].end_txn = false;
-	_exists_prewrite = false;
-	if (rc == RCOK) {
-		assert(commit_ts > _write_history[_his_latest].begin);
-		_write_history[ _his_latest ].end = commit_ts;
-		entry->begin = commit_ts;
-		entry->end = INF;
-		_his_latest = (_his_latest + 1) % _his_len;
-		assert(_his_latest != _his_oldest);
-	} else 
-		_write_history[ _his_latest ].end = INF;
+	if (type == WR) {
+		WriteHisEntry * entry = &_write_history[ (_his_latest + 1) % _his_len ];
+		assert(entry->begin_txn && entry->begin == txn->get_txn_id());
+		_write_history[ _his_latest ].end_txn = false;
+		_exists_prewrite = false;
+		if (rc == RCOK) {
+			assert(commit_ts > _write_history[_his_latest].begin);
+			_write_history[ _his_latest ].end = commit_ts;
+			entry->begin = commit_ts;
+			entry->end = INF;
+			_his_latest = (_his_latest + 1) % _his_len;
+			assert(_his_latest != _his_oldest);
+		} else 
+			_write_history[ _his_latest ].end = INF;
+	}
+	else if (type == DEL) {
+		WriteHisEntry * entry = &_write_history[_his_latest];
+		assert(!entry->begin_txn && entry->end_txn && entry->end == txn->get_txn_id());
+		entry->end_txn = false;
+		_exists_prewrite = false;
+		if (rc == RCOK) {
+			assert(commit_ts > entry->begin);
+			entry->end = commit_ts;
+		} else
+			entry->end = INF;
+	}
+	else
+		assert(false);
 	
+	// The following code is NOT correct in the context of concurrent programming.
+	// Actually they are notably error-prone in parallel code. Paul's classic perfbook is a good reference.
+	// Too many occurences in this framework, so I'll avoid touching them. But be careful.
 	blatch = false;
 }
 

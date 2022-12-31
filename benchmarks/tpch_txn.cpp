@@ -13,6 +13,8 @@
 void tpch_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	txn_man::init(h_thd, h_wl, thd_id);
 	_wl = (tpch_wl *) h_wl;
+
+	cout.precision(32);
 }
 
 RC tpch_txn_man::run_txn(base_query * query) 
@@ -339,50 +341,47 @@ RC tpch_txn_man::run_RF2() {
 	// RF2 is generated one thousandth.
 
 	RC rc = RCOK;
-
-	uint64_t key1 = URand(1, g_num_orders, 0);
+	int del_cnt = 0;
+	double del_revenue = 0;
 
 	/****** Process Table ORDER ******/
-	{
-		INDEX *index1 = _wl->i_orders;
-		// Process tuple
-		itemid_t * item1 = index_read(index1, key1, 0);
-		assert(item1);
-		row_t * row1 = ((row_t *)item1->location);
-		row_t * row1_local = get_row(row1, WR);
-		if (row1_local == NULL) {
-			assert(false);
-			return finish(Abort);
-		}
-		// TODO: invalidate row
 
-		// Process index
-		_wl->i_orders->index_remove(key1);
+	INDEX *index1 = _wl->i_orders;
+	uint64_t key1 = URand(1, g_num_orders, 0);
+	itemid_t * item1 = index_read(index1, key1, 0);
+	assert(item1);
+	row_t * row1 = ((row_t *)item1->location);
+	// Delete the row
+	row_t * row1_local = get_row(row1, DEL);
+	if (row1_local == NULL) {
+		assert(false);
+		return finish(Abort);
 	}
+	// Delete from the index
+	_wl->i_orders->index_remove(key1);
 
 	/****** Process Table LINEITEM ******/
 
+	INDEX *index2 = _wl->i_lineitem;
 	for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt)
 	{
 		uint64_t key2 = tpch_lineitemKey(key1, lcnt);
-		INDEX *index2 = _wl->i_lineitem;
-
 		itemid_t * item2 = index_read(index2, key2, 0);
 		if (!item2)
 			continue;
 		row_t * row2 = ((row_t *)item2->location);
-		row_t * row2_local = get_row(row2, WR);
+		// Delete the row
+		row_t * row2_local = get_row(row2, DEL);
+		del_cnt ++;
 		if (row2_local == NULL) {
 			assert(false);
 			return finish(Abort);
-		}
-		// TODO: invalidate row
-		
-		// Index
+		}		
+		// Delete from the index
 		_wl->i_lineitem->index_remove(key2);
 
 
-		// Q6_hashtable
+		// Delete from Q6_hashtable
 		uint64_t l_shipdate;
 		row2_local->get_value(L_SHIPDATE, l_shipdate);
 		double l_discount;
@@ -399,9 +398,14 @@ RC tpch_txn_man::run_RF2() {
 		_wl->bitmap_discount->remove(0, row_id);
 		_wl->bitmap_quantity->remove(0, row_id);
 		_wl->bitmap_shipdate->remove(0, row_id);
+
+		double l_extendedprice;
+		row2_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+		del_revenue += l_extendedprice * l_discount;
 	}
 
-	cout << "******** RF2 is done ********" << endl << endl;
+	cout << "******** RF2 complete successfully ********" << endl
+			<< del_cnt << " tuples with revenue being " << del_revenue << " have been removed" << endl << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
