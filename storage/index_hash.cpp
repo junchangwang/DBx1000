@@ -57,11 +57,7 @@ bool IndexHash::index_exist(idx_key_t key, int part_id) {
 	uint64_t bkt_idx = hash(key);
 	assert(bkt_idx < _bucket_cnt_per_part);
 	BucketHeader * cur_bkt = &_buckets[part_id][bkt_idx];
-	// 1. get the sh latch
-//	get_latch(cur_bkt);
 	return cur_bkt->exist_item(key);
-	// 3. release the latch
-//	release_latch(cur_bkt);	
 }
 
 bool IndexHash::index_exist(idx_key_t key) {
@@ -86,13 +82,13 @@ RC IndexHash::index_insert(idx_key_t key, itemid_t * item, int part_id) {
 	assert(bkt_idx < _bucket_cnt_per_part);
 	BucketHeader * cur_bkt = &_buckets[part_id][bkt_idx];
 	// 1. get the ex latch
-	get_latch(cur_bkt);
+	// get_latch(cur_bkt);
 	
 	// 2. update the latch list
 	cur_bkt->insert_item(key, item, part_id);
 	
 	// 3. release the latch
-	release_latch(cur_bkt);
+	// release_latch(cur_bkt);
 	return rc;
 }
 

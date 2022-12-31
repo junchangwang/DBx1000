@@ -1,5 +1,6 @@
 #pragma once 
 
+#include <shared_mutex>
 #include "global.h"
 #include "helper.h"
 #include "index_base.h"
@@ -50,6 +51,8 @@ public:
 							int part_id=-1, int thd_id=0);
 	int			index_size();
 	RC			index_remove(idx_key_t key);
+
+	std::shared_mutex rw_lock;
 private:
 	void get_latch(BucketHeader * bucket);
 	void release_latch(BucketHeader * bucket);

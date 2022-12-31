@@ -1,3 +1,4 @@
+#include <shared_mutex>
 #include "tpch.h"
 #include "tpch_query.h"
 #include "tpc_helper.h"
@@ -40,6 +41,106 @@ RC tpch_txn_man::run_txn(base_query * query)
 	}
 
 	return rc;
+}
+
+RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
+	RC rc = RCOK;
+	itemid_t * item;
+	int cnt = 0;
+	
+	auto start = std::chrono::high_resolution_clock::now();
+
+	double revenue = 0;
+	uint64_t max_items = (uint64_t) _wl->t_lineitem->cur_tab_size;
+	for (uint64_t row_id = 0; row_id < max_items; row_id ++) {
+		row_t * r_lt = (row_t *) &_wl->t_lineitem->row_buffer[row_id];
+		assert(r_lt != NULL);
+		row_t * r_lt_local = get_row(r_lt, RD);
+		if (r_lt_local == NULL) {
+			return finish(Abort);
+		}
+
+		uint64_t l_shipdate;
+		r_lt_local->get_value(L_SHIPDATE, l_shipdate);
+		double l_discount;
+		r_lt_local->get_value(L_DISCOUNT, l_discount);
+		double l_quantity;
+		r_lt_local->get_value(L_QUANTITY, l_quantity);
+
+		if ((l_shipdate / 1000) == (query->date / 1000)
+			&& (uint64_t)(l_discount*100) >= (uint64_t)((uint64_t)(query->discount*100) - 1) 
+			&& (uint64_t)(l_discount*100) <= (uint64_t)((uint64_t)(query->discount*100) + 1) 
+			&& (uint64_t)l_quantity < (uint64_t)query->quantity)
+		{
+				double l_extendedprice;
+				r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+				revenue += l_extendedprice * l_discount;
+
+				cnt ++;
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+
+	assert( rc == RCOK );
+	return finish(rc);
+}
+
+RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) 
+{
+	RC rc = RCOK;
+	itemid_t * item;
+	int cnt = 0;
+	uint64_t key;
+	double revenue = 0;
+	INDEX * index = _wl->i_Q6_hashtable;
+	uint64_t date = query->date;	// e.g., 1st Jan. 97
+	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
+	double quantity = query->quantity;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
+		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
+			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
+			{
+				key = tpch_lineitemKey_index(i, j, k);
+
+				shared_lock<shared_mutex> r_lock(index->rw_lock);
+
+				if ( !index->index_exist(key, 0) ){
+					continue;
+				}
+				
+				item = index_read(index, key, 0);
+				assert(item != NULL);
+				itemid_t * local_item = item;
+				while (local_item != NULL) {
+					row_t * r_lt = ((row_t *)local_item->location);
+					row_t * r_lt_local = get_row(r_lt, RD);
+					if (r_lt_local == NULL) {
+						return finish(Abort);
+					}
+					// cout << "address = " << &r_lt_local->data << endl;
+					double l_extendedprice;
+					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+					revenue += l_extendedprice * ((double)j / 100);
+					cnt ++;
+
+					local_item = local_item->next;
+				}
+
+			}
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout << "********Q6 with index revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	assert( rc == RCOK );
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
@@ -106,237 +207,122 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	return rc;
 }
 
-RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
-	RC rc = RCOK;
-	itemid_t * item;
-	int cnt = 0;
-	INDEX * index = _wl->i_lineitem;
-	
-	auto start = std::chrono::high_resolution_clock::now();
-
-	// uint64_t max_items = (uint64_t) (tpch_lineitemKey(g_num_orders, 8));
-	// for (uint64_t i = 1; i <= max_items ; ++i) {
-	// 	// cout << "i = " << i << endl;
-	// 	if ( !index->index_exist(i, 0) ){
-	// 		// cout << i << " NOT EXIST!" << endl;
-	// 		continue;
-	// 	}
-	// 	item = index_read(index, i, 0);
-	//  assert(item != NULL);
-	//  row_t * r_lt = ((row_t *)item->location);
-
-	double revenue = 0;
-	uint64_t max_items = (uint64_t) _wl->t_lineitem->cur_tab_size;
-	for (uint64_t row_id = 0; row_id < max_items; row_id ++) {
-		row_t * r_lt = (row_t *) &_wl->t_lineitem->row_buffer[row_id];
-		assert(r_lt != NULL);
-		row_t * r_lt_local = get_row(r_lt, RD);
-		if (r_lt_local == NULL) {
-			return finish(Abort);
-		}
-
-		uint64_t l_shipdate;
-		r_lt_local->get_value(L_SHIPDATE, l_shipdate);
-		double l_discount;
-		r_lt_local->get_value(L_DISCOUNT, l_discount);
-		double l_quantity;
-		r_lt_local->get_value(L_QUANTITY, l_quantity);
-		
-		// cout << "A query_date " << query->date << " " << l_shipdate << endl;
-		// cout << "A query_discount " << query->discount << " " << l_discount << endl;
-		// cout << "A query_quantity " << query->quantity << " " << l_quantity << endl << endl;		
-
-		if ((l_shipdate / 1000) == (query->date / 1000)
-			&& (uint64_t)(l_discount*100) >= (uint64_t)((uint64_t)(query->discount*100) - 1) 
-			&& (uint64_t)(l_discount*100) <= (uint64_t)((uint64_t)(query->discount*100) + 1) 
-			&& (uint64_t)l_quantity < (uint64_t)query->quantity)
-		{
-				// cout << "B query_date " << query->date << " " << l_shipdate << endl;
-				// cout << "B query_discount " << query->discount << " " << l_discount << endl;
-				// cout << "B query_quantity " << query->quantity << " " << l_quantity << endl << endl;
-				
-				// cout << "address = " << &r_lt_local->data << endl;
-
-				double l_extendedprice;
-				r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-				revenue += l_extendedprice * l_discount;
-
-				cnt ++;
-		}
-	}
-
-	auto end = std::chrono::high_resolution_clock::now();
-	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-
-	assert( rc == RCOK );
-	return finish(rc);
-}
-
-RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) 
+RC tpch_txn_man::run_RF1() 
 {
-	RC rc = RCOK;
-	itemid_t * item;
-	int cnt = 0;
-	uint64_t key;
-	double revenue = 0;
-	INDEX * index = _wl->i_Q6_hashtable;
-	uint64_t date = query->date;	// e.g., 1st Jan. 97
-	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
-	double quantity = query->quantity;
+	// for (uint64_t i = (uint64_t)(g_num_orders + 1); i < (uint64_t)(SF * 1500 + g_num_orders + 1); ++i) {
+	// RF1 is generated one thousandth.
 
-	auto start = std::chrono::high_resolution_clock::now();
+	row_t * row;
+	uint64_t row_id1;
+	_wl->t_orders->get_new_row(row, 0, row_id1);
+	row_id1 ++;
+	//Primary key
+	row->set_primary_key(row_id1);
+	row->set_value(O_ORDERKEY, row_id1);
 
-	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
-		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
-			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
-			{
-				key = tpch_lineitemKey_index(i, j, k);
-				if ( !index->index_exist(key, 0) ){
-					continue;
-				}	
+	//Related data
+	uint64_t year = URand(92, 98, 0);
+	uint64_t day = URand(1, 365, 0);
+	if (year == 98) {
+		day = day % 214;
+	} 
+	uint64_t orderdate = (uint64_t)(year*1000 + day);
+	row->set_value(O_ORDERDATE, orderdate); 
 
-				// cout << "Q6_txn_key = " << key << endl;
-				// cout << "index query_date " << query->date << " " << i << endl;
-				// cout << "index query_discount " << query->discount << " " << j << endl;
-				// cout << "index query_quantity " << query->quantity << " " << k << endl << endl;
-				
-				item = index_read(index, key, 0);
-				assert(item != NULL);
-				itemid_t * local_item = item;
-				while (local_item != NULL) {
-					row_t * r_lt = ((row_t *)local_item->location);
-					row_t * r_lt_local = get_row(r_lt, RD);
-					if (r_lt_local == NULL) {
-						return finish(Abort);
-					}
-					// cout << "address = " << &r_lt_local->data << endl;
-					double l_extendedprice;
-					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-					revenue += l_extendedprice * ((double)j / 100);
-					cnt ++;
+	//Unrelated data
+	row->set_value(O_CUSTKEY, (uint64_t)123456);
+	row->set_value(O_ORDERSTATUS, 'A');
+	row->set_value(O_TOTALPRICE, (double)12345.56); // May be used
+	char temp[20];
+	MakeAlphaString(10, 19, temp, 0);
+	row->set_value(O_ORDERPRIORITY, temp);
+	row->set_value(O_CLERK, temp);
+	row->set_value(O_SHIPPRIORITY, (uint64_t)654321);
+	row->set_value(O_COMMENT, temp);
 
-					local_item = local_item->next;
-				}
+	unique_lock<shared_mutex> w_lock(_wl->i_orders->rw_lock);
+	_wl->index_insert(_wl->i_orders, row_id1, row, 0);
 
-			}
+
+	// **********************Lineitems*****************************************
+
+	uint64_t lines = URand(1, 7, 0);
+	g_nor_in_lineitems += lines;
+	for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
+		row_t * row2;
+		uint64_t row_id2;
+		_wl->t_lineitem->get_new_row_seq(row2, 0, row_id2);
+
+		// Populate data
+		// Primary key
+		row2->set_primary_key(tpch_lineitemKey(row_id1, lcnt));
+		row2->set_value(L_ORDERKEY, row_id1);
+		row2->set_value(L_LINENUMBER, lcnt);
+
+		// Related data
+		double quantity = (double)URand(1, 50, 0);
+		row2->set_value(L_QUANTITY, quantity); 
+		uint64_t partkey = URand(1, SF * 200000, 0);	// Related to SF
+		row2->set_value(L_PARTKEY, partkey); 
+		uint64_t p_retailprice = (uint64_t)((90000 + ((partkey / 10) % 20001) + 100 *(partkey % 1000)) /100); // Defined in table PART
+		row2->set_value(L_EXTENDEDPRICE, (double)(quantity * p_retailprice)); // 
+		uint64_t discount = URand(0, 10, 0); // discount is defined as int for Q6
+		row2->set_value(L_DISCOUNT, ((double)discount) / 100); 
+		uint64_t shipdate;
+		uint64_t dayAdd = URand(1, 121, 0);
+		if (day + dayAdd > (uint64_t)365) {
+			shipdate = (uint64_t)((year+1) * 1000 + day + dayAdd - 365);
+		} else {
+			shipdate = (uint64_t) (year *1000 + day + dayAdd);
 		}
-	}
-
-	auto end = std::chrono::high_resolution_clock::now();
-	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "********Q6 with index revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-	assert( rc == RCOK );
-	return finish(rc);
-}
-
-RC tpch_txn_man::run_RF1() {
-	for (uint64_t i = (uint64_t)(g_num_orders + 1); i < (uint64_t)(SF * 1500 + g_num_orders + 1); ++i) {
-		row_t * row;
-		uint64_t row_id;
-		_wl->t_orders->get_new_row(row, 0, row_id);		
-		//Primary key
-		row->set_primary_key(i);
-		row->set_value(O_ORDERKEY, i);
-
-		//Related data
-		uint64_t year = URand(92, 98, 0);
-		uint64_t day = URand(1, 365, 0);
-		if (year == 98) {
-			day = day % 214;
-		} 
-		uint64_t orderdate = (uint64_t)(year*1000 + day);
-		row->set_value(O_ORDERDATE, orderdate); 
-
+		row2->set_value(L_SHIPDATE, shipdate);	 //  O_ORDERDATE + random value[1.. 121]
+		
 		//Unrelated data
-		row->set_value(O_CUSTKEY, (uint64_t)123456);
-		row->set_value(O_ORDERSTATUS, 'A');
-		row->set_value(O_TOTALPRICE, (double)12345.56); // May be used
+		row2->set_value(L_SUPPKEY, (uint64_t)123456);
+		row2->set_value(L_TAX, (double)URand(0, 8, 0));
+		row2->set_value(L_RETURNFLAG, 'a');
+		row2->set_value(L_LINESTATUS, 'b');
+		row2->set_value(L_COMMITDATE, (uint64_t)2022);
+		row2->set_value(L_RECEIPTDATE, (uint64_t)2022);
 		char temp[20];
 		MakeAlphaString(10, 19, temp, 0);
-		row->set_value(O_ORDERPRIORITY, temp);
-		row->set_value(O_CLERK, temp);
-		row->set_value(O_SHIPPRIORITY, (uint64_t)654321);
-		row->set_value(O_COMMENT, temp);
+		row2->set_value(L_SHIPINSTRUCT, temp);
+		row2->set_value(L_SHIPMODE, temp);
+		row2->set_value(L_COMMENT, temp);
 
-		// index_insert(_wl->i_orders, i, row, 0);
-		_wl->index_insert(_wl->i_orders, i, row, 0);
+		//Index
+		uint64_t key = tpch_lineitemKey(row_id1, lcnt);
+		unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
+		_wl->index_insert(_wl->i_lineitem, key, row2, 0);
 
-
-		// **********************Lineitems*****************************************
-
-		uint64_t lines = URand(1, 7, 0);
-		// uint64_t lines = 1;
-		g_nor_in_lineitems += lines;
-		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
-			row_t * row2;
-			uint64_t row_id2;
-			_wl->t_lineitem->get_new_row(row2, 0, row_id2);
-
-			// Populate data
-			// Primary key
-			row2->set_primary_key(tpch_lineitemKey(i, lcnt));
-			row2->set_value(L_ORDERKEY, i);
-			row2->set_value(L_LINENUMBER, lcnt);
-
-			// Related data
-			double quantity = (double)URand(1, 50, 0);
-			row2->set_value(L_QUANTITY, quantity); 
-			uint64_t partkey = URand(1, SF * 200000, 0);	// Related to SF
-			row2->set_value(L_PARTKEY, partkey); 
-			uint64_t p_retailprice = (uint64_t)((90000 + ((partkey / 10) % 20001) + 100 *(partkey % 1000)) /100); // Defined in table PART
-			row2->set_value(L_EXTENDEDPRICE, (double)(quantity * p_retailprice)); // 
-			uint64_t discount = URand(0, 10, 0); // discount is defined as int for Q6
-			row2->set_value(L_DISCOUNT, ((double)discount) / 100); 
-			uint64_t shipdate;
-			uint64_t dayAdd = URand(1, 121, 0);
-			if (day + dayAdd > (uint64_t)365) {
-				shipdate = (uint64_t)((year+1) * 1000 + day + dayAdd - 365);
-			} else {
-				shipdate = (uint64_t) (year *1000 + day + dayAdd);
-			}
-			row2->set_value(L_SHIPDATE, shipdate);	 //  O_ORDERDATE + random value[1.. 121]
-			
-			// debug
-			// cout << endl << "-----------pupulating data debug " << endl;
-			// cout << "O_ORDERKEY " << i << endl;	
-			// cout << "O_ORDERDATE " << orderdate << endl ;	
-			// cout << "-----------lineitem--- " << endl;
-			// cout << "L_QUANTITY " << quantity<< endl;	
-			// cout << "L_PARTKEY " << partkey<< endl;	
-			// cout << "L_EXTENDEDPRICE " << (double)(quantity * p_retailprice) << endl;	
-			// cout << "L_DISCOUNT " << ((double)discount) / 100 << endl;	
-			// cout << "L_SHIPDATE " << shipdate << endl;	
+		// Q6 index
+		uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
+		unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
+		_wl->index_insert(_wl->i_Q6_hashtable, Q6_key, row2, 0);
 
 
-			//Unrelated data
-			row2->set_value(L_SUPPKEY, (uint64_t)123456);
-			row2->set_value(L_TAX, (double)URand(0, 8, 0));
-			row2->set_value(L_RETURNFLAG, 'a');
-			row2->set_value(L_LINESTATUS, 'b');
-			row2->set_value(L_COMMITDATE, (uint64_t)2022);
-			row2->set_value(L_RECEIPTDATE, (uint64_t)2022);
-			char temp[20];
-			MakeAlphaString(10, 19, temp, 0);
-			row2->set_value(L_SHIPINSTRUCT, temp);
-			row2->set_value(L_SHIPMODE, temp);
-			row2->set_value(L_COMMENT, temp);
-
-			//Index 
-			uint64_t key = tpch_lineitemKey(i, lcnt);
-			_wl->index_insert(_wl->i_lineitem, key, row2, 0);
-
-
-			// Q6 index
-			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
-			// cout << "Q6_insert_key = " << Q6_key << endl; 
-			_wl->index_insert(_wl->i_Q6_hashtable, Q6_key, row2, 0);
+#if TPCH_EVA_CUBIT
+		if (_wl->bitmap_shipdate->config->approach == "naive" ) {
+			_wl->bitmap_shipdate->append(0, row_id2);
 		}
+		else if (_wl->bitmap_shipdate->config->approach == "nbub-lk") {
+			nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
+			bitmap->__init_append(0, row_id2, (shipdate/1000-92));
+
+			bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount);
+			bitmap->__init_append(0, row_id2, discount);
+
+			bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
+			bitmap->__init_append(0, row_id2, quantity-1);
+		}
+#endif
 	}
+
 	return RCOK;
 }
 
-RC tpch_txn_man::run_RF2() {
+RC tpch_txn_man::run_RF2() 
+{
 	// for (uint64_t i = 1; i < (uint64_t)(SF * 1500); ++i)
 	// RF2 is generated one thousandth.
 
@@ -358,11 +344,15 @@ RC tpch_txn_man::run_RF2() {
 		return finish(Abort);
 	}
 	// Delete from the index
+	unique_lock<shared_mutex> w_lock(_wl->i_orders->rw_lock);
 	_wl->i_orders->index_remove(key1);
 
 	/****** Process Table LINEITEM ******/
 
 	INDEX *index2 = _wl->i_lineitem;
+	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
+	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
+
 	for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt)
 	{
 		uint64_t key2 = tpch_lineitemKey(key1, lcnt);
@@ -379,7 +369,6 @@ RC tpch_txn_man::run_RF2() {
 		}		
 		// Delete from the index
 		_wl->i_lineitem->index_remove(key2);
-
 
 		// Delete from Q6_hashtable
 		uint64_t l_shipdate;
