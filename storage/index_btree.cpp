@@ -26,14 +26,89 @@ RC index_btree::init(uint64_t part_cnt, table_t * table) {
 }
 
 int index_btree::index_size() {
-	cout << "FIXME: To be implemented" << endl;
+	int size = 0;
+	int item_cnt = 0;
+	itemid_t * item;
 
-	return -1;
+	if (roots == NULL) {
+		cout << "NULL" << endl;
+		return -1;
+	}
+	bt_node * c;
+	bt_node * p = *roots;
+	bool last_iter = false;
+	do {
+		c = p;
+		if (!c->is_leaf) 
+			p = (bt_node *)c->pointers[0];
+		else
+			last_iter = true;
+
+		while (last_iter && c !=  NULL) {
+			assert( c->is_leaf == true);
+			for (int i = 0; i < c->num_keys; i++) {
+				// cout << "key = " << c->keys[i] << endl;
+				item = (itemid_t*)c->pointers[i];
+				while (item != NULL) {
+					item_cnt ++;
+					size += sizeof(*item);
+					item = item->next;
+					}
+			}
+			c = c->next;
+		}
+	} while (!last_iter);
+
+	cout << "Number of items in the B-treeTable: " << item_cnt <<
+			". Size in bytes: " << size << endl;
+	return size;
 }
 
 bt_node * index_btree::find_root(uint64_t part_id) {
 	assert (part_id < part_cnt);
 	return roots[part_id];
+}
+
+RC 	index_btree::index_remove(idx_key_t key) {
+	glob_param params;
+	params.part_id = 0; // Fixme
+	RC rc = RCOK;
+	bt_node * root = find_root(params.part_id);
+	assert(root != NULL);
+	int depth = 0;
+	// TODO tree depth < 100
+	bt_node * ex_list[100];
+	bt_node * leaf = NULL;
+	bt_node * last_ex = NULL;
+	rc = find_leaf(params, key, INDEX_INSERT, leaf, last_ex);
+	assert(rc == RCOK);
+	
+	bt_node * tmp_node = leaf;
+	if (last_ex != NULL) {
+		while (tmp_node != last_ex) {
+	//		assert( tmp_node->latch_type == LATCH_EX );
+			ex_list[depth++] = tmp_node;
+			tmp_node = tmp_node->parent;
+			assert (depth < 100);
+		}
+		ex_list[depth ++] = last_ex;
+	} else
+		ex_list[depth++] = leaf;
+	
+	// remove item
+	int idx = leaf_has_key(leaf, key);	
+	if (idx != -1) {
+		leaf->pointers[idx] = NULL;
+		cout << "key = " << key << " deleted!" << endl;
+		return RCOK;
+	} else {
+		cout << "WARNING! key = " << key << " NOT exist!" << endl;
+		rc = Abort;
+	}
+
+	for (int i = 0; i < depth; i++)
+		release_latch(ex_list[i]);
+	return rc;
 }
 
 bool index_btree::index_exist(idx_key_t key) {
@@ -48,6 +123,24 @@ bool index_btree::index_exist(idx_key_t key) {
 		if (leaf->keys[i] == key) {
 			// the record is found!
 			return true;
+		}
+	return false;
+}
+
+bool index_btree::index_exist(idx_key_t key, int part_id) {
+	glob_param params;
+	params.part_id = part_id;
+	bt_node * leaf;
+	// does not matter which thread check existence
+	find_leaf(params, key, INDEX_NONE, leaf);
+	if (leaf == NULL) return false;
+	for (UInt32 i = 0; i < leaf->num_keys; i++)
+		if (leaf->keys[i] == key) {
+			if (leaf->pointers[i] == NULL){
+				return false;
+			} else {
+				return true;
+			}
 		}
 	return false;
 }
@@ -85,11 +178,11 @@ index_btree::index_read(idx_key_t key,
 	itemid_t *& item, 
 	int part_id) {
 	
-	return index_read(key, item, 0, part_id);
+	return index_read(key, item, part_id, 0);
 }
 
 RC index_btree::index_read(idx_key_t key, itemid_t *& item, 
-	uint64_t thd_id, int64_t part_id) 
+		int part_id, int thd_id) 
 {
 	RC rc = Abort;
 	glob_param params;
@@ -193,7 +286,7 @@ RC index_btree::make_node(uint64_t part_id, bt_node *& node) {
 //	new_node->locked = false;
 	new_node->latch = false;
 	new_node->latch_type = LATCH_NONE;
-
+ 
 	node = new_node;
 	return RCOK;
 }
@@ -500,6 +593,7 @@ RC index_btree::insert_into_parent(
 		for (UInt32 i = parent->num_keys-1; i >= insert_idx; i--) {
 			parent->keys[i + 1] = parent->keys[i];
 			parent->pointers[i+2] = parent->pointers[i+1];
+			if (!i) break;
 		}
 		parent->num_keys ++;
 		parent->keys[insert_idx] = key;
