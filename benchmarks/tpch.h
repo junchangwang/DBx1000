@@ -49,15 +49,15 @@ class tpch_txn_man : public txn_man
 {
 public:
 	void init(thread_t * h_thd, workload * h_wl, uint64_t part_id); 
-	RC run_txn(base_query * query);
+	RC run_txn(int tid, base_query * query);
 private:
 	tpch_wl * _wl;
 	
 	RC run_Q6_scan(tpch_query * m_query);
 	RC run_Q6_hashtable(tpch_query * m_query);
 	RC run_Q6_bitmap(tpch_query *query);
-	RC run_RF1();
-	RC run_RF2();
+	RC run_RF1(int tid);
+	RC run_RF2(int tid);
 };
 
 static inline uint64_t tpch_lineitemKey(uint64_t i, uint64_t lcnt) {

@@ -110,7 +110,7 @@
 // max number of rows touched per transaction
 #define MAX_ROW_PER_TXN				(1500000 * 9)
 #define QUERY_INTVL 				1UL
-#define MAX_TXN_PER_PART 			200
+#define MAX_TXN_PER_PART 			100
 #define FIRST_PART_LOCAL 			true
 #define MAX_TUPLE_SIZE				1024 // in bytes
 // ==== [YCSB] ====

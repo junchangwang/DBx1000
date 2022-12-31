@@ -18,7 +18,7 @@ void tpch_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	cout.precision(32);
 }
 
-RC tpch_txn_man::run_txn(base_query * query) 
+RC tpch_txn_man::run_txn(int tid, base_query * query) 
 {
 	RC rc = RCOK;
 	tpch_query * m_query = (tpch_query *) query;
@@ -31,10 +31,10 @@ RC tpch_txn_man::run_txn(base_query * query)
 			finish(rc);
 			break;
 		case TPCH_RF1 :
-			rc = run_RF1(); 
+			rc = run_RF1(tid); 
 			break;
 		case TPCH_RF2 :
-			rc = run_RF2(); 
+			rc = run_RF2(tid); 
 			break;			
 		default:
 			assert(false);
@@ -84,8 +84,7 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 
-	assert( rc == RCOK );
-	return finish(rc);
+	return rc;
 }
 
 RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) 
@@ -139,8 +138,8 @@ RC tpch_txn_man::run_Q6_hashtable(tpch_query * query)
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	cout << "********Q6 with index revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-	assert( rc == RCOK );
-	return finish(rc);
+
+	return rc;
 }
 
 RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
@@ -207,11 +206,12 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	return rc;
 }
 
-RC tpch_txn_man::run_RF1() 
+RC tpch_txn_man::run_RF1(int tid) 
 {
 	// for (uint64_t i = (uint64_t)(g_num_orders + 1); i < (uint64_t)(SF * 1500 + g_num_orders + 1); ++i) {
 	// RF1 is generated one thousandth.
 
+	RC rc = RCOK;
 	row_t * row;
 	uint64_t row_id1;
 	_wl->t_orders->get_new_row(row, 0, row_id1);
@@ -303,25 +303,26 @@ RC tpch_txn_man::run_RF1()
 
 #if TPCH_EVA_CUBIT
 		if (_wl->bitmap_shipdate->config->approach == "naive" ) {
-			_wl->bitmap_shipdate->append(0, row_id2);
+			_wl->bitmap_shipdate->append(tid, row_id2);
 		}
 		else if (_wl->bitmap_shipdate->config->approach == "nbub-lk") {
 			nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
-			bitmap->__init_append(0, row_id2, (shipdate/1000-92));
+			bitmap->__init_append(tid, row_id2, (shipdate/1000-92));
 
 			bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount);
-			bitmap->__init_append(0, row_id2, discount);
+			bitmap->__init_append(tid, row_id2, discount);
 
 			bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
-			bitmap->__init_append(0, row_id2, quantity-1);
+			bitmap->__init_append(tid, row_id2, quantity-1);
 		}
 #endif
 	}
 
-	return RCOK;
+	assert(rc == RCOK);
+	return finish(rc);
 }
 
-RC tpch_txn_man::run_RF2() 
+RC tpch_txn_man::run_RF2(int tid) 
 {
 	// for (uint64_t i = 1; i < (uint64_t)(SF * 1500); ++i)
 	// RF2 is generated one thousandth.
@@ -384,9 +385,9 @@ RC tpch_txn_man::run_RF2()
 
 		// Bitmap
 		uint64_t row_id = row2 - _wl->t_lineitem->row_buffer;
-		_wl->bitmap_discount->remove(0, row_id);
-		_wl->bitmap_quantity->remove(0, row_id);
-		_wl->bitmap_shipdate->remove(0, row_id);
+		_wl->bitmap_discount->remove(tid, row_id);
+		_wl->bitmap_quantity->remove(tid, row_id);
+		_wl->bitmap_shipdate->remove(tid, row_id);
 
 		double l_extendedprice;
 		row2_local->get_value(L_EXTENDEDPRICE, l_extendedprice);

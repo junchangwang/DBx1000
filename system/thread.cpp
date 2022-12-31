@@ -134,7 +134,7 @@ RC thread_t::run() {
 			if (WORKLOAD == TEST)
 				rc = runTest(m_txn);
 			else 
-				rc = m_txn->run_txn(m_query);
+				rc = m_txn->run_txn(get_thd_id(), m_query);
 #endif
 #if CC_ALG == HSTORE
 			if (WORKLOAD == TEST) {

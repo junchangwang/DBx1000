@@ -21,7 +21,7 @@ void ycsb_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	_wl = (ycsb_wl *) h_wl;
 }
 
-RC ycsb_txn_man::run_txn(base_query * query) {
+RC ycsb_txn_man::run_txn(int tid, base_query * query) {
 	RC rc;
 	ycsb_query * m_query = (ycsb_query *) query;
 	ycsb_wl * wl = (ycsb_wl *) h_wl;
