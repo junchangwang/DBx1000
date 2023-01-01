@@ -37,7 +37,27 @@ RC tpch_wl::init_schema(const char * schema_file) {
 
 	i_lineitem = indexes["LINEITEM_IDX"];
 	i_orders = indexes["ORDERS_IDX"];
-	i_Q6_hashtable = indexes["Q6_IDX"];
+
+	// Explicitly build i_Q6_hashtable and i_Q6_btree
+	string tname("LINEITEM");
+	int part_cnt = (CENTRAL_INDEX)? 1 : g_part_cnt;
+
+	i_Q6_hashtable = (IndexHash *) _mm_malloc(sizeof(IndexHash), 64);
+	new(i_Q6_hashtable) IndexHash();
+	#if WORKLOAD == YCSB
+			i_Q6_hashtable->init(part_cnt, tables[tname], g_synth_table_size * 2);
+	#elif WORKLOAD == TPCC
+			assert(tables[tname] != NULL);
+			i_Q6_hashtable->init(part_cnt, tables[tname], 10000 * part_cnt);
+	#elif WORKLOAD == TPCH
+			assert(tables[tname] != NULL);
+			i_Q6_hashtable->init(part_cnt, tables[tname], 10000 * part_cnt);
+	#endif
+
+	i_Q6_btree = (index_btree *) _mm_malloc(sizeof(index_btree), 64);
+	new(i_Q6_btree) index_btree();
+	i_Q6_btree->init(part_cnt, tables[tname]);
+
 	return RCOK;
 }
 
@@ -160,7 +180,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			// Q6 index
 			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
 			// cout << "Q6_insert_key = " << Q6_key << endl; 
-			index_insert(i_Q6_hashtable, Q6_key, row2, 0);
+			index_insert((INDEX *)i_Q6_hashtable, Q6_key, row2, 0);
+			index_insert((INDEX *)i_Q6_btree, Q6_key, row2, 0);
 
 #if TPCH_EVA_CUBIT
 			if (bitmap_shipdate->config->approach == "naive" ) {

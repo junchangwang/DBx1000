@@ -26,7 +26,8 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 	switch (m_query->type) {
 		case TPCH_Q6 :
 			assert(run_Q6_scan(m_query) == RCOK);
-			assert(run_Q6_hashtable(m_query) == RCOK);
+			assert(run_Q6_hash(m_query, _wl->i_Q6_hashtable) == RCOK);
+			assert(run_Q6_btree(m_query, _wl->i_Q6_btree) == RCOK);
 			assert(run_Q6_bitmap(m_query) == RCOK);
 			finish(rc);
 			break;
@@ -87,14 +88,67 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	return rc;
 }
 
-RC tpch_txn_man::run_Q6_hashtable(tpch_query * query) 
+RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index) 
 {
 	RC rc = RCOK;
 	itemid_t * item;
 	int cnt = 0;
 	uint64_t key;
 	double revenue = 0;
-	INDEX * index = _wl->i_Q6_hashtable;
+	uint64_t date = query->date;	// e.g., 1st Jan. 97
+	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
+	double quantity = query->quantity;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
+		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
+			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
+			{
+				key = tpch_lineitemKey_index(i, j, k);
+
+				shared_lock<shared_mutex> r_lock(index->rw_lock);
+
+				if ( !index->index_exist(key, 0) ){
+					continue;
+				}
+				
+				item = index_read((INDEX *)index, key, 0);
+				assert(item != NULL);
+				itemid_t * local_item = item;
+				while (local_item != NULL) {
+					row_t * r_lt = ((row_t *)local_item->location);
+					row_t * r_lt_local = get_row(r_lt, RD);
+					if (r_lt_local == NULL) {
+						return finish(Abort);
+					}
+					// cout << "address = " << &r_lt_local->data << endl;
+					double l_extendedprice;
+					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+					revenue += l_extendedprice * ((double)j / 100);
+					cnt ++;
+
+					local_item = local_item->next;
+				}
+
+			}
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout << "********Q6 with Hash revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+
+	return rc;
+}
+
+RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index) 
+{
+	RC rc = RCOK;
+	itemid_t * item;
+	int cnt = 0;
+	uint64_t key;
+	double revenue = 0;
 	uint64_t date = query->date;	// e.g., 1st Jan. 97
 	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
@@ -137,7 +191,7 @@ RC tpch_txn_man::run_Q6_hashtable(tpch_query * query)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "********Q6 with index revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 
 	return rc;
 }
@@ -298,8 +352,7 @@ RC tpch_txn_man::run_RF1(int tid)
 		// Q6 index
 		uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
 		unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
-		_wl->index_insert(_wl->i_Q6_hashtable, Q6_key, row2, 0);
-
+		_wl->index_insert((INDEX *)_wl->i_Q6_hashtable, Q6_key, row2, 0);
 
 #if TPCH_EVA_CUBIT
 		if (_wl->bitmap_shipdate->config->approach == "naive" ) {
