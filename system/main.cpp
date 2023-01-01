@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 	BaseTable *bitmap = NULL;
 	Table_config *config = NULL;
 	
-#if (TPCC_EVA_CUBIT == true)
+#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true)
 	bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_c_w_id;
 	config = bitmap->config;
 
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
 		pthread_join(p_thds[i], NULL);
 	int64_t endtime = get_server_clock();
 
-#if (TPCC_EVA_CUBIT == true)
+#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true)
 	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
 	{
 		__atomic_store_n(&run_merge_func, false, MM_CST);

@@ -17,7 +17,7 @@ void tpcc_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 
 RC tpcc_txn_man::run_txn(int tid, base_query * query) {
 	tpcc_query * m_query = (tpcc_query *) query;
-#if TPCC_EVA_CUBIT
+#if TPCC_EVA_CUBIT && (TPCC_EVA_CUBIT == TPCC)
 	return evaluate_index(m_query);
 #else
 	switch (m_query->type) {
