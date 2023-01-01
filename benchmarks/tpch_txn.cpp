@@ -357,6 +357,9 @@ RC tpch_txn_man::run_RF2(int tid)
 	for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt)
 	{
 		uint64_t key2 = tpch_lineitemKey(key1, lcnt);
+		if (!index2->index_exist(key2, 0)) {
+			continue;
+		}
 		itemid_t * item2 = index_read(index2, key2, 0);
 		if (!item2)
 			continue;
