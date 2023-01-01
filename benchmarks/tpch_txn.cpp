@@ -22,14 +22,19 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 {
 	RC rc = RCOK;
 	tpch_query * m_query = (tpch_query *) query;
+	static int index_type = 0;
 
 	switch (m_query->type) {
 		case TPCH_Q6 :
-			assert(run_Q6_scan(m_query) == RCOK);
-			assert(run_Q6_hash(m_query, _wl->i_Q6_hashtable) == RCOK);
-			assert(run_Q6_btree(m_query, _wl->i_Q6_btree) == RCOK);
-			assert(run_Q6_bitmap(m_query) == RCOK);
-			finish(rc);
+			if (index_type % 4 == 0)
+				assert(run_Q6_scan(m_query) == RCOK);
+			else if (index_type % 4 == 1)
+				assert(run_Q6_hash(m_query, _wl->i_Q6_hashtable) == RCOK);
+			else if (index_type % 4 == 2)
+				assert(run_Q6_btree(m_query, _wl->i_Q6_btree) == RCOK);
+			else
+				assert(run_Q6_bitmap(m_query) == RCOK);
+			index_type ++;
 			break;
 		case TPCH_RF1 :
 			rc = run_RF1(tid); 
@@ -85,7 +90,8 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index) 
@@ -139,7 +145,8 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	cout << "********Q6 with Hash revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index) 
@@ -193,7 +200,8 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
@@ -257,7 +265,8 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_RF1(int tid) 
