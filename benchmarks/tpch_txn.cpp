@@ -269,6 +269,7 @@ RC tpch_txn_man::run_RF1(int tid)
 
 	RC rc = RCOK;
 	row_t * row;
+	double ins_revenue = 0;
 	uint64_t row_id1;
 	_wl->t_orders->get_new_row(row, 0, row_id1);
 	row_id1 ++;
@@ -346,6 +347,8 @@ RC tpch_txn_man::run_RF1(int tid)
 		row2->set_value(L_SHIPMODE, temp);
 		row2->set_value(L_COMMENT, temp);
 
+		ins_revenue += (double)(quantity * p_retailprice) * ((double)discount / 100);
+
 		//Index
 		uint64_t key = tpch_lineitemKey(row_id1, lcnt);
 		unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
@@ -372,6 +375,9 @@ RC tpch_txn_man::run_RF1(int tid)
 		}
 #endif
 	}
+
+	cout << "******** RF1 completes successfully ********" << endl
+		<< lines << " tuples with revenue being " << ins_revenue << " have been inserted." << endl << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -450,8 +456,8 @@ RC tpch_txn_man::run_RF2(int tid)
 		del_revenue += l_extendedprice * l_discount;
 	}
 
-	cout << "******** RF2 complete successfully ********" << endl
-			<< del_cnt << " tuples with revenue being " << del_revenue << " have been removed" << endl << endl;
+	cout << "******** RF2 completes successfully ********" << endl
+			<< del_cnt << " tuples with revenue being " << del_revenue << " have been removed." << endl << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
