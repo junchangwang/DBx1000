@@ -27,13 +27,13 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 	switch (m_query->type) {
 		case TPCH_Q6 :
 			if (index_type % 4 == 0)
-				assert(run_Q6_scan(m_query) == RCOK);
+				rc = run_Q6_scan(m_query);
 			else if (index_type % 4 == 1)
-				assert(run_Q6_hash(m_query, _wl->i_Q6_hashtable) == RCOK);
+				rc = run_Q6_hash(m_query, _wl->i_Q6_hashtable);
 			else if (index_type % 4 == 2)
-				assert(run_Q6_btree(m_query, _wl->i_Q6_btree) == RCOK);
+				rc = run_Q6_btree(m_query, _wl->i_Q6_btree);
 			else
-				assert(run_Q6_bitmap(m_query) == RCOK);
+				rc = run_Q6_bitmap(m_query);
 			index_type ++;
 			break;
 		case TPCH_RF1 :
@@ -244,17 +244,18 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	double revenue = 0;
 	row_t *row_buffer = _wl->t_lineitem->row_buffer;
 
-	// TODO: Extend fastbit to support the API to give the array of positions containing 1's.
 	result.decompress();
 	for (uint64_t pos = 0; pos < _wl->t_lineitem->cur_tab_size ; pos++) {
 		if (result.getBit(pos, bitmap_sd->config)) {
 			row_t *row_tmp = (row_t *) &row_buffer[pos];
-			row_t *row = get_row(row_tmp, RD);
-			// row_t *row_local = get_row(row, RD);
+			row_t *row_local = get_row(row_tmp, RD);
+			if (row_local == NULL) {
+				return finish(Abort);
+			}
 			double l_extendedprice;
-			row->get_value(L_EXTENDEDPRICE, l_extendedprice);
+			row_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
 			double l_discount;
-			row->get_value(L_DISCOUNT, l_discount);
+			row_local->get_value(L_DISCOUNT, l_discount);
 			revenue += l_extendedprice * l_discount; 
 			
 			cnt ++;
@@ -403,7 +404,6 @@ RC tpch_txn_man::run_RF2(int tid)
 	// Delete the row
 	row_t * row1_local = get_row(row1, DEL);
 	if (row1_local == NULL) {
-		assert(false);
 		return finish(Abort);
 	}
 	// Delete from the index
@@ -428,13 +428,12 @@ RC tpch_txn_man::run_RF2(int tid)
 		row_t * row2 = ((row_t *)item2->location);
 		// Delete the row
 		row_t * row2_local = get_row(row2, DEL);
-		del_cnt ++;
 		if (row2_local == NULL) {
-			assert(false);
 			return finish(Abort);
-		}		
+		}	
 		// Delete from the index
 		_wl->i_lineitem->index_remove(key2);
+		del_cnt ++;	
 
 		// Delete from Q6_hashtable
 		uint64_t l_shipdate;

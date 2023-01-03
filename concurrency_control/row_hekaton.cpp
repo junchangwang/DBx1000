@@ -52,12 +52,13 @@ RC Row_hekaton::access(txn_man * txn, TsType type, row_t * row) {
 	ts_t ts = txn->get_ts();
 	while (!ATOM_CAS(blatch, false, true))
 		PAUSE
-	if (!_write_history[_his_latest].end_txn && _write_history[_his_latest].end < ts) {
-		// cout << "===========Skiping tuple================" << endl;
-		rc = ERROR;
+	if (!_write_history[_his_latest].end_txn && _write_history[_his_latest].end != INF) {
+		// cout << "=========== The tuple has been deleted ================" << endl;
+		rc = Abort;
 		goto out;
 	}
 	assert(_write_history[_his_latest].end == INF || _write_history[_his_latest].end_txn);
+
 	if (type == R_REQ) {
 		if (ISOLATION_LEVEL == REPEATABLE_READ) {
 			rc = RCOK;
