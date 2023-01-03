@@ -6,3 +6,5 @@ NB-UpBit/
 build/
 cscope.*
 output
+graphs_DBx/
+dat_*

@@ -83,7 +83,8 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	// cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	cout << "SCAN " << cnt << " " << time_elapsed_ms << " " << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -136,7 +137,8 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	// cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	cout << "Hash " << cnt << " " << time_elapsed_ms << " " << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -189,7 +191,8 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	// cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	cout << "BTree " << cnt << " " << time_elapsed_ms << " " << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -256,7 +259,8 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
+	// cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
+	cout << "CUBIT " << cnt << " " << time_elapsed_ms << " " << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
