@@ -22,19 +22,13 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 {
 	RC rc = RCOK;
 	tpch_query * m_query = (tpch_query *) query;
-	static int index_type = 0;
 
 	switch (m_query->type) {
 		case TPCH_Q6 :
-			if (index_type % 4 == 0)
-				rc = run_Q6_scan(m_query);
-			else if (index_type % 4 == 1)
-				rc = run_Q6_hash(m_query, _wl->i_Q6_hashtable);
-			else if (index_type % 4 == 2)
-				rc = run_Q6_btree(m_query, _wl->i_Q6_btree);
-			else
-				rc = run_Q6_bitmap(m_query);
-			index_type ++;
+			rc = run_Q6_scan(m_query);
+			rc = run_Q6_hash(m_query, _wl->i_Q6_hashtable);
+			rc = run_Q6_btree(m_query, _wl->i_Q6_btree);
+			rc = run_Q6_bitmap(m_query);
 			break;
 		case TPCH_RF1 :
 			rc = run_RF1(tid); 
@@ -63,7 +57,8 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 		assert(r_lt != NULL);
 		row_t * r_lt_local = get_row(r_lt, RD);
 		if (r_lt_local == NULL) {
-			return finish(Abort);
+			// return finish(Abort);
+			continue;
 		}
 
 		uint64_t l_shipdate;
@@ -121,20 +116,18 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 				
 				item = index_read((INDEX *)index, key, 0);
 				assert(item != NULL);
-				itemid_t * local_item = item;
-				while (local_item != NULL) {
+				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					row_t * r_lt = ((row_t *)local_item->location);
 					row_t * r_lt_local = get_row(r_lt, RD);
 					if (r_lt_local == NULL) {
-						return finish(Abort);
+						// return finish(Abort);
+						continue;
 					}
 					// cout << "address = " << &r_lt_local->data << endl;
 					double l_extendedprice;
 					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
 					revenue += l_extendedprice * ((double)j / 100);
 					cnt ++;
-
-					local_item = local_item->next;
 				}
 
 			}
@@ -143,7 +136,7 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "********Q6 with Hash revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+	cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -176,20 +169,18 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 				
 				item = index_read(index, key, 0);
 				assert(item != NULL);
-				itemid_t * local_item = item;
-				while (local_item != NULL) {
+				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					row_t * r_lt = ((row_t *)local_item->location);
 					row_t * r_lt_local = get_row(r_lt, RD);
 					if (r_lt_local == NULL) {
-						return finish(Abort);
+						// return finish(Abort);
+						continue;
 					}
 					// cout << "address = " << &r_lt_local->data << endl;
 					double l_extendedprice;
 					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
 					revenue += l_extendedprice * ((double)j / 100);
 					cnt ++;
-
-					local_item = local_item->next;
 				}
 
 			}
@@ -250,7 +241,8 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 			row_t *row_tmp = (row_t *) &row_buffer[pos];
 			row_t *row_local = get_row(row_tmp, RD);
 			if (row_local == NULL) {
-				return finish(Abort);
+				// return finish(Abort);
+				continue;
 			}
 			double l_extendedprice;
 			row_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
