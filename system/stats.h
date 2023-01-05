@@ -9,6 +9,11 @@ public:
 	uint64_t txn_cnt;
 	uint64_t abort_cnt;
 	double run_time;
+	double scan_run_time;
+	double hash_run_time;
+	double btree_run_time;
+	double cubit_run_time;
+	uint64_t Q6_tnx_cnt;
 	double time_man;
 	double time_index;
 	double time_wait;

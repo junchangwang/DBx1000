@@ -24,11 +24,34 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 	tpch_query * m_query = (tpch_query *) query;
 
 	switch (m_query->type) {
+		ts_t _starttime;
+		ts_t _endtime;
+		uint64_t _timespan;
 		case TPCH_Q6 :
+			_starttime = get_sys_clock();
 			rc = run_Q6_scan(m_query);
+			_endtime = get_sys_clock();
+			_timespan = _endtime - _starttime;
+			INC_STATS(get_thd_id(), scan_run_time, _timespan);
+
+			_starttime = get_sys_clock();
 			rc = run_Q6_hash(m_query, _wl->i_Q6_hashtable);
+			_endtime = get_sys_clock();
+			_timespan = _endtime - _starttime;
+			INC_STATS(get_thd_id(), hash_run_time, _timespan);
+
+			_starttime = get_sys_clock();
 			rc = run_Q6_btree(m_query, _wl->i_Q6_btree);
+			_endtime = get_sys_clock();
+			_timespan = _endtime - _starttime;
+			INC_STATS(get_thd_id(), btree_run_time, _timespan);
+
+			_starttime = get_sys_clock();
 			rc = run_Q6_bitmap(m_query);
+			_endtime = get_sys_clock();
+			_timespan = _endtime - _starttime;
+			INC_STATS(get_thd_id(), cubit_run_time, _timespan);
+			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
 			break;
 		case TPCH_RF1 :
 			rc = run_RF1(tid); 
@@ -353,15 +376,20 @@ RC tpch_txn_man::run_RF1(int tid)
 
 		ins_revenue += (double)(quantity * p_retailprice) * ((double)discount / 100);
 
-		//Index
+		//Index (scan)
 		uint64_t key = tpch_lineitemKey(row_id1, lcnt);
 		unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
 		_wl->index_insert(_wl->i_lineitem, key, row2, 0);
 
-		// Q6 index
+		// Q6 index (hash)
 		uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
 		unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 		_wl->index_insert((INDEX *)_wl->i_Q6_hashtable, Q6_key, row2, 0);
+
+		// Q6 index (btree)
+		unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
+		_wl->index_insert((INDEX *)_wl->i_Q6_btree, Q6_key, row2, 0);
+
 
 #if TPCH_EVA_CUBIT
 		if (_wl->bitmap_shipdate->config->approach == "naive" ) {
@@ -417,6 +445,8 @@ RC tpch_txn_man::run_RF2(int tid)
 	INDEX *index2 = _wl->i_lineitem;
 	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
 	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
+	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
+
 
 	for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt)
 	{
@@ -448,6 +478,11 @@ RC tpch_txn_man::run_RF2(int tid)
 		uint64_t Q6_key = tpch_lineitemKey_index(l_shipdate, (int)(l_discount*100), l_quantity);
 		rc = _wl->i_Q6_hashtable->index_remove(Q6_key);
 		assert(rc == RCOK);
+
+		// Delete from BTree
+		rc = _wl->i_Q6_btree->index_remove(Q6_key);
+		assert(rc == RCOK);
+
 
 		// Bitmap
 		uint64_t row_id = row2 - _wl->t_lineitem->row_buffer;

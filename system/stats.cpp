@@ -108,6 +108,11 @@ void Stats::print() {
 	uint64_t total_txn_cnt = 0;
 	uint64_t total_abort_cnt = 0;
 	double total_run_time = 0;
+	double total_scan_run_time = 0;
+	double total_hash_run_time = 0;
+	double total_btree_run_time = 0;
+	double total_cubit_run_time = 0;
+	uint64_t total_Q6_txn_cnt = 0;
 	double total_time_man = 0;
 	double total_debug1 = 0;
 	double total_debug2 = 0;
@@ -125,6 +130,11 @@ void Stats::print() {
 		total_txn_cnt += _stats[tid]->txn_cnt;
 		total_abort_cnt += _stats[tid]->abort_cnt;
 		total_run_time += _stats[tid]->run_time;
+		total_scan_run_time += _stats[tid]->scan_run_time;
+		total_hash_run_time += _stats[tid]->hash_run_time;
+		total_btree_run_time += _stats[tid]->btree_run_time;
+		total_cubit_run_time += _stats[tid]->cubit_run_time;
+		total_Q6_txn_cnt += _stats[tid]->Q6_tnx_cnt;
 		total_time_man += _stats[tid]->time_man;
 		total_debug1 += _stats[tid]->debug1;
 		total_debug2 += _stats[tid]->debug2;
@@ -202,6 +212,13 @@ void Stats::print() {
 		total_debug4, // / BILLION,
 		total_debug5  // / BILLION 
 	);
+	printf("ThroughputScan %f\n", total_Q6_txn_cnt / (total_scan_run_time / BILLION) * g_thread_cnt);
+	printf("ThroughputHash %f\n", total_Q6_txn_cnt / (total_hash_run_time / BILLION) * g_thread_cnt);
+	printf("ThroughputBTree %f\n", total_Q6_txn_cnt / (total_btree_run_time / BILLION) * g_thread_cnt);
+	printf("ThroughputCUBIT %f\n", total_Q6_txn_cnt / (total_cubit_run_time / BILLION) * g_thread_cnt);
+	cout << "THREAD_CNT " << g_thread_cnt << endl;
+	printf("total_Q6_txn %ld, scan%f, hash%f, btree%f, cubit%f\n", total_Q6_txn_cnt, total_scan_run_time / BILLION, total_hash_run_time / BILLION, total_btree_run_time / BILLION, total_cubit_run_time / BILLION);
+	printf("total_Q6 time %f\n", (total_scan_run_time + total_hash_run_time + total_btree_run_time + total_cubit_run_time) / BILLION);
 	if (g_prt_lat_distr)
 		print_lat_distr();
 }

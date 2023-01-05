@@ -23,7 +23,7 @@ def gen_raw_data():
         cmd = './rundb -t{} > dat_tmp_DBx/core_{}.dat'.format(num, num)
         os.system(cmd)
 
-def throughput_analysis(filename):
+def throughput_analysis2(filename):
     f = open(filename)
     Svec = [] # scan     item/s
     Hvec = [] # hash
@@ -66,6 +66,23 @@ def throughput_analysis(filename):
         ret.append(0)
     return ret
 
+def throughput_analysis(filename):
+    f = open(filename)
+    ret = []
+    
+    for line in f:
+        a = line.split()
+        if line.startswith('ThroughputScan '):
+            ret.append(float(a[-1]))
+        elif line.startswith('ThroughputHash '):
+            ret.append(float(a[-1]))
+        elif line.startswith('ThroughputBTree '):
+            ret.append(float(a[-1]))
+        elif line.startswith('ThroughputCUBIT '):
+            ret.append(float(a[-1]))
+        else:
+            continue
+    return ret
 
 def run():
     gen_raw_data()
@@ -93,6 +110,10 @@ def gen_graph():
     os.chdir("../graphs_DBx")
     os.system('echo "Figures generated in \"`pwd`\""')
     #os.system('ls -l')
+
+    #cdf
+    os.chdir("../")
+    os.system('python3 cdf_sz.py > graphs_DBx/cdf_output')
 
 
 def main():
