@@ -9,7 +9,7 @@
 void tpch_query::init(uint64_t thd_id, workload * h_wl) 
 {
 #if TPCH_EVA_RF
-	uint64_t itr = URand(0, 99, thd_id);
+	uint64_t itr = URand(0, 99, 0);
 	if (itr % 100 == 39) /* magic number */
 		gen_RF1(thd_id);
 	else if (itr % 100 == 69)

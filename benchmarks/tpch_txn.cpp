@@ -428,6 +428,9 @@ RC tpch_txn_man::run_RF2(int tid)
 
 	INDEX *index1 = _wl->i_orders;
 	uint64_t key1 = URand(1, g_num_orders, 0);
+	if ( !index1->index_exist(key1, 0)) {
+		return finish(Abort);
+	}
 	itemid_t * item1 = index_read(index1, key1, 0);
 	assert(item1);
 	row_t * row1 = ((row_t *)item1->location);
