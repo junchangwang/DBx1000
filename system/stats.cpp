@@ -30,6 +30,14 @@ void Stats_thd::clear() {
 	time_ts_alloc = 0;
 	latency = 0;
 	time_query = 0;
+	Q6_btree_txn_cnt = 0;
+	Q6_cubit_txn_cnt = 0;
+	Q6_hash_txn_cnt = 0;
+	Q6_scan_txn_cnt = 0;
+	scan_run_time = 0;
+	hash_run_time = 0;
+	btree_run_time = 0;
+	cubit_run_time = 0;
 }
 
 void Stats_tmp::init() {
