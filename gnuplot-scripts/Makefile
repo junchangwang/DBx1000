@@ -29,6 +29,7 @@ make_dir_earth:
 make_dir_DBx:
 	mkdir -p ../graphs_DBx
 	mkdir -p ../graphs_DBx/core
+	mkdir -p ../graphs_DBx/eva_data
 
 #Needs: ../dat/getvalue.dat
 #Figure 21
