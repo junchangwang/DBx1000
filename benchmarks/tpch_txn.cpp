@@ -33,7 +33,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), scan_run_time, _timespan);
-			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
+			INC_STATS(get_thd_id(), Q6_scan_txn_cnt, 1);
 			break;
 
 		case TPCH_Q6_HASH :
@@ -42,7 +42,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), hash_run_time, _timespan);
-			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
+			INC_STATS(get_thd_id(), Q6_hash_txn_cnt, 1);
 			break;
 		
 		case TPCH_Q6_BTREE :
@@ -51,7 +51,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), btree_run_time, _timespan);
-			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
+			INC_STATS(get_thd_id(), Q6_btree_txn_cnt, 1);
 			break;
 
 		case TPCH_Q6_CUBIT :
@@ -60,7 +60,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), cubit_run_time, _timespan);
-			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
+			INC_STATS(get_thd_id(), Q6_cubit_txn_cnt, 1);
 			break;
 
 		case TPCH_RF1 :

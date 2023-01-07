@@ -119,7 +119,7 @@ def figure():
     if fig == 0:
         plt.show()
     else:
-        plt.savefig(dir + '/graphs_DBx/cdf.jpeg', format='jpeg', dpi=1200)
+        plt.savefig(dir + '/graphs_DBx/cdf.png', format='png', dpi=1200)
         plt.savefig(dir + '/graphs_DBx/cdf.eps', format='eps', dpi=1200)
 
 print("\n\n\n##################### CDF result ########################\n\n")     
