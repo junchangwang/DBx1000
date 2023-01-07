@@ -110,7 +110,7 @@
 // max number of rows touched per transaction
 #define MAX_ROW_PER_TXN				(1500000 * 9)
 #define QUERY_INTVL 				1UL
-#define MAX_TXN_PER_PART 			100
+#define MAX_TXN_PER_PART 			400
 #define FIRST_PART_LOCAL 			true
 #define MAX_TUPLE_SIZE				1024 // in bytes
 // ==== [YCSB] ====
@@ -146,7 +146,10 @@ enum TPCCTxnType {TPCC_ALL,
 extern TPCCTxnType 					g_tpcc_txn_type;
 
 enum TPCHTxnType {TPCH_ALL,
-				TPCH_Q6,
+				TPCH_Q6_SCAN,
+				TPCH_Q6_HASH,
+				TPCH_Q6_BTREE,
+				TPCH_Q6_CUBIT,
 				TPCH_RF1,
 				TPCH_RF2};
 extern TPCHTxnType 					g_tpch_txn_type;

@@ -27,25 +27,34 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		ts_t _starttime;
 		ts_t _endtime;
 		uint64_t _timespan;
-		case TPCH_Q6 :
+		case TPCH_Q6_SCAN :
 			_starttime = get_sys_clock();
 			rc = run_Q6_scan(m_query);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), scan_run_time, _timespan);
+			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
+			break;
 
+		case TPCH_Q6_HASH :
 			_starttime = get_sys_clock();
 			rc = run_Q6_hash(m_query, _wl->i_Q6_hashtable);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), hash_run_time, _timespan);
-
+			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
+			break;
+		
+		case TPCH_Q6_BTREE :
 			_starttime = get_sys_clock();
 			rc = run_Q6_btree(m_query, _wl->i_Q6_btree);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), btree_run_time, _timespan);
+			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
+			break;
 
+		case TPCH_Q6_CUBIT :
 			_starttime = get_sys_clock();
 			rc = run_Q6_bitmap(m_query);
 			_endtime = get_sys_clock();
@@ -53,12 +62,15 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 			INC_STATS(get_thd_id(), cubit_run_time, _timespan);
 			INC_STATS(get_thd_id(), Q6_tnx_cnt, 1);
 			break;
+
 		case TPCH_RF1 :
 			rc = run_RF1(tid); 
 			break;
+
 		case TPCH_RF2 :
 			rc = run_RF2(tid); 
 			break;			
+
 		default:
 			assert(false);
 	}
@@ -80,6 +92,7 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 		assert(r_lt != NULL);
 		row_t * r_lt_local = get_row(r_lt, RD);
 		if (r_lt_local == NULL) {
+			// Skip the deleted item.
 			// return finish(Abort);
 			continue;
 		}
@@ -126,13 +139,13 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 
 	auto start = std::chrono::high_resolution_clock::now();
 
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
 			{
 				key = tpch_lineitemKey_index(i, j, k);
-
-				shared_lock<shared_mutex> r_lock(index->rw_lock);
 
 				if ( !index->index_exist(key, 0) ){
 					continue;
@@ -144,6 +157,7 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 					row_t * r_lt = ((row_t *)local_item->location);
 					row_t * r_lt_local = get_row(r_lt, RD);
 					if (r_lt_local == NULL) {
+						// Skip the deleted item.
 						// return finish(Abort);
 						continue;
 					}
@@ -180,13 +194,13 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 
 	auto start = std::chrono::high_resolution_clock::now();
 
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
 			{
 				key = tpch_lineitemKey_index(i, j, k);
-
-				shared_lock<shared_mutex> r_lock(index->rw_lock);
 
 				if ( !index->index_exist(key, 0) ){
 					continue;
@@ -198,6 +212,7 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 					row_t * r_lt = ((row_t *)local_item->location);
 					row_t * r_lt_local = get_row(r_lt, RD);
 					if (r_lt_local == NULL) {
+						// Skip the deleted item
 						// return finish(Abort);
 						continue;
 					}
@@ -237,6 +252,9 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 
 	auto start = std::chrono::high_resolution_clock::now();
 
+	// FIXME: We assume to always use the latest version of each bitmap.
+	// This should change to invoke bitmap->evaluate() 
+	// to retrive a pointer to the underlying bitvector.
 	nbub::Nbub *bitmap_sd, *bitmap_dc, *bitmap_qt;
 	bitmap_sd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
 	ibis::bitvector *btv_shipdate = bitmap_sd->bitmaps[year_val]->btv;
@@ -330,6 +348,10 @@ RC tpch_txn_man::run_RF1(int tid)
 
 	// **********************Lineitems*****************************************
 
+	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
+	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
+	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
+
 	uint64_t lines = URand(1, 7, 0);
 	g_nor_in_lineitems += lines;
 	for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
@@ -378,34 +400,19 @@ RC tpch_txn_man::run_RF1(int tid)
 
 		//Index (scan)
 		uint64_t key = tpch_lineitemKey(row_id1, lcnt);
-		unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
 		_wl->index_insert(_wl->i_lineitem, key, row2, 0);
 
 		// Q6 index (hash)
 		uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
-		unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 		_wl->index_insert((INDEX *)_wl->i_Q6_hashtable, Q6_key, row2, 0);
 
 		// Q6 index (btree)
-		unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
 		_wl->index_insert((INDEX *)_wl->i_Q6_btree, Q6_key, row2, 0);
 
-
-#if TPCH_EVA_CUBIT
-		if (_wl->bitmap_shipdate->config->approach == "naive" ) {
-			_wl->bitmap_shipdate->append(tid, row_id2);
-		}
-		else if (_wl->bitmap_shipdate->config->approach == "nbub-lk") {
-			nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
-			bitmap->__init_append(tid, row_id2, (shipdate/1000-92));
-
-			bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount);
-			bitmap->__init_append(tid, row_id2, discount);
-
-			bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
-			bitmap->__init_append(tid, row_id2, quantity-1);
-		}
-#endif
+		// CUBIT
+		_wl->bitmap_shipdate->append(tid, (shipdate/1000-92));
+		_wl->bitmap_discount->append(tid, discount);
+		_wl->bitmap_quantity->append(tid, quantity-1);
 	}
 
 	cout << "******** RF1 completes successfully ********" << endl
@@ -450,7 +457,6 @@ RC tpch_txn_man::run_RF2(int tid)
 	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
 
-
 	for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt)
 	{
 		uint64_t key2 = tpch_lineitemKey(key1, lcnt);
@@ -485,7 +491,6 @@ RC tpch_txn_man::run_RF2(int tid)
 		// Delete from BTree
 		rc = _wl->i_Q6_btree->index_remove(Q6_key);
 		assert(rc == RCOK);
-
 
 		// Bitmap
 		uint64_t row_id = row2 - _wl->t_lineitem->row_buffer;
