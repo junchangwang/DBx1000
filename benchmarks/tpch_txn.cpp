@@ -30,6 +30,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		case TPCH_Q6_SCAN :
 			_starttime = get_sys_clock();
 			rc = run_Q6_scan(m_query);
+			finish(rc);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), scan_run_time, _timespan);
@@ -39,6 +40,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		case TPCH_Q6_HASH :
 			_starttime = get_sys_clock();
 			rc = run_Q6_hash(m_query, _wl->i_Q6_hashtable);
+			finish(rc);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), hash_run_time, _timespan);
@@ -48,6 +50,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		case TPCH_Q6_BTREE :
 			_starttime = get_sys_clock();
 			rc = run_Q6_btree(m_query, _wl->i_Q6_btree);
+			finish(rc);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), btree_run_time, _timespan);
@@ -57,6 +60,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		case TPCH_Q6_CUBIT :
 			_starttime = get_sys_clock();
 			rc = run_Q6_bitmap(m_query);
+			finish(rc);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), cubit_run_time, _timespan);
@@ -65,10 +69,12 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 
 		case TPCH_RF1 :
 			rc = run_RF1(tid); 
+			finish(rc);
 			break;
 
 		case TPCH_RF2 :
-			rc = run_RF2(tid); 
+			rc = run_RF2(tid);
+			finish(rc); 
 			break;			
 
 		default:
@@ -122,8 +128,7 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	// cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "SCAN " << cnt << " " << time_elapsed_ms << " " << endl;
 
-	assert(rc == RCOK);
-	return finish(rc);
+	return rc;
 }
 
 RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index) 
@@ -152,7 +157,7 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 				}
 				
 				item = index_read((INDEX *)index, key, 0);
-				assert(item != NULL);
+
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					row_t * r_lt = ((row_t *)local_item->location);
 					row_t * r_lt_local = get_row(r_lt, RD);
@@ -177,8 +182,7 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 	// cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "Hash " << cnt << " " << time_elapsed_ms << " " << endl;
 
-	assert(rc == RCOK);
-	return finish(rc);
+	return rc;
 }
 
 RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index) 
@@ -207,7 +211,7 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 				}
 				
 				item = index_read(index, key, 0);
-				assert(item != NULL);
+
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					row_t * r_lt = ((row_t *)local_item->location);
 					row_t * r_lt_local = get_row(r_lt, RD);
@@ -232,8 +236,7 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 	// cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "BTree " << cnt << " " << time_elapsed_ms << " " << endl;
 
-	assert(rc == RCOK);
-	return finish(rc);
+	return rc;
 }
 
 RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
@@ -251,7 +254,7 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	assert(quantity_val <= 49);
 
 	auto start = std::chrono::high_resolution_clock::now();
-
+	
 	// FIXME: We assume to always use the latest version of each bitmap.
 	// This should change to invoke bitmap->evaluate() 
 	// to retrive a pointer to the underlying bitvector.
@@ -265,6 +268,8 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	btv_discount |= *bitmap_dc->bitmaps[discount_val]->btv;
 	btv_discount |= *bitmap_dc->bitmaps[discount_val+1]->btv;
 
+	auto tmp_1 = std::chrono::high_resolution_clock::now();
+
 	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
 	ibis::bitvector result;
 	result.copy(*bitmap_qt->bitmaps[0]->btv);
@@ -272,39 +277,97 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 		result |= *bitmap_qt->bitmaps[i]->btv;
 	}
 
+	auto tmp_2 = std::chrono::high_resolution_clock::now();
+
 	result &= btv_discount;
 	result &= *btv_shipdate;
+
+	auto tmp_3 = std::chrono::high_resolution_clock::now();
 
 	int cnt = 0;
 	double revenue = 0;
 	row_t *row_buffer = _wl->t_lineitem->row_buffer;
 
-	result.decompress();
-	for (uint64_t pos = 0; pos < _wl->t_lineitem->cur_tab_size ; pos++) {
-		if (result.getBit(pos, bitmap_sd->config)) {
-			row_t *row_tmp = (row_t *) &row_buffer[pos];
-			row_t *row_local = get_row(row_tmp, RD);
-			if (row_local == NULL) {
-				// return finish(Abort);
-				continue;
-			}
-			double l_extendedprice;
-			row_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-			double l_discount;
-			row_local->get_value(L_DISCOUNT, l_discount);
-			revenue += l_extendedprice * l_discount; 
+	//result.decompress();
+
+	auto tmp_4 = std::chrono::high_resolution_clock::now();
+
+	// for (uint64_t pos = 0; pos < _wl->t_lineitem->cur_tab_size ; pos++) {
+	// 	if (result.getBit(pos, bitmap_sd->config)) {
+	// 		row_t *row_tmp = (row_t *) &row_buffer[pos];
+	// 		row_t *row_local = get_row(row_tmp, RD);
+	// 		if (row_local == NULL) {
+	// 			// return finish(Abort);
+	// 			continue;
+	// 		}
+	// 		double l_extendedprice;
+	// 		row_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+	// 		double l_discount;
+	// 		row_local->get_value(L_DISCOUNT, l_discount);
+	// 		revenue += l_extendedprice * l_discount; 
 			
-			cnt ++;
+	// 		cnt ++;
+	// 	}
+	// }
+
+	// FIXME: we choose the factor 0.03 because in TPCH Q6,
+	//			the selectivity is about 2%.
+	uint64_t n_ids_max = _wl->t_lineitem->cur_tab_size * 0.03;
+	int *ids = new int[n_ids_max];
+
+	// Convert bitvector to ID list
+	for (ibis::bitvector::indexSet is = result.firstIndexSet(); is.nIndices() > 0; ++ is) 
+	{
+		const ibis::bitvector::word_t *ii = is.indices();
+		if (is.isRange()) {
+			for (ibis::bitvector::word_t j = *ii;
+					j < ii[1];
+					++ j) {
+				ids[cnt] = j;
+				++ cnt;
+			}
 		}
+		else {
+			for (unsigned j = 0; j < is.nIndices(); ++ j) {
+				ids[cnt] = ii[j];
+				++ cnt;
+			}
+		}
+	}
+
+	// Fetch tuples in ID list
+	for(int k = 0; k < cnt; k++) 
+	{
+		row_t *row_tmp = (row_t *) &row_buffer[ids[k]];
+		row_t *row_local = get_row(row_tmp, RD);
+		if (row_local == NULL) {
+			// return finish(Abort);
+			continue;
+		}
+		double l_extendedprice;
+		row_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+		double l_discount;
+		row_local->get_value(L_DISCOUNT, l_discount);
+		revenue += l_extendedprice * l_discount; 
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
 	cout << "CUBIT " << cnt << " " << time_elapsed_ms << " " << endl;
+	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count();
+	cout << "tmp_1 " << time_elapsed_ms << endl;
+	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count();
+	cout << "tmp_2 " << time_elapsed_ms << endl;
+	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count();
+	cout << "tmp_3 " << time_elapsed_ms << endl;
+	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count();
+	cout << "tmp_4 " << time_elapsed_ms << endl;
+	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count();
+	cout << "end " << time_elapsed_ms << endl << endl;
 
-	assert(rc == RCOK);
-	return finish(rc);
+	delete [] ids;
+	return rc;
 }
 
 RC tpch_txn_man::run_RF1(int tid) 
@@ -418,8 +481,7 @@ RC tpch_txn_man::run_RF1(int tid)
 	cout << "******** RF1 completes successfully ********" << endl
 		<< lines << " tuples with revenue being " << ins_revenue << " have been inserted." << endl << endl;
 
-	assert(rc == RCOK);
-	return finish(rc);
+	return rc;
 }
 
 RC tpch_txn_man::run_RF2(int tid) 
@@ -439,7 +501,7 @@ RC tpch_txn_man::run_RF2(int tid)
 		return finish(Abort);
 	}
 	itemid_t * item1 = index_read(index1, key1, 0);
-	assert(item1);
+
 	row_t * row1 = ((row_t *)item1->location);
 	// Delete the row
 	row_t * row1_local = get_row(row1, DEL);
@@ -486,11 +548,9 @@ RC tpch_txn_man::run_RF2(int tid)
 
 		uint64_t Q6_key = tpch_lineitemKey_index(l_shipdate, (int)(l_discount*100), l_quantity);
 		rc = _wl->i_Q6_hashtable->index_remove(Q6_key);
-		assert(rc == RCOK);
 
 		// Delete from BTree
 		rc = _wl->i_Q6_btree->index_remove(Q6_key);
-		assert(rc == RCOK);
 
 		// Bitmap
 		uint64_t row_id = row2 - _wl->t_lineitem->row_buffer;
@@ -506,6 +566,5 @@ RC tpch_txn_man::run_RF2(int tid)
 	cout << "******** RF2 completes successfully ********" << endl
 			<< del_cnt << " tuples with revenue being " << del_revenue << " have been removed." << endl << endl;
 
-	assert(rc == RCOK);
-	return finish(rc);
+	return rc;
 }
