@@ -237,6 +237,7 @@ void Stats::print() {
 	printf("run time:  total %f, scan %f, hash %f, btree %f, cubit %f\n",  (total_scan_run_time + total_hash_run_time + total_btree_run_time + total_cubit_run_time) / BILLION,total_scan_run_time / BILLION, total_hash_run_time / BILLION, total_btree_run_time / BILLION, total_cubit_run_time / BILLION);
 	printf("txn count: total %ld, scan %ld, hash %ld, btree %ld, cubit %ld\n", total_scan_Q6_txn_cnt + total_hash_Q6_txn_cnt + total_btree_Q6_txn_cnt + total_cubit_Q6_txn_cnt,total_scan_Q6_txn_cnt, total_hash_Q6_txn_cnt, total_btree_Q6_txn_cnt, total_cubit_Q6_txn_cnt);
 	// printf("total_Q6 time %f\n", (total_scan_run_time + total_hash_run_time + total_btree_run_time + total_cubit_run_time) / BILLION);
+	printf("SF = %.4f\n", (double)g_num_orders/1500000);
 	if (g_prt_lat_distr)
 		print_lat_distr();
 }
