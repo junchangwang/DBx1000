@@ -249,9 +249,11 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	int discount_val = query->discount * 100; // [0, 10]
 	assert(discount_val >= 2);
 	assert(discount_val <= 9);
-	int quantity_val = query->quantity - 1; // [0, 49]
-	assert(quantity_val >= 0);
-	assert(quantity_val <= 49);
+	// int quantity_val = query->quantity - 1; // [0, 49]
+	// assert(quantity_val >= 0);
+	// assert(quantity_val <= 49);
+	int quantity_val = query->quantity; // [24, 25]
+	assert(quantity_val == 24 || quantity_val == 25);
 
 	auto start = std::chrono::high_resolution_clock::now();
 	
@@ -273,7 +275,10 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
 	ibis::bitvector result;
 	result.copy(*bitmap_qt->bitmaps[0]->btv);
-	for (int i = 1; i < quantity_val; i++) {
+	// for (int i = 1; i < quantity_val; i++) {
+	// 	result |= *bitmap_qt->bitmaps[i]->btv;
+	// }
+	for (int i = 1; i < bitmap_quantity_bin(quantity_val); i++) {
 		result |= *bitmap_qt->bitmaps[i]->btv;
 	}
 
@@ -355,16 +360,11 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
 	cout << "CUBIT " << cnt << " " << time_elapsed_ms << " " << endl;
-	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count();
-	cout << "tmp_1 " << time_elapsed_ms << endl;
-	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count();
-	cout << "tmp_2 " << time_elapsed_ms << endl;
-	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count();
-	cout << "tmp_3 " << time_elapsed_ms << endl;
-	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count();
-	cout << "tmp_4 " << time_elapsed_ms << endl;
-	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count();
-	cout << "end " << time_elapsed_ms << endl << endl;
+	cout << "tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
+			<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
+			<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()
+			<< "  tmp_4: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count()
+			<< "  end: " << std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count() << endl;
 
 	delete [] ids;
 	return rc;
@@ -475,7 +475,8 @@ RC tpch_txn_man::run_RF1(int tid)
 		// CUBIT
 		_wl->bitmap_shipdate->append(tid, (shipdate/1000-92));
 		_wl->bitmap_discount->append(tid, discount);
-		_wl->bitmap_quantity->append(tid, quantity-1);
+		// _wl->bitmap_quantity->append(tid, quantity-1);
+		_wl->bitmap_quantity->append(tid, bitmap_quantity_bin(quantity));
 	}
 
 	cout << "******** RF1 completes successfully ********" << endl

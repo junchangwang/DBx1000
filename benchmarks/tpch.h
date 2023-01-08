@@ -70,4 +70,13 @@ static inline uint64_t tpch_lineitemKey_index(uint64_t shipdate, uint64_t discou
 	return (uint64_t)((shipdate * 12 + discount) * 52 + quantity);
 }
 
+static inline int bitmap_quantity_bin(uint64_t quantity) {
+	// [0,23], 24, [25,49]
+	if (quantity <= 23)
+		return 0;
+	else if (quantity == 24)
+		return 1;
+	else return 2;
+}
+
 #endif
