@@ -48,10 +48,10 @@ RC tpch_wl::init_schema(const char * schema_file) {
 			i_Q6_hashtable->init(part_cnt, tables[tname], g_synth_table_size * 2);
 	#elif WORKLOAD == TPCC
 			assert(tables[tname] != NULL);
-			i_Q6_hashtable->init(part_cnt, tables[tname], 10000 * part_cnt);
+			i_Q6_hashtable->init(part_cnt, tables[tname], 1024*128 * part_cnt);
 	#elif WORKLOAD == TPCH
 			assert(tables[tname] != NULL);
-			i_Q6_hashtable->init(part_cnt, tables[tname], 10000 * part_cnt);
+			i_Q6_hashtable->init(part_cnt, tables[tname], 1024*128 * part_cnt);
 	#endif
 
 	i_Q6_btree = (index_btree *) _mm_malloc(sizeof(index_btree), 64);
