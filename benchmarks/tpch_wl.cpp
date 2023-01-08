@@ -83,8 +83,9 @@ RC tpch_wl::get_txn_man(txn_man *& txn_manager, thread_t * h_thd) {
 
 void tpch_wl::init_tab_orderAndLineitem() {
 	cout << "initializing ORDER and LINEITEM table" << endl;
-	auto start = std::chrono::high_resolution_clock::now();
-	auto end = std::chrono::high_resolution_clock::now();
+
+	auto start_g = std::chrono::high_resolution_clock::now();
+
 	long  long  i_order_time = (long  long)0;
 	long  long  i_lineitem_time = (long  long)0;
 	long  long  i_Q6_hashtable_time = (long  long)0;
@@ -92,7 +93,14 @@ void tpch_wl::init_tab_orderAndLineitem() {
 	for (uint64_t i = 1; i <= g_num_orders; ++i) {
 		row_t * row;
 		uint64_t row_id;
-		t_orders->get_new_row(row, 0, row_id);		
+
+		auto ts_1 = std::chrono::high_resolution_clock::now();
+
+		t_orders->get_new_row(row, 0, row_id);
+
+		auto ts_2 = std::chrono::high_resolution_clock::now();
+
+		orders_allocate += ts_2 - ts_1;
 
 		//Primary key
 		row->set_primary_key(i);
@@ -117,6 +125,11 @@ void tpch_wl::init_tab_orderAndLineitem() {
 		row->set_value(O_CLERK, temp);
 		row->set_value(O_SHIPPRIORITY, (uint64_t)654321);
 		row->set_value(O_COMMENT, temp);
+
+		auto ts_3 = std::chrono::high_resolution_clock::now();
+
+		order_set += ts_3 - ts_2;
+
 		start = std::chrono::high_resolution_clock::now();
 		index_insert(i_orders, i, row, 0);
 		end = std::chrono::high_resolution_clock::now();
@@ -131,6 +144,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			uint64_t row_id2 = 0;
 			// t_lineitem->get_new_row(row2, 0, row_id2);
 			t_lineitem->get_new_row_seq(row2, 0, row_id2);
+
+			//  --------------->
 
 			// Populate data
 			// Primary key
@@ -180,6 +195,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			row2->set_value(L_SHIPMODE, temp);
 			row2->set_value(L_COMMENT, temp);
 
+			// ----------------->
+
 			//Index 
 			uint64_t key = tpch_lineitemKey(i, lcnt);
 			start = std::chrono::high_resolution_clock::now();
@@ -200,6 +217,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			end = std::chrono::high_resolution_clock::now();
 			i_Q6_btree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
+			// ts_n
 #if TPCH_EVA_CUBIT
 			if (bitmap_shipdate->config->approach == "naive" ) {
 				bitmap_shipdate->append(0, row_id2);
@@ -216,8 +234,14 @@ void tpch_wl::init_tab_orderAndLineitem() {
 				bitmap->__init_append(0, row_id2, bitmap_quantity_bin(quantity));
 			}
 #endif
+			// ts_n+1
+			// bitmap_time += ts_n+1 - ts_n;
 		}
 	}
+
+	auto end_g = std::chrono::high_resolution_clock::now();
+	cout << "Overall time:" << end_g - start_g << endl;
+
 	cout << "INDEX build time: " << endl
 		<< "i_order_time: " << i_order_time << ", " 
 		<< "i_Q6_hashtable_time" << i_Q6_hashtable_time << ", "
@@ -591,7 +615,7 @@ RC tpch_wl::init_bitmap()
 			<< "] [Method:" << config_quantity->approach << "]" << endl;
 	}
 
-	cout << "INDEX bitmap build time:" << time << endl;
+	// cout << "INDEX bitmap build time:" << time << endl;
 
 	return RCOK;
 }
