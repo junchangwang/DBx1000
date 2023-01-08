@@ -195,7 +195,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 				bitmap->__init_append(0, row_id2, discount);
 
 				bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
-				bitmap->__init_append(0, row_id2, quantity-1);
+				// bitmap->__init_append(0, row_id2, quantity-1);
+				bitmap->__init_append(0, row_id2, bitmap_quantity_bin(quantity));
 			}
 #endif
 		}
@@ -515,11 +516,12 @@ RC tpch_wl::init_bitmap()
 	config_quantity->n_workers = g_thread_cnt;
 	config_quantity->DATA_PATH = "";
 	config_quantity->INDEX_PATH = "";
-	config_quantity->g_cardinality = 50; // [0, 49]
+	// config_quantity->g_cardinality = 50; // [0, 49]
+	config_quantity->g_cardinality = 3; // [0,23], 24, [25,49]
 	enable_fence_pointer = config_quantity->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
 	config_quantity->approach = {"nbub-lk"};
-	config_quantity->nThreads_for_getval = 4;
+	config_quantity->nThreads_for_getval = 2;
 	config_quantity->show_memory = true;
 	config_quantity->on_disk = false;
 	config_quantity->showEB = false;
