@@ -290,14 +290,11 @@ RC tpcc_txn_man::run_payment(tpcc_query * query) {
 	}
 	
 	char h_data[25];
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-truncation"
 	strncpy(h_data, w_name, 10);
 	int length = strlen(h_data);
 	if (length > 10) length = 10;
 	strcpy(&h_data[length], "    ");
 	strncpy(&h_data[length + 4], d_name, 10);
-#pragma GCC diagnostic pop
 	h_data[length+14] = '\0';
 	/*=============================================================================+
 	  EXEC SQL INSERT INTO
