@@ -30,6 +30,34 @@ RC tpch_wl::init()
 	return RCOK; 
 }
 
+RC tpch_wl::build()
+{
+	init();
+
+	// bitmap_shipdate
+	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
+	for (uint64_t i = 0; i <= 6; ++i) {
+		string temp = "bm_shipdate/bv_";
+		temp.append(to_string(i));
+		bitmap->bitmaps[i]->btv->write(temp.c_str());
+	}
+
+	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
+	for (uint64_t i = 0; i <= 10; ++i) {
+		string temp = "bm_discount/bv_";
+		temp.append(to_string(i));
+		bitmap->bitmaps[i]->btv->write(temp.c_str());
+	}
+	
+	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
+	for (uint64_t i = 0; i <= 2; ++i) {
+		string temp = "bm_quantity/bv_";
+		temp.append(to_string(i));
+		bitmap->bitmaps[i]->btv->write(temp.c_str());
+	}
+	return RCOK; 	
+}
+
 RC tpch_wl::init_schema(const char * schema_file) {
 	workload::init_schema(schema_file);
 	t_lineitem = tables["LINEITEM"];
