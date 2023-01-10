@@ -42,8 +42,6 @@ RC tpch_wl::build()
         return RCOK;
     }
 
-	init();
-
 	// bitmap_shipdate
 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
 	for (uint64_t i = 0; i < bitmap_shipdate->config->g_cardinality; ++i) {
@@ -56,9 +54,11 @@ RC tpch_wl::build()
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
-		// ibis::bitvector * test_btv = new ibis::bitvector();
-		// test_btv->read(temp.c_str());
-		// assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
+
+		ibis::bitvector * test_btv = new ibis::bitvector();
+		test_btv->read(temp.c_str());
+		test_btv->adjustSize(0, bitmap->g_number_of_rows);
+		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
 	}
 
 
@@ -73,6 +73,11 @@ RC tpch_wl::build()
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
+
+		ibis::bitvector * test_btv = new ibis::bitvector();
+		test_btv->read(temp.c_str());
+		test_btv->adjustSize(0, bitmap->g_number_of_rows);
+		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
 	}
 	
 	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
@@ -86,6 +91,11 @@ RC tpch_wl::build()
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
+
+		ibis::bitvector * test_btv = new ibis::bitvector();
+		test_btv->read(temp.c_str());
+		test_btv->adjustSize(0, bitmap->g_number_of_rows);
+		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
 	}
 	// create done file
     fstream done;   

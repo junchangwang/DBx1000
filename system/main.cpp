@@ -51,15 +51,14 @@ int main(int argc, char* argv[])
 			assert(false);	
 	}
 	
+	m_wl->init();
+	printf("workload initialized!\n");
 
 	if (Mode && strcmp(Mode, "build") == 0) {
 		// ((tpch_wl *)m_wl)->build();
 		dynamic_cast<tpch_wl *>(m_wl)->build();
 		return 0;
 	}
-
-	m_wl->init();
-	printf("workload initialized!\n");
 	
 	uint64_t thd_cnt = g_thread_cnt;
 	pthread_t p_thds[thd_cnt - 1];

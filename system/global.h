@@ -122,7 +122,7 @@ extern uint64_t STARTDATE;
 extern uint64_t ENDDATE;
 extern uint64_t CURRENTDATE;
 extern uint64_t SF;
-extern double curr_SF;
+extern uint64_t curr_SF;
 /* Thread */
 typedef uint64_t txnid_t;
 

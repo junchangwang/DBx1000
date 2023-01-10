@@ -68,7 +68,7 @@ uint64_t g_nor_in_lineitems = 0UL;
 uint64_t STARTDATE = (uint64_t)92001; // 1992.01.01
 uint64_t ENDDATE = (uint64_t)98365; // 1998.12.31
 uint64_t CURRENTDATE = (uint64_t)95168; //1995.06.17
-double curr_SF = (double)g_num_orders / 1500000;
+uint64_t curr_SF = g_num_orders;
 map<string, string> g_params;
 
 #if TPCC_SMALL
