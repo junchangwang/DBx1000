@@ -50,19 +50,15 @@ int main(int argc, char* argv[])
 		default:
 			assert(false);	
 	}
-	// switch(Mode)
-	if (Mode == NULL) {
-		m_wl->init();
-	} else if (strcmp(Mode, "build") == 0) {
+	
+
+	if (Mode && strcmp(Mode, "build") == 0) {
 		// ((tpch_wl *)m_wl)->build();
 		dynamic_cast<tpch_wl *>(m_wl)->build();
 		return 0;
-	} else if (strcmp(Mode, "cached_bitmap") == 0) { 
-		// FIXME! cached bitmap
-	} else {
-		cout << "WARNING! Unknown mode!" << endl; 
-		assert(0);
 	}
+
+	m_wl->init();
 	printf("workload initialized!\n");
 	
 	uint64_t thd_cnt = g_thread_cnt;

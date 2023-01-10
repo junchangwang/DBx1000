@@ -36,23 +36,26 @@ RC tpch_wl::build()
 
 	// bitmap_shipdate
 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
-	for (uint64_t i = 0; i <= 6; ++i) {
-		string temp = "bm_shipdate/bv_";
+	for (uint64_t i = 0; i < bitmap_shipdate->config->g_cardinality; ++i) {
+		string temp = "bm_shipdate/";
 		temp.append(to_string(i));
+		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
 	}
 
 	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
-	for (uint64_t i = 0; i <= 10; ++i) {
-		string temp = "bm_discount/bv_";
+	for (uint64_t i = 0; i < bitmap_discount->config->g_cardinality; ++i) {
+		string temp = "bm_discount/";
 		temp.append(to_string(i));
+		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
 	}
 	
 	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
-	for (uint64_t i = 0; i <= 2; ++i) {
-		string temp = "bm_quantity/bv_";
+	for (uint64_t i = 0; i < bitmap_quantity->config->g_cardinality; ++i) {
+		string temp = "bm_quantity/";
 		temp.append(to_string(i));
+		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
 	}
 	return RCOK; 	
@@ -250,22 +253,24 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			i_Q6_btree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 			auto ts_7 = std::chrono::high_resolution_clock::now();
-#if TPCH_EVA_CUBIT
-			if (bitmap_shipdate->config->approach == "naive" ) {
-				bitmap_shipdate->append(0, row_id2);
-			}
-			else if (bitmap_shipdate->config->approach == "nbub-lk") {
-				nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
-				bitmap->__init_append(0, row_id2, (shipdate/1000-92));
 
-				bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
-				bitmap->__init_append(0, row_id2, discount);
+			if (Mode != "cache") 
+			{
+				if (bitmap_shipdate->config->approach == "naive" ) {
+					bitmap_shipdate->append(0, row_id2);
+				}
+				else if (bitmap_shipdate->config->approach == "nbub-lk") {
+					nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
+					bitmap->__init_append(0, row_id2, (shipdate/1000-92));
 
-				bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
-				// bitmap->__init_append(0, row_id2, quantity-1);
-				bitmap->__init_append(0, row_id2, bitmap_quantity_bin(quantity));
+					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
+					bitmap->__init_append(0, row_id2, discount);
+
+					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
+					// bitmap->__init_append(0, row_id2, quantity-1);
+					bitmap->__init_append(0, row_id2, bitmap_quantity_bin(quantity));
+				}
 			}
-#endif
 			auto ts_8 = std::chrono::high_resolution_clock::now();
 			i_bitmap_time += std::chrono::duration_cast<std::chrono::microseconds>(ts_8 - ts_7).count();
 		}
@@ -512,7 +517,11 @@ RC tpch_wl::init_bitmap()
 	Table_config *config_shipdate = new Table_config{};
 	config_shipdate->n_workers = g_thread_cnt;
 	config_shipdate->DATA_PATH = "";
-	config_shipdate->INDEX_PATH = "";
+	if (Mode && strcmp(Mode, "cache") == 0)
+		config_shipdate->INDEX_PATH = "bm_shipdate";
+	else
+		config_shipdate->INDEX_PATH = "";
+	config_shipdate->n_rows = 0; 
 	config_shipdate->g_cardinality = 7; // [92, 98]
 	enable_fence_pointer = config_shipdate->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
@@ -525,7 +534,6 @@ RC tpch_wl::init_bitmap()
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
-	config_shipdate->n_rows = 0; 
 	config_shipdate->n_queries = MAX_TXN_PER_PART;
 	config_shipdate->n_deletes = MAX_TXN_PER_PART * 0.1;
 	config_shipdate->verbose = false;
@@ -563,7 +571,11 @@ RC tpch_wl::init_bitmap()
 	Table_config *config_discount = new Table_config{};
 	config_discount->n_workers = g_thread_cnt;
 	config_discount->DATA_PATH = "";
-	config_discount->INDEX_PATH = "";
+	if (Mode && strcmp(Mode, "cache") == 0) 
+		config_discount->INDEX_PATH = "bm_discount";
+	else
+		config_discount->INDEX_PATH = "";
+	config_discount->n_rows = 0; 
 	config_discount->g_cardinality = 11; // [0, 10]
 	enable_fence_pointer = config_discount->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
@@ -576,7 +588,6 @@ RC tpch_wl::init_bitmap()
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
-	config_discount->n_rows = 0; 
 	config_discount->n_queries = MAX_TXN_PER_PART;
 	config_discount->n_deletes = MAX_TXN_PER_PART * 0.1;
 	config_discount->verbose = false;
@@ -614,7 +625,11 @@ RC tpch_wl::init_bitmap()
 	Table_config *config_quantity = new Table_config{};
 	config_quantity->n_workers = g_thread_cnt;
 	config_quantity->DATA_PATH = "";
-	config_quantity->INDEX_PATH = "";
+	if (Mode && strcmp(Mode, "cache") == 0)
+		config_quantity->INDEX_PATH = "bm_quantity";
+	else
+		config_quantity->INDEX_PATH = "";
+	config_quantity->n_rows = 0;  
 	// config_quantity->g_cardinality = 50; // [0, 49]
 	config_quantity->g_cardinality = 3; // [0,23], 24, [25,49]
 	enable_fence_pointer = config_quantity->enable_fence_pointer = true;
@@ -628,7 +643,6 @@ RC tpch_wl::init_bitmap()
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
-	config_quantity->n_rows = 0; 
 	config_quantity->n_queries = MAX_TXN_PER_PART;
 	config_quantity->n_deletes = MAX_TXN_PER_PART * 0.1;
 	config_quantity->verbose = false;
