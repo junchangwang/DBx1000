@@ -115,6 +115,10 @@ void parser(int argc, char * argv[]) {
 			i++;
 			output_file = argv[i];
 		}
+		else if (argv[i][1] == 'M') {
+			i++;
+			Mode = argv[i];
+		}
 		else if (argv[i][1] == 'h') {
 			print_usage();
 			exit(0);

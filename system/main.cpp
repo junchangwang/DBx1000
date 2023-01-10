@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
 	if (g_cc_alg == DL_DETECT) 
 		dl_detector.init();
 	printf("mem_allocator initialized!\n");
+
 	workload * m_wl;
 	switch (WORKLOAD) {
 		case YCSB :
@@ -47,9 +48,21 @@ int main(int argc, char* argv[])
 		case TPCH :
 			m_wl = new tpch_wl; break;
 		default:
-			assert(false);
+			assert(false);	
 	}
-	m_wl->init();
+	// switch(Mode)
+	if (Mode == NULL) {
+		m_wl->init();
+	} else if (strcmp(Mode, "build") == 0) {
+		// ((tpch_wl *)m_wl)->build();
+		dynamic_cast<tpch_wl *>(m_wl)->build();
+		return 0;
+	} else if (strcmp(Mode, "cached_bitmap") == 0) { 
+		// FIXME! cached bitmap
+	} else {
+		cout << "WARNING! Unknown mode!" << endl; 
+		assert(0);
+	}
 	printf("workload initialized!\n");
 	
 	uint64_t thd_cnt = g_thread_cnt;

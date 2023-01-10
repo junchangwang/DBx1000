@@ -24,6 +24,8 @@ public:
 	RC init_bitmap();
 	RC init_schema(const char * schema_file);
 	RC get_txn_man(txn_man *& txn_manager, thread_t * h_thd);
+	RC build();
+	
 	table_t * 		t_lineitem;
 	table_t * 		t_orders;
 
