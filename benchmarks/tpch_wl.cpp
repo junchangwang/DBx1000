@@ -31,21 +31,45 @@ RC tpch_wl::init()
 }
 
 RC tpch_wl::build()
-{
+{	
+	// Check whether the index has been built before.
+    ifstream doneFlag;
+	string path = "bm_" + to_string(curr_SF) + "_done";
+    doneFlag.open(path);
+    if (doneFlag.good()) { 
+        cout << "WARNING: The index for " + path + " has been built before. Skip building." << endl;
+        doneFlag.close();
+        return RCOK;
+    }
+
 	init();
 
 	// bitmap_shipdate
 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
 	for (uint64_t i = 0; i < bitmap_shipdate->config->g_cardinality; ++i) {
-		string temp = "bm_shipdate/";
+		string temp = "bm_";
+		temp.append(to_string(curr_SF));
+		temp.append("_shipdate/");
+		string cmd = "mkdir -p ";
+		cmd.append(temp);
+		system(cmd.c_str());
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
+		// ibis::bitvector * test_btv = new ibis::bitvector();
+		// test_btv->read(temp.c_str());
+		// assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
 	}
+
 
 	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
 	for (uint64_t i = 0; i < bitmap_discount->config->g_cardinality; ++i) {
-		string temp = "bm_discount/";
+		string temp = "bm_";
+		temp.append(to_string(curr_SF));
+		temp.append("_discount/");
+		string cmd = "mkdir -p ";
+		cmd.append(temp);
+		system(cmd.c_str());
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -53,11 +77,27 @@ RC tpch_wl::build()
 	
 	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
 	for (uint64_t i = 0; i < bitmap_quantity->config->g_cardinality; ++i) {
-		string temp = "bm_quantity/";
+		string temp = "bm_";
+		temp.append(to_string(curr_SF));
+		temp.append("_quantity/");
+		string cmd = "mkdir -p ";
+		cmd.append(temp);
+		system(cmd.c_str());
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
 	}
+	// create done file
+    fstream done;   
+    done.open(path, ios::out);
+    if (done.is_open()) {
+        done << bitmap->g_number_of_rows;
+        cout << "Succeeded in building bitmap files and " << path << endl;
+        done.close(); 
+    }
+    else {
+        cout << "Failed in building bitmap files and " << path << endl;
+    } 
 	return RCOK; 	
 }
 
@@ -254,7 +294,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 
 			auto ts_7 = std::chrono::high_resolution_clock::now();
 
-			if (Mode != "cache") 
+			// if (Mode != "cache")
+			if (Mode == NULL || (Mode && strcmp(Mode, "build") == 0))
 			{
 				if (bitmap_shipdate->config->approach == "naive" ) {
 					bitmap_shipdate->append(0, row_id2);
@@ -517,9 +558,12 @@ RC tpch_wl::init_bitmap()
 	Table_config *config_shipdate = new Table_config{};
 	config_shipdate->n_workers = g_thread_cnt;
 	config_shipdate->DATA_PATH = "";
-	if (Mode && strcmp(Mode, "cache") == 0)
-		config_shipdate->INDEX_PATH = "bm_shipdate";
-	else
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		string temp = "bm_";
+		temp.append(to_string(curr_SF));
+		temp.append("_shipdate");
+		config_shipdate->INDEX_PATH = temp;
+	} else
 		config_shipdate->INDEX_PATH = "";
 	config_shipdate->n_rows = 0; 
 	config_shipdate->g_cardinality = 7; // [92, 98]
@@ -571,9 +615,12 @@ RC tpch_wl::init_bitmap()
 	Table_config *config_discount = new Table_config{};
 	config_discount->n_workers = g_thread_cnt;
 	config_discount->DATA_PATH = "";
-	if (Mode && strcmp(Mode, "cache") == 0) 
-		config_discount->INDEX_PATH = "bm_discount";
-	else
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		string temp = "bm_";
+		temp.append(to_string(curr_SF));
+		temp.append("_discount");
+		config_discount->INDEX_PATH = temp;
+	} else
 		config_discount->INDEX_PATH = "";
 	config_discount->n_rows = 0; 
 	config_discount->g_cardinality = 11; // [0, 10]
@@ -625,9 +672,12 @@ RC tpch_wl::init_bitmap()
 	Table_config *config_quantity = new Table_config{};
 	config_quantity->n_workers = g_thread_cnt;
 	config_quantity->DATA_PATH = "";
-	if (Mode && strcmp(Mode, "cache") == 0)
-		config_quantity->INDEX_PATH = "bm_quantity";
-	else
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		string temp = "bm_";
+		temp.append(to_string(curr_SF));
+		temp.append("_quantity");
+		config_quantity->INDEX_PATH = temp;
+	} else
 		config_quantity->INDEX_PATH = "";
 	config_quantity->n_rows = 0;  
 	// config_quantity->g_cardinality = 50; // [0, 49]

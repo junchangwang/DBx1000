@@ -16,18 +16,9 @@ ossystem = os.system
 
 
 ###################################### cmd #########################################
-def build():
-    os.system("mkdir -p bm_shipdate")
-    os.system("mkdir -p bm_discount")
-    os.system("mkdir -p bm_quantity")
-    if (os.path.isfile("bm_done")):
-        print("Bitmaps have been built in bm_discount, bm_quantity, bm_shipdate!")
-    else:        
-        os.system("./rundb -M build")
-        f = open("bm_done",'w')
-        f.write("DO NOT DELETE! \nSucceeded in building bitmap files in bm_discount, bm_quantity, bm_shipdate")
-        print("Succeeded in building bitmap files in bm_discount, bm_quantity, bm_shipdate")
-        f.close()
+def build():      
+    os.system("./rundb -M build")
+
 
 def gen_raw_data(): 
     core_number = [1, 2, 4, 8, 16, 24, 32]
@@ -156,10 +147,10 @@ def main():
         os.mkdir(graphs)
 
         build()
-        # run()
-        # gen_graph()
-        # os.system(cmd2)
-        # os.system(cmd3)
+        run()
+        gen_graph()
+        os.system(cmd2)
+        os.system(cmd3)
         # os.system(cmd.format(itr))
         itr += 1
     print('Done!\n')
