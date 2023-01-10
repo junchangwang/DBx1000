@@ -32,7 +32,7 @@ private:
 	ts_t * 			_last_epoch_update_time;
 
 	pthread_mutex_t ts_mutex;
-	uint64_t *		timestamp;
+	// uint64_t *		timestamp;
 	pthread_mutex_t mutexes[BUCKET_CNT];
 	uint64_t 		hash(row_t * row);
 	ts_t volatile * volatile * volatile all_ts;

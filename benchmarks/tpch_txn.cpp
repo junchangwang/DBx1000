@@ -30,7 +30,6 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		case TPCH_Q6_SCAN :
 			_starttime = get_sys_clock();
 			rc = run_Q6_scan(m_query);
-			finish(rc);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), scan_run_time, _timespan);
@@ -40,7 +39,6 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		case TPCH_Q6_HASH :
 			_starttime = get_sys_clock();
 			rc = run_Q6_hash(m_query, _wl->i_Q6_hashtable);
-			finish(rc);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), hash_run_time, _timespan);
@@ -50,7 +48,6 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		case TPCH_Q6_BTREE :
 			_starttime = get_sys_clock();
 			rc = run_Q6_btree(m_query, _wl->i_Q6_btree);
-			finish(rc);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), btree_run_time, _timespan);
@@ -59,8 +56,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 
 		case TPCH_Q6_CUBIT :
 			_starttime = get_sys_clock();
-			rc = run_Q6_bitmap(m_query);
-			finish(rc);
+			rc = run_Q6_bitmap(tid, m_query);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), cubit_run_time, _timespan);
@@ -69,12 +65,10 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 
 		case TPCH_RF1 :
 			rc = run_RF1(tid); 
-			finish(rc);
 			break;
 
 		case TPCH_RF2 :
 			rc = run_RF2(tid);
-			finish(rc); 
 			break;			
 
 		default:
@@ -128,7 +122,8 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	// cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "SCAN " << cnt << " " << time_elapsed_ms << " " << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index) 
@@ -182,7 +177,8 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 	// cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "Hash " << cnt << " " << time_elapsed_ms << " " << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index) 
@@ -226,7 +222,6 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 					revenue += l_extendedprice * ((double)j / 100);
 					cnt ++;
 				}
-
 			}
 		}
 	}
@@ -236,10 +231,11 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 	// cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "BTree " << cnt << " " << time_elapsed_ms << " " << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	return finish(rc);
 }
 
-RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
+RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 {
 	RC rc = RCOK;
 	
@@ -249,22 +245,24 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	int discount_val = query->discount * 100; // [0, 10]
 	assert(discount_val >= 2);
 	assert(discount_val <= 9);
-	// int quantity_val = query->quantity - 1; // [0, 49]
-	// assert(quantity_val >= 0);
-	// assert(quantity_val <= 49);
 	int quantity_val = query->quantity; // [24, 25]
 	assert(quantity_val == 24 || quantity_val == 25);
 
 	auto start = std::chrono::high_resolution_clock::now();
 	
-	// FIXME: We assume to always use the latest version of each bitmap.
-	// This should change to invoke bitmap->evaluate() 
-	// to retrive a pointer to the underlying bitvector.
+	// FIXME: 
+	// To get the accurate revenue, we should invoke bitmap->evaluate(),
+	// which makes a private copy of the underlying bitvector if there are related RUBs.
+	// Optimizations can be applied to remove the cost of making private copies.
+	// However, it makes our memory reclamation mechanism more complex. Therefore, currently, 
+	// we simply retrive a pointer to the latest bitvector, which is always safe to access.
 	nbub::Nbub *bitmap_sd, *bitmap_dc, *bitmap_qt;
 	bitmap_sd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
+	bitmap_sd->trans_begin(tid);
 	ibis::bitvector *btv_shipdate = bitmap_sd->bitmaps[year_val]->btv;
 
 	bitmap_dc = dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount);
+	bitmap_dc->trans_begin(tid);
 	ibis::bitvector btv_discount;
 	btv_discount.copy(*bitmap_dc->bitmaps[discount_val-1]->btv);
 	btv_discount |= *bitmap_dc->bitmaps[discount_val]->btv;
@@ -273,11 +271,9 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	auto tmp_1 = std::chrono::high_resolution_clock::now();
 
 	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
+	bitmap_qt->trans_begin(tid);
 	ibis::bitvector result;
 	result.copy(*bitmap_qt->bitmaps[0]->btv);
-	// for (int i = 1; i < quantity_val; i++) {
-	// 	result |= *bitmap_qt->bitmaps[i]->btv;
-	// }
 	for (int i = 1; i < bitmap_quantity_bin(quantity_val); i++) {
 		result |= *bitmap_qt->bitmaps[i]->btv;
 	}
@@ -293,10 +289,9 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	double revenue = 0;
 	row_t *row_buffer = _wl->t_lineitem->row_buffer;
 
-	//result.decompress();
-
 	auto tmp_4 = std::chrono::high_resolution_clock::now();
 
+	// result.decompress();
 	// for (uint64_t pos = 0; pos < _wl->t_lineitem->cur_tab_size ; pos++) {
 	// 	if (result.getBit(pos, bitmap_sd->config)) {
 	// 		row_t *row_tmp = (row_t *) &row_buffer[pos];
@@ -315,7 +310,7 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 	// 	}
 	// }
 
-	// FIXME: we choose the factor 0.03 because in TPCH Q6,
+	// NOTE: we choose the factor 0.03 because in TPCH Q6,
 	//			the selectivity is about 2%.
 	uint64_t n_ids_max = _wl->t_lineitem->cur_tab_size * 0.03;
 	int *ids = new int[n_ids_max];
@@ -367,13 +362,17 @@ RC tpch_txn_man::run_Q6_bitmap(tpch_query *query)
 			<< "  end: " << std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count() << endl;
 
 	delete [] ids;
-	return rc;
+	assert(rc == RCOK);
+	bitmap_qt->trans_commit(tid);
+	bitmap_dc->trans_commit(tid);
+	bitmap_sd->trans_commit(tid);
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_RF1(int tid) 
 {
 	// for (uint64_t i = (uint64_t)(g_num_orders + 1); i < (uint64_t)(SF * 1500 + g_num_orders + 1); ++i) {
-	// RF1 is generated one thousandth.
+	// RF1 is generated one hundredth.
 
 	RC rc = RCOK;
 	row_t * row;
@@ -408,12 +407,15 @@ RC tpch_txn_man::run_RF1(int tid)
 	unique_lock<shared_mutex> w_lock(_wl->i_orders->rw_lock);
 	_wl->index_insert(_wl->i_orders, row_id1, row, 0);
 
-
 	// **********************Lineitems*****************************************
 
 	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
 	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
+
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_begin(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_begin(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_begin(tid);
 
 	uint64_t lines = URand(1, 7, 0);
 	g_nor_in_lineitems += lines;
@@ -461,7 +463,7 @@ RC tpch_txn_man::run_RF1(int tid)
 
 		ins_revenue += (double)(quantity * p_retailprice) * ((double)discount / 100);
 
-		//Index (scan)
+		// Index (scan)
 		uint64_t key = tpch_lineitemKey(row_id1, lcnt);
 		_wl->index_insert(_wl->i_lineitem, key, row2, 0);
 
@@ -475,20 +477,23 @@ RC tpch_txn_man::run_RF1(int tid)
 		// CUBIT
 		_wl->bitmap_shipdate->append(tid, (shipdate/1000-92));
 		_wl->bitmap_discount->append(tid, discount);
-		// _wl->bitmap_quantity->append(tid, quantity-1);
 		_wl->bitmap_quantity->append(tid, bitmap_quantity_bin(quantity));
 	}
 
 	cout << "******** RF1 completes successfully ********" << endl
 		<< lines << " tuples with revenue being " << ins_revenue << " have been inserted." << endl << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_commit(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_commit(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_commit(tid);
+	return finish(rc);
 }
 
 RC tpch_txn_man::run_RF2(int tid) 
 {
 	// for (uint64_t i = 1; i < (uint64_t)(SF * 1500); ++i)
-	// RF2 is generated one thousandth.
+	// RF2 is generated one hundredth.
 
 	RC rc = RCOK;
 	int del_cnt = 0;
@@ -519,6 +524,10 @@ RC tpch_txn_man::run_RF2(int tid)
 	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
 	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
+
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_begin(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_begin(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_begin(tid);
 
 	for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt)
 	{
@@ -567,5 +576,9 @@ RC tpch_txn_man::run_RF2(int tid)
 	cout << "******** RF2 completes successfully ********" << endl
 			<< del_cnt << " tuples with revenue being " << del_revenue << " have been removed." << endl << endl;
 
-	return rc;
+	assert(rc == RCOK);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_commit(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_commit(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_commit(tid);
+	return finish(rc);
 }

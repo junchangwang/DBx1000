@@ -56,7 +56,6 @@ RC tpcc_wl::init_bitmap_c_w_id( )
 	config->n_rows = 0; 
 	config->n_queries = 900;
 	config->n_deletes = 100;
-	config->n_merge = 16;
 	config->verbose = false;
 	config->time_out = 100;
 	

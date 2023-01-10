@@ -57,7 +57,7 @@ private:
 	RC run_Q6_scan(tpch_query * m_query);
 	RC run_Q6_hash(tpch_query * query, IndexHash *index);
 	RC run_Q6_btree(tpch_query * query, index_btree *index);
-	RC run_Q6_bitmap(tpch_query *query);
+	RC run_Q6_bitmap(int tid, tpch_query *query);
 	RC run_RF1(int tid);
 	RC run_RF2(int tid);
 };

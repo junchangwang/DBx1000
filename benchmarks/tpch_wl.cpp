@@ -498,11 +498,13 @@ RC tpch_wl::init_bitmap()
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
 	config_shipdate->n_rows = 0; 
-	config_shipdate->n_queries = 900;
-	config_shipdate->n_deletes = 100;
-	config_shipdate->n_merge = 16;
+	config_shipdate->n_queries = MAX_TXN_PER_PART;
+	config_shipdate->n_deletes = MAX_TXN_PER_PART * 0.1;
 	config_shipdate->verbose = false;
 	config_shipdate->time_out = 100;
+	config_shipdate->autoCommit = false;
+	config_shipdate->n_merge_threash = 4;
+	config_shipdate->db_control = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_shipdate->approach == "ub") {
@@ -547,11 +549,13 @@ RC tpch_wl::init_bitmap()
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
 	config_discount->n_rows = 0; 
-	config_discount->n_queries = 900;
-	config_discount->n_deletes = 100;
-	config_discount->n_merge = 16;
+	config_discount->n_queries = MAX_TXN_PER_PART;
+	config_discount->n_deletes = MAX_TXN_PER_PART * 0.1;
 	config_discount->verbose = false;
 	config_discount->time_out = 100;
+	config_discount->autoCommit = false;
+	config_discount->n_merge_threash = 4;
+	config_discount->db_control = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_discount->approach == "ub") {
@@ -597,11 +601,13 @@ RC tpch_wl::init_bitmap()
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
 	config_quantity->n_rows = 0; 
-	config_quantity->n_queries = 900;
-	config_quantity->n_deletes = 100;
-	config_quantity->n_merge = 16;
+	config_quantity->n_queries = MAX_TXN_PER_PART;
+	config_quantity->n_deletes = MAX_TXN_PER_PART * 0.1;
 	config_quantity->verbose = false;
 	config_quantity->time_out = 100;
+	config_quantity->autoCommit = false;
+	config_quantity->n_merge_threash = 4;
+	config_quantity->db_control = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_quantity->approach == "ub") {

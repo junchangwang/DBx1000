@@ -3,9 +3,12 @@
 #include "txn.h"
 #include "pthread.h"
 
+uint64_t db_timestamp __attribute__((aligned(128)));
+uint64_t db_number_of_rows;
+
 void Manager::init() {
-	timestamp = (uint64_t *) _mm_malloc(sizeof(uint64_t), 64);
-	*timestamp = 1;
+	db_timestamp = 1;
+	db_number_of_rows = 0;
 	_last_min_ts_time = 0;
 	_min_ts = 0;
 	_epoch = (uint64_t *) _mm_malloc(sizeof(uint64_t), 64);
@@ -34,14 +37,14 @@ Manager::get_ts(uint64_t thread_id) {
 	switch(g_ts_alloc) {
 	case TS_MUTEX :
 		pthread_mutex_lock( &ts_mutex );
-		time = ++(*timestamp);
+		time = ++db_timestamp;
 		pthread_mutex_unlock( &ts_mutex );
 		break;
 	case TS_CAS :
 		if (g_ts_batch_alloc)
-			time = ATOM_FETCH_ADD((*timestamp), g_ts_batch_num);
+			time = ATOM_FETCH_ADD(db_timestamp, g_ts_batch_num);
 		else 
-			time = ATOM_FETCH_ADD((*timestamp), 1);
+			time = ATOM_FETCH_ADD(db_timestamp, 1);
 		break;
 	case TS_HW :
 #ifndef NOGRAPHITE
