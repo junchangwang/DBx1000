@@ -563,6 +563,25 @@ RC tpch_wl::init_bitmap()
 	// auto start = std::chrono::high_resolution_clock::now();
 	// auto end = std::chrono::high_resolution_clock::now();
 	// long  long  time = (long  long)0;	
+
+	uint64_t n_rows = 0UL;
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		fstream done;
+		string path = "bm_" + to_string(curr_SF) + "_done";
+		done.open(path, ios::in);
+		if (done.is_open()) {
+			done >> n_rows;
+			cout << "[cache] Number of rows: " << n_rows << " . Fetched from file: " << path << endl;
+			done.close();
+		}
+		else {
+			cout << "[cache] Failed to open the specified config file: " << path << endl;
+			exit(-1);
+		}
+
+	}
+	db_number_of_rows = n_rows;
+
 /********************* bitmap_shipdate ******************************/
 	{
 	Table_config *config_shipdate = new Table_config{};
@@ -575,7 +594,7 @@ RC tpch_wl::init_bitmap()
 		config_shipdate->INDEX_PATH = temp;
 	} else
 		config_shipdate->INDEX_PATH = "";
-	config_shipdate->n_rows = 0; 
+	config_shipdate->n_rows = n_rows; 
 	config_shipdate->g_cardinality = 7; // [92, 98]
 	enable_fence_pointer = config_shipdate->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
@@ -632,7 +651,7 @@ RC tpch_wl::init_bitmap()
 		config_discount->INDEX_PATH = temp;
 	} else
 		config_discount->INDEX_PATH = "";
-	config_discount->n_rows = 0; 
+	config_discount->n_rows = n_rows; 
 	config_discount->g_cardinality = 11; // [0, 10]
 	enable_fence_pointer = config_discount->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
@@ -689,7 +708,7 @@ RC tpch_wl::init_bitmap()
 		config_quantity->INDEX_PATH = temp;
 	} else
 		config_quantity->INDEX_PATH = "";
-	config_quantity->n_rows = 0;  
+	config_quantity->n_rows = n_rows;  
 	// config_quantity->g_cardinality = 50; // [0, 49]
 	config_quantity->g_cardinality = 3; // [0,23], 24, [25,49]
 	enable_fence_pointer = config_quantity->enable_fence_pointer = true;
