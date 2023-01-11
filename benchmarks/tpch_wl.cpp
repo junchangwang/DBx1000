@@ -329,7 +329,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 
 	auto end_g = std::chrono::high_resolution_clock::now();
 	cout << "*************************INDEX build time: *******" << endl
-		<< "Overall time:" << std::chrono::duration_cast<std::chrono::microseconds>(end_g - start_g).count() << endl
+		<< "Overall time (microseconds):" << std::chrono::duration_cast<std::chrono::microseconds>(end_g - start_g).count() << endl
 		<< "i_order_time:" << i_order_time << ", " 
 		<< "i_Q6_hashtable_time:" << i_Q6_hashtable_time << ", "
 		<< "i_lineitem_time:" << i_lineitem_time << ", "
@@ -571,11 +571,11 @@ RC tpch_wl::init_bitmap()
 		done.open(path, ios::in);
 		if (done.is_open()) {
 			done >> n_rows;
-			cout << "[cache] Number of rows: " << n_rows << " . Fetched from file: " << path << endl;
+			cout << "[cache] Number of rows: " << n_rows << " . Fetched from bitmap cached file: " << path << endl;
 			done.close();
 		}
 		else {
-			cout << "[cache] Failed to open the specified config file: " << path << endl;
+			cout << "[cache] Failed to open the specified bitmap cached file: " << path << endl;
 			exit(-1);
 		}
 
