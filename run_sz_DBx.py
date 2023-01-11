@@ -24,7 +24,7 @@ def gen_raw_data():
     core_number = [1, 2, 4, 8, 16, 24, 32]
     # core_number = [1, 2, 4]
     for num in core_number:
-        cmd = './rundb -t{} > dat_tmp_DBx/core_{}.dat'.format(num, num)
+        cmd = './rundb -t{} -M cache > dat_tmp_DBx/core_{}.dat'.format(num, num)
         os.system(cmd)
 
 def throughput_analysis2(filename):

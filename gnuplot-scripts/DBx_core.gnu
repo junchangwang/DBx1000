@@ -1,7 +1,7 @@
 reset
 set size 0.99,1.0
 #set term pdf font ",10" size 5.2, 2.4
-set ylabel "Throughput (item/s)" offset 1.5,0,0
+set ylabel "Throughput (transactions/s)" offset 1.5,0,0
 set xlabel "Number of cores"
 set xtics ("1" 1, "2" 2 1, "4" 4, "8" 8, "16" 16, "24" 24, "32" 32)
 #set yrange [0:40]
