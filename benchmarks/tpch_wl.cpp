@@ -42,6 +42,8 @@ RC tpch_wl::build()
         return RCOK;
     }
 
+	init();
+
 	// bitmap_shipdate
 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
 	for (uint64_t i = 0; i < bitmap_shipdate->config->g_cardinality; ++i) {

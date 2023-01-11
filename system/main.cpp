@@ -51,8 +51,10 @@ int main(int argc, char* argv[])
 			assert(false);	
 	}
 	
-	m_wl->init();
-	printf("workload initialized!\n");
+	if (Mode == NULL || (Mode && strcmp(Mode, "cache") == 0)) {
+		m_wl->init();
+		printf("workload initialized!\n");
+	}
 
 	if (Mode && strcmp(Mode, "build") == 0) {
 		// ((tpch_wl *)m_wl)->build();
