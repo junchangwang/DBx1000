@@ -120,10 +120,22 @@ void txn_man::cleanup(RC rc) {
 }
 
 row_t * txn_man::get_row(row_t * row, access_t type) {
+	RC rc = RCOK;
+	
 	if (CC_ALG == HSTORE)
 		return row;
-	uint64_t starttime = get_sys_clock();
-	RC rc = RCOK;
+	
+	if (CC_ALG == HEKATON && type == SCAN) {
+		row_t *tmp;
+		rc = row->get_row(type, this, tmp);
+		if (rc == RCOK)
+			return tmp;
+		else
+			return NULL;
+	}
+
+	uint64_t starttime = get_sys_clock();	
+
 	if (accesses[row_cnt] == NULL) {
 		Access * access = (Access *) _mm_malloc(sizeof(Access), 64);
 		accesses[row_cnt] = access;
@@ -140,7 +152,6 @@ row_t * txn_man::get_row(row_t * row, access_t type) {
 	}
 	
 	rc = row->get_row(type, this, accesses[ row_cnt ]->data);
-
 
 	if (rc == Abort) {
 		return NULL;

@@ -90,7 +90,7 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	for (uint64_t row_id = 0; row_id < max_items; row_id ++) {
 		row_t * r_lt = (row_t *) &_wl->t_lineitem->row_buffer[row_id];
 		assert(r_lt != NULL);
-		row_t * r_lt_local = get_row(r_lt, RD);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
 		if (r_lt_local == NULL) {
 			// Skip the deleted item.
 			// return finish(Abort);
