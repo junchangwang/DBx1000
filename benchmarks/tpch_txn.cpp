@@ -145,6 +145,8 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
 			{
+
+				// start 
 				key = tpch_lineitemKey_index(i, j, k);
 
 				if ( !index->index_exist(key, 0) ){
@@ -152,6 +154,8 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 				}
 				
 				item = index_read((INDEX *)index, key, 0);
+
+				// end
 
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					row_t * r_lt = ((row_t *)local_item->location);
@@ -200,13 +204,17 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
 			{
+				// start
+
 				key = tpch_lineitemKey_index(i, j, k);
 
 				if ( !index->index_exist(key, 0) ){
 					continue;
 				}
-				
+
 				item = index_read(index, key, 0);
+
+				// end
 
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					row_t * r_lt = ((row_t *)local_item->location);
@@ -290,6 +298,8 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	row_t *row_buffer = _wl->t_lineitem->row_buffer;
 
 	auto tmp_4 = std::chrono::high_resolution_clock::now();
+
+	// end
 
 	// result.decompress();
 	// for (uint64_t pos = 0; pos < _wl->t_lineitem->cur_tab_size ; pos++) {
