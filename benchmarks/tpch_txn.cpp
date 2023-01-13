@@ -136,6 +136,7 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 	uint64_t date = query->date;	// e.g., 1st Jan. 97
 	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
+	long  long hash_f = (long  long)0;
 
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -146,7 +147,7 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
 			{
 
-				// start 
+				auto start_f = std::chrono::high_resolution_clock::now();
 				key = tpch_lineitemKey_index(i, j, k);
 
 				if ( !index->index_exist(key, 0) ){
@@ -154,8 +155,9 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 				}
 				
 				item = index_read((INDEX *)index, key, 0);
-
-				// end
+				auto end_f = std::chrono::high_resolution_clock::now();
+				long  long time_elapsed_ms_f = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start_f).count();
+				hash_f += time_elapsed_ms_f;
 
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					row_t * r_lt = ((row_t *)local_item->location);
@@ -180,6 +182,7 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "Hash " << cnt << " " << time_elapsed_ms << " " << endl;
+	cout << "Hash_f " << hash_f << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -195,6 +198,8 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 	uint64_t date = query->date;	// e.g., 1st Jan. 97
 	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
+	long  long btree_f = (long  long)0;
+
 
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -204,7 +209,7 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
 			{
-				// start
+				auto start_f = std::chrono::high_resolution_clock::now();
 
 				key = tpch_lineitemKey_index(i, j, k);
 
@@ -214,7 +219,9 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 
 				item = index_read(index, key, 0);
 
-				// end
+				auto end_f = std::chrono::high_resolution_clock::now();
+				long  long time_elapsed_ms_f = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start_f).count();
+				btree_f += time_elapsed_ms_f;
 
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					row_t * r_lt = ((row_t *)local_item->location);
@@ -238,6 +245,8 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "BTree " << cnt << " " << time_elapsed_ms << " " << endl;
+	cout << "BTree_f " << btree_f << endl;
+
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -255,6 +264,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	assert(discount_val <= 9);
 	int quantity_val = query->quantity; // [24, 25]
 	assert(quantity_val == 24 || quantity_val == 25);
+	long  long cubit_f = (long  long)0;
 
 	auto start = std::chrono::high_resolution_clock::now();
 	
@@ -298,8 +308,10 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	row_t *row_buffer = _wl->t_lineitem->row_buffer;
 
 	auto tmp_4 = std::chrono::high_resolution_clock::now();
-
 	// end
+	long  long time_elapsed_ms_f = std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-start).count();
+	cubit_f += time_elapsed_ms_f;
+
 
 	// result.decompress();
 	// for (uint64_t pos = 0; pos < _wl->t_lineitem->cur_tab_size ; pos++) {
@@ -365,6 +377,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
 	cout << "CUBIT " << cnt << " " << time_elapsed_ms << " " << endl;
+	cout << "CUBIT_f " << cubit_f << endl;
 	cout << "tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
 			<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
 			<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()

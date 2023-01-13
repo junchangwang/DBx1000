@@ -27,9 +27,9 @@ def gen_raw_data():
         cmd = './rundb -t{} -M cache > dat_tmp_DBx/core_{}.dat'.format(num, num)
         os.system(cmd)
 
-def throughput_analysis2(filename):
+def latency_f_analysis(filename):
     f = open(filename)
-    Svec = [] # scan     item/s
+    # Svec = [] # scan     
     Hvec = [] # hash
     Bvec = [] # btree
     Cvec = [] # cubit
@@ -38,24 +38,18 @@ def throughput_analysis2(filename):
 
     for line in f:
         a = line.split()
-        if (len(a) != 3):
+        if len(a) != 2:
             continue
-        elif (not str(a[-1]).isdigit() or not str(a[-2]).isdigit()):
+        elif not str(a[-1]).isdigit():
             continue
-        elif line.startswith('SCAN '):
-            Svec.append(float(a[-2]) / float(a[-1]) * 1000)
-        elif line.startswith('Hash '):
-            Hvec.append(float(a[-2]) / float(a[-1]) * 1000)
-        elif line.startswith('BTree '):
-            Bvec.append(float(a[-2]) / float(a[-1]) * 1000)
-        elif line.startswith('CUBIT '):
-            Cvec.append(float(a[-2]) / float(a[-1]) * 1000)
+        elif line.startswith('Hash_f '):
+            Hvec.append(float(a[-1]))
+        elif line.startswith('BTree_f '):
+            Bvec.append(float(a[-1]))
+        elif line.startswith('CUBIT_f '):
+            Cvec.append(float(a[-1]))
         else:
             continue
-    if len(Svec) != 0:
-        ret.append(sum(Svec) / len(Svec)) 
-    else:
-        ret.append(0)
     if len(Hvec) != 0:
         ret.append(sum(Hvec) / len(Hvec)) 
     else:
@@ -88,6 +82,24 @@ def throughput_analysis(filename):
             continue
     return ret
 
+def memory_analysis(filename):
+    f = open(filename)
+    ret = []
+    bitmap_memory = 0
+    
+    for line in f:
+        a = line.split()
+        if line.startswith('M '): # bitmaps
+            bitmap_memory +=float(a[-1])
+        elif line.startswith('HashMemory: '):
+            ret.append(float(a[-1]))
+        elif line.startswith('BtreeMemory: '):
+            ret.append(float(a[-1]))
+        else:
+            continue
+    ret.append(bitmap_memory)
+    return ret
+
 def run():
     gen_raw_data()
     print ('DBx1000 core')
@@ -103,6 +115,26 @@ def run():
             f.write('{} {} \n'.format(num, tp))
     f.close()
 
+    print ('-' * 10)
+    f = open('dat_DBx/core_f.dat','w')
+    for num in core_number:
+        res = latency_f_analysis('dat_tmp_DBx/core_{}.dat'.format(num))
+        print(res)
+        print('\n')
+        for tp in res:
+            f.write('{} {} \n'.format(num, tp))
+    f.close()  
+
+    print ('-' * 10)
+    f = open('dat_DBx/memory.dat','w')
+    for num in core_number:
+        res = memory_analysis('dat_tmp_DBx/core_{}.dat'.format(num))
+        print(res)
+        print('\n')
+        for tp in res:
+            f.write('{} {} \n'.format(num, tp))
+    f.close()  
+
 
 def gen_graph():
     os.chdir("gnuplot-scripts")
@@ -111,6 +143,7 @@ def gen_graph():
     # os.system("rm -r ../graphs")
     os.system("make make_dir_DBx")
     os.system("make figure_DBx_core")
+    os.system("make figure_DBx_core_f")
     os.chdir("../graphs_DBx")
     os.system('echo "Figures generated in \"`pwd`\""')
     #os.system('ls -l')

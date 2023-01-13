@@ -6,7 +6,7 @@ all: make_dir make_dir_zipf make_dir_earth fence getvalue intro thres core_exper
 	figure_multiple_sz_ub+nbub-lk+nbub-lf_naive \
 	figure_multiple_sz_ub+nbub-lk+nbub-lf_naive_zipf \
 	figure_multiple_sz_ub+nbub-lk+nbub-lf_naive_earth \
-	figure_DBx_core
+	figure_DBx_core figure_DBx_core_f
 	#temporarily removed:  mem upbit_vs_scan
 make_dir:
 	mkdir -p ../graphs
@@ -187,3 +187,6 @@ figure_multiple_sz_ub+nbub-lk+nbub-lf_naive_earth:../dat/figure_ub_throughput_co
 
 figure_DBx_core: ../dat_DBx/*.dat
 	$(PLOT) DBx_core.gnu
+
+figure_DBx_core_f: ../dat_DBx/*.dat
+	$(PLOT) DBx_core_f.gnu
