@@ -161,43 +161,38 @@ RC tpch_wl::init_table() {
 }
 RC tpch_wl::printMemory() {
 	// each bitmap Menory
-	auto Bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
     uint64_t bitmap = 0, updateable_bitmap = 0, fence_pointers = 0;
-    for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
-        bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-        fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
 
+	auto Bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
+    for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
+		Bitmap->bitmaps[i]->btv->compress();
         bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
         fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
     }
 
 	Bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
     for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
-        bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-        fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
-
+        Bitmap->bitmaps[i]->btv->compress();
         bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
         fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
     }
 
 	Bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
     for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
-        bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-        fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
-
+        Bitmap->bitmaps[i]->btv->compress();
         bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
         fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
     }
 
 	cout << "*************************Print Memory concumption: *******" << endl;	
 
-	cout << "All bitmaps concumption:" << endl;
-    cout << "M FP " << fence_pointers << std::endl;
-	cout << "M BM " << bitmap << std::endl;
-
 	cout << "BtreeMemory: "; i_Q6_btree->index_size();
 	cout << "HashMemory: ";  i_Q6_hashtable->index_size();
 	cout << "CubitMemory:" << endl;
+
+	cout << "All bitmaps concumption:" << endl;
+    cout << "M FP " << fence_pointers << std::endl;
+	cout << "M BM " << bitmap << std::endl;
 	
 	// cout << "each bitmap concumption: (discount, quantity, shipdate)" << endl;
 	// dynamic_cast<nbub::Nbub *>(bitmap_discount)->printMemory();
