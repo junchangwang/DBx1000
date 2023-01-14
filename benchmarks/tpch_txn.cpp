@@ -29,7 +29,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		uint64_t _timespan;
 		case TPCH_Q6_SCAN :
 			_starttime = get_sys_clock();
-			rc = run_Q6_scan(m_query);
+			rc = run_Q6_scan(tid, m_query);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), scan_run_time, _timespan);
@@ -38,7 +38,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 
 		case TPCH_Q6_HASH :
 			_starttime = get_sys_clock();
-			rc = run_Q6_hash(m_query, _wl->i_Q6_hashtable);
+			rc = run_Q6_hash(tid, m_query, _wl->i_Q6_hashtable);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), hash_run_time, _timespan);
@@ -47,7 +47,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 		
 		case TPCH_Q6_BTREE :
 			_starttime = get_sys_clock();
-			rc = run_Q6_btree(m_query, _wl->i_Q6_btree);
+			rc = run_Q6_btree(tid, m_query, _wl->i_Q6_btree);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
 			INC_STATS(get_thd_id(), btree_run_time, _timespan);
@@ -78,7 +78,7 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 	return rc;
 }
 
-RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
+RC tpch_txn_man::run_Q6_scan(int tid, tpch_query * query) {
 	RC rc = RCOK;
 	itemid_t * item;
 	int cnt = 0;
@@ -120,13 +120,15 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-	cout << "SCAN " << cnt << " " << time_elapsed_ms << " " << endl;
+	// cout << "SCAN " << cnt << " " << time_elapsed_ms << " " << endl;
+	string tmp = "SCAN " + to_string(cnt) + " " + to_string(time_elapsed_ms) + "\n";
+	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
 	return finish(rc);
 }
 
-RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index) 
+RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index) 
 {
 	RC rc = RCOK;
 	int cnt = 0;
@@ -181,13 +183,15 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-	cout << "Hash " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
+	// cout << "Hash " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
+	string tmp = "Hash " + to_string(cnt) + " " + to_string(time_elapsed_ms) + "  " + to_string(index_ms) + "  " + to_string(time_elapsed_ms-index_ms) + "\n";
+	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
 	return finish(rc);
 }
 
-RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index) 
+RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index) 
 {
 	RC rc = RCOK;
 	int cnt = 0;
@@ -242,7 +246,9 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-	cout << "BTree " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
+	// cout << "BTree " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
+	string tmp = "BTree " + to_string(cnt) + " " + to_string(time_elapsed_ms) + "  " + to_string(index_ms) + "  " + to_string(time_elapsed_ms-index_ms) + "\n";
+	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -351,7 +357,10 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
-	cout << "CUBIT " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
+	// cout << "CUBIT " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
+	string tmp = "CUBIT " + to_string(cnt) + " " + to_string(time_elapsed_ms) + "  " + to_string(index_ms) + "  " + to_string(time_elapsed_ms-index_ms) + "\n";
+	output_info[tid].push_back(tmp);
+
 
 	// Detailed performance analysis
 	// cout << "     tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()

@@ -123,6 +123,7 @@ extern uint64_t ENDDATE;
 extern uint64_t CURRENTDATE;
 extern uint64_t SF;
 extern uint64_t curr_SF;
+extern vector<vector<string> > output_info;
 /* Thread */
 typedef uint64_t txnid_t;
 

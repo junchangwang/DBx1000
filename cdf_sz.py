@@ -88,12 +88,12 @@ def figure():
         output = open(exp_name,'w')
         for line in f:
             a = line.split()
-            if (len(a) != 3):
+            if (len(a) != 3 and len(a) != 5):
                 continue
-            elif (not str(a[-1]).isdigit() or not str(a[-2]).isdigit()):
-                continue
+            # elif (not str(a[2]).isdigit()):
+            #     continue
             elif line.startswith(nm_map[exp_name]) :
-                output.write(str(a[-1]) + '\n')
+                output.write(str(a[2]) + '\n')
         f.close()
         output.close()
 

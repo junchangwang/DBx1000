@@ -38,16 +38,16 @@ def latency_f_analysis(filename):
 
     for line in f:
         a = line.split()
-        if len(a) != 2:
+        if len(a) != 5:
             continue
-        elif not str(a[-1]).isdigit():
-            continue
-        elif line.startswith('Hash_f '):
-            Hvec.append(float(a[-1]))
-        elif line.startswith('BTree_f '):
-            Bvec.append(float(a[-1]))
-        elif line.startswith('CUBIT_f '):
-            Cvec.append(float(a[-1]))
+        # elif not str(a[-2]).isdigit():
+        #     continue
+        elif line.startswith('Hash '):
+            Hvec.append(float(a[-2]))
+        elif line.startswith('BTree '):
+            Bvec.append(float(a[-2]))
+        elif line.startswith('CUBIT '):
+            Cvec.append(float(a[-2]))
         else:
             continue
     if len(Hvec) != 0:

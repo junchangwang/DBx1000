@@ -70,6 +70,8 @@ uint64_t ENDDATE = (uint64_t)98365; // 1998.12.31
 uint64_t CURRENTDATE = (uint64_t)95168; //1995.06.17
 uint64_t curr_SF = g_num_orders;
 map<string, string> g_params;
+// vector<vector<string>> output(g_thread_cnt, vector<string>()); // g_thread_cnt is not initialized yet
+vector<vector<string>> output_info(128, vector<string>());
 
 #if TPCC_SMALL
 UInt32 g_max_items = 15000;

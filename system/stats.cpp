@@ -171,6 +171,13 @@ void Stats::print() {
 			_stats[tid]->abort_cnt
 		);
 	}
+	// print Scan BTree Hash CUBIT
+	for (auto it : output_info) {
+		for (auto it2 : it) {
+			cout << it2;
+		}
+	}
+
 	FILE * outf;
 	if (output_file != NULL) {
 		outf = fopen(output_file, "w");
