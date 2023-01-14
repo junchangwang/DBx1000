@@ -129,14 +129,13 @@ RC tpch_txn_man::run_Q6_scan(tpch_query * query) {
 RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index) 
 {
 	RC rc = RCOK;
-	itemid_t * item;
 	int cnt = 0;
-	uint64_t key;
 	double revenue = 0;
 	uint64_t date = query->date;	// e.g., 1st Jan. 97
 	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
-	long  long hash_f = (long  long)0;
+	long  long index_ms = (long  long)0;
+	vector<itemid_t *> item_list{};
 
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -146,43 +145,43 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
 			{
-
-				auto start_f = std::chrono::high_resolution_clock::now();
-				key = tpch_lineitemKey_index(i, j, k);
+				uint64_t key = tpch_lineitemKey_index(i, j, k);
 
 				if ( !index->index_exist(key, 0) ){
 					continue;
 				}
-				
-				item = index_read((INDEX *)index, key, 0);
-				auto end_f = std::chrono::high_resolution_clock::now();
-				long  long time_elapsed_ms_f = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start_f).count();
-				hash_f += time_elapsed_ms_f;
 
-				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
-					row_t * r_lt = ((row_t *)local_item->location);
-					row_t * r_lt_local = get_row(r_lt, RD);
-					if (r_lt_local == NULL) {
-						// Skip the deleted item.
-						// return finish(Abort);
-						continue;
-					}
-					// cout << "address = " << &r_lt_local->data << endl;
-					double l_extendedprice;
-					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-					revenue += l_extendedprice * ((double)j / 100);
-					cnt ++;
-				}
-
+				itemid_t * item = index_read((INDEX *)index, key, 0);
+				item_list.push_back(item);
 			}
+		}
+	}
+
+	auto end_f = std::chrono::high_resolution_clock::now();
+	index_ms += std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
+
+	for (auto const &item : item_list) 
+	{
+		for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
+			row_t * r_lt = ((row_t *)local_item->location);
+			row_t * r_lt_local = get_row(r_lt, RD);
+			if (r_lt_local == NULL) {
+				// Skip the deleted item.
+				// return finish(Abort);
+				continue;
+			}
+			// cout << "address = " << &r_lt_local->data << endl;
+			double l_extendedprice;
+			r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+			revenue += l_extendedprice * ((double)discount / 100);
+			cnt ++;
 		}
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-	cout << "Hash " << cnt << " " << time_elapsed_ms << " " << endl;
-	cout << "Hash_f " << hash_f << endl;
+	cout << "Hash " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -191,15 +190,13 @@ RC tpch_txn_man::run_Q6_hash(tpch_query * query, IndexHash *index)
 RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index) 
 {
 	RC rc = RCOK;
-	itemid_t * item;
 	int cnt = 0;
-	uint64_t key;
 	double revenue = 0;
 	uint64_t date = query->date;	// e.g., 1st Jan. 97
 	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
-	long  long btree_f = (long  long)0;
-
+	long  long index_ms = (long  long)0;
+	vector<itemid_t *> item_list{};
 
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -209,44 +206,43 @@ RC tpch_txn_man::run_Q6_btree(tpch_query * query, index_btree *index)
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
 			for (uint64_t k = (uint64_t)((uint64_t)quantity - 1); k > (uint64_t)0; k--)
 			{
-				auto start_f = std::chrono::high_resolution_clock::now();
-
-				key = tpch_lineitemKey_index(i, j, k);
+				uint64_t key = tpch_lineitemKey_index(i, j, k);
 
 				if ( !index->index_exist(key, 0) ){
 					continue;
 				}
 
-				item = index_read(index, key, 0);
-
-				auto end_f = std::chrono::high_resolution_clock::now();
-				long  long time_elapsed_ms_f = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start_f).count();
-				btree_f += time_elapsed_ms_f;
-
-				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
-					row_t * r_lt = ((row_t *)local_item->location);
-					row_t * r_lt_local = get_row(r_lt, RD);
-					if (r_lt_local == NULL) {
-						// Skip the deleted item
-						// return finish(Abort);
-						continue;
-					}
-					// cout << "address = " << &r_lt_local->data << endl;
-					double l_extendedprice;
-					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-					revenue += l_extendedprice * ((double)j / 100);
-					cnt ++;
-				}
+				itemid_t * item = index_read(index, key, 0);
+				item_list.push_back(item);
 			}
+		}
+	}
+
+	auto end_f = std::chrono::high_resolution_clock::now();
+	index_ms += std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
+
+	for (auto const &item : item_list)
+	{
+		for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
+			row_t * r_lt = ((row_t *)local_item->location);
+			row_t * r_lt_local = get_row(r_lt, RD);
+			if (r_lt_local == NULL) {
+				// Skip the deleted item
+				// return finish(Abort);
+				continue;
+			}
+			// cout << "address = " << &r_lt_local->data << endl;
+			double l_extendedprice;
+			r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+			revenue += l_extendedprice * ((double)discount / 100);
+			cnt ++;
 		}
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-	cout << "BTree " << cnt << " " << time_elapsed_ms << " " << endl;
-	cout << "BTree_f " << btree_f << endl;
-
+	cout << "BTree " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -264,7 +260,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	assert(discount_val <= 9);
 	int quantity_val = query->quantity; // [24, 25]
 	assert(quantity_val == 24 || quantity_val == 25);
-	long  long cubit_f = (long  long)0;
+	long  long index_ms = (long  long)0;
 
 	auto start = std::chrono::high_resolution_clock::now();
 	
@@ -307,31 +303,6 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	double revenue = 0;
 	row_t *row_buffer = _wl->t_lineitem->row_buffer;
 
-	auto tmp_4 = std::chrono::high_resolution_clock::now();
-	// end
-	long  long time_elapsed_ms_f = std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-start).count();
-	cubit_f += time_elapsed_ms_f;
-
-
-	// result.decompress();
-	// for (uint64_t pos = 0; pos < _wl->t_lineitem->cur_tab_size ; pos++) {
-	// 	if (result.getBit(pos, bitmap_sd->config)) {
-	// 		row_t *row_tmp = (row_t *) &row_buffer[pos];
-	// 		row_t *row_local = get_row(row_tmp, RD);
-	// 		if (row_local == NULL) {
-	// 			// return finish(Abort);
-	// 			continue;
-	// 		}
-	// 		double l_extendedprice;
-	// 		row_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-	// 		double l_discount;
-	// 		row_local->get_value(L_DISCOUNT, l_discount);
-	// 		revenue += l_extendedprice * l_discount; 
-			
-	// 		cnt ++;
-	// 	}
-	// }
-
 	// NOTE: we choose the factor 0.03 because in TPCH Q6,
 	//			the selectivity is about 2%.
 	uint64_t n_ids_max = _wl->t_lineitem->cur_tab_size * 0.03;
@@ -357,6 +328,10 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 		}
 	}
 
+	auto tmp_4 = std::chrono::high_resolution_clock::now();
+	// end
+	index_ms += std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-start).count();
+
 	// Fetch tuples in ID list
 	for(int k = 0; k < cnt; k++) 
 	{
@@ -376,13 +351,14 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl << endl;
-	cout << "CUBIT " << cnt << " " << time_elapsed_ms << " " << endl;
-	cout << "CUBIT_f " << cubit_f << endl;
-	cout << "tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
-			<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
-			<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()
-			<< "  tmp_4: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count()
-			<< "  end: " << std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count() << endl;
+	cout << "CUBIT " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
+
+	// Detailed performance analysis
+	// cout << "     tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
+	// 		<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
+	// 		<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()
+	// 		<< "  tmp_4: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count()
+	// 		<< "  end: " << std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count() << endl;
 
 	delete [] ids;
 	assert(rc == RCOK);
