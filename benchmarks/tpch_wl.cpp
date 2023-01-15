@@ -44,6 +44,7 @@ RC tpch_wl::build()
 
 	init();
 
+        int ret;
 	// bitmap_shipdate
 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
 	for (uint64_t i = 0; i < bitmap_shipdate->config->g_cardinality; ++i) {
@@ -52,7 +53,8 @@ RC tpch_wl::build()
 		temp.append("_shipdate/");
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
-		system(cmd.c_str());
+		ret = system(cmd.c_str());
+                sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -71,7 +73,8 @@ RC tpch_wl::build()
 		temp.append("_discount/");
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
-		system(cmd.c_str());
+		ret = system(cmd.c_str());
+                sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -89,7 +92,8 @@ RC tpch_wl::build()
 		temp.append("_quantity/");
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
-		system(cmd.c_str());
+		ret = system(cmd.c_str());
+                sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
