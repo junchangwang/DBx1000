@@ -61,21 +61,21 @@ set boxwidth 0.75 relative
 set style fill solid 1.0 border -1
 set xtics nomirror rotate by -45 scale 0
 
-set ylabel "Latency (s)" offset 1,0,0
+set ylabel "Latency (ms)" offset 1,0,0
 
 #unset xtics
-set label "1" font ",13" at screen 0.25, screen 0.04
-set label "2" font ",13" at screen 0.35, screen 0.04
+set label "1" font ",13" at screen 0.24, screen 0.04
+set label "2" font ",13" at screen 0.345, screen 0.04
 set label "4" font ",13" at screen 0.45, screen 0.04
-set label "8" font ",13" at screen 0.55, screen 0.04
-set label "16" font ",13" at screen 0.65, screen 0.04
-set label "24" font ",13" at screen 0.75, screen 0.04
-set label "32" font ",13" at screen 0.85, screen 0.04
+set label "8" font ",13" at screen 0.56, screen 0.04
+set label "16" font ",13" at screen 0.66, screen 0.04
+set label "24" font ",13" at screen 0.77, screen 0.04
+set label "32(cores)" font ",13" at screen 0.84, screen 0.04
 
 set xtics font ",8"
 
-plot "../dat_DBx/index_time.dat" using ($3):xtic(4) title "Row" with histograms fill pattern 4 border rgb "black" lc rgb "black", \
-     "../dat_DBx/index_time.dat" using ($2):xtic(4) title "Index" with histograms fs solid border rgb "black" lc rgb "black"
+plot "../dat_DBx/index_time.dat" using ($3/1e3):xtic(4) title "Fetching tuples" with histograms fill pattern 4 border rgb "black" lc rgb "black", \
+     "../dat_DBx/index_time.dat" using ($2/1e3):xtic(4) title "Indexing" with histograms fs solid border rgb "black" lc rgb "black"
 
 set terminal eps font ',15'
 set output "../graphs_DBx/core/histograms.eps"
