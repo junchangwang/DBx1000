@@ -26,6 +26,7 @@ def gen_raw_data():
     for num in core_number:
         cmd = './rundb -t{} -M cache > dat_tmp_DBx/core_{}.dat'.format(num, num)
         os.system(cmd)
+        print ('Data file dat_tmp_DBx/core_{}.dat has been generated.'.format(num))
 
 def latency_f_analysis(filename):
     f = open(filename)
@@ -254,7 +255,7 @@ def main():
     cmd = 'mv graphs_DBx graphs_DBx_{}'
     cmd2 = "mv dat_DBx graphs_DBx/eva_data"
     cmd3 = "mv dat_tmp_DBx graphs_DBx/eva_data"
-    while itr < 1:
+    while itr < 3:
         os.chdir(ROOT_PATH)
         datdir = 'dat_DBx'
         if os.path.exists(datdir) and os.path.isdir(datdir):
@@ -279,7 +280,7 @@ def main():
         gen_graph()
         os.system(cmd2)
         os.system(cmd3)
-        # os.system(cmd.format(itr))
+        os.system(cmd.format(itr))
         itr += 1
     print('Done!\n')
 
