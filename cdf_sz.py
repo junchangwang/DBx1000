@@ -67,9 +67,9 @@ ls_map = {
 # color map
 co_map = {
     'Scan'   :   'black',
-    'Hash'   :   'blue',
-    'BTree'   :   'purple',
-    'CUBIT'        :   'green'
+    'Hash'   :   'g',
+    'BTree'   :   'orange',
+    'CUBIT'        :   'blue'
 }
 
 
@@ -109,9 +109,9 @@ def figure():
 
     #plt.xlim(left=0,right=400000)
     plt.ylim(0, 1)
-    plt.xlabel("TXN Response Time (ms)")
-    plt.ylabel("Cumulative Fraction")
-    legend = ax.legend(loc='lower right', shadow=True, fontsize='11')
+    plt.xlabel("TXN Response Time (ms)", fontsize='16')
+    plt.ylabel("Cumulative Fraction", fontsize='16')
+    legend = ax.legend(loc='lower right', shadow=True, fontsize='10')
 
 
     fig = 1
