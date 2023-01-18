@@ -221,7 +221,7 @@ def  run_new_figure():
     f.close()    
 
 def run():
-    gen_raw_data()
+    # gen_raw_data()
 
     print ('DBx1000 core')
     print ('-' * 10)
@@ -277,37 +277,27 @@ def gen_graph():
 
 
 def main():
-    os.system('make -j')
+    # os.system('make -j')
     itr = 0
     cmd = 'mv graphs_DBx graphs_DBx_{}'
-    cmd2 = "mv dat_DBx graphs_DBx/eva_data"
-    cmd3 = "mv dat_tmp_DBx graphs_DBx/eva_data"
-    while itr < 3:
+    # cmd2 = "mv dat_DBx graphs_DBx/eva_data"
+    # cmd3 = "mv dat_tmp_DBx graphs_DBx/eva_data"
+    while itr < 1:
         os.chdir(ROOT_PATH)
         datdir = 'dat_DBx'
         if os.path.exists(datdir) and os.path.isdir(datdir):
-            print ('Deleting existing directory ./dat')
+            print ('Deleting existing directory ./dat_DBx')
             shutil.rmtree(datdir)
         os.mkdir(datdir)
 
-        dat_tmp = 'dat_tmp_DBx'
-        if os.path.exists(dat_tmp) and os.path.isdir(dat_tmp):
-            print ('Deleting existing directory ./dat_tmp')
-            shutil.rmtree(dat_tmp)
-        os.mkdir(dat_tmp)
+        os.system('mkdir -p graphs_DBx')
 
-        graphs = 'graphs_DBx'
-        if os.path.exists(graphs) and os.path.isdir(graphs):
-            print ('Deleting existing directory ./graphs')
-            shutil.rmtree(graphs)
-        os.mkdir(graphs)
-
-        build()
+        # build()
         run()
         gen_graph()
-        os.system(cmd2)
-        os.system(cmd3)
-        os.system(cmd.format(itr))
+        # os.system(cmd2)
+        # os.system(cmd3)
+        # os.system(cmd.format(itr))
         itr += 1
     print('Done!\n')
 

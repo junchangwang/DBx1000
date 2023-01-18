@@ -4,18 +4,18 @@ set size 0.99,1.0
 set ylabel "Throughput (transactions/s)" offset 1.5,0,0
 set xlabel "Number of cores"
 set xtics ("1" 1, "2" 2 1, "4" 4, "8" 8, "16" 16, "24" 24, "32" 32)
-#set yrange [0:40]
+set yrange [0:]
 set xrange [0:35]
-set terminal jpeg font ',15'
-set output "../graphs_DBx/core/core.jpeg"
-set key top left
+set terminal png font ',15'
+set output "../graphs_DBx/core/core.png"
+set key reverse top left Left
 
-plot "../dat_DBx/core.dat" every 4::0::24 title "Scan" lc rgb "purple" ps 1 pt 9 with linespoints,\
-      "../dat_DBx/core.dat" every 4::1::25 title "Hash" lc rgb "blue" ps 1 pt 8 with linespoints,\
-      "../dat_DBx/core.dat" every 4::2::26 title "BTree" lc rgb "green" ps 1 pt 7 with linespoints,\
-      "../dat_DBx/core.dat" every 4::3::27 title "CUBIT" lc rgb "red" ps 1 pt 6 with linespoints
+plot "../dat_DBx/core.dat" every 4::0::24 title "Scan" lc rgb "black" lw 3 ps 1.5 pt 12 dt 7 with linespoints,\
+      "../dat_DBx/core.dat" every 4::1::25 title "Hash" lc rgb "green" lw 3 ps 1.5 pt 10 dt 3 with linespoints,\
+      "../dat_DBx/core.dat" every 4::2::26 title "BTree" lc rgb "orange" lw 3 ps 1.5 pt 8 dt 8 with linespoints,\
+      "../dat_DBx/core.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 3 ps 1.5 pt 6 dt 4 with linespoints
 
-set terminal eps font ',15'
+set terminal eps font ',15' size 4, 5
 set output "../graphs_DBx/core/core.eps"
 replot
 
@@ -26,27 +26,27 @@ set size 0.99,1.0
 set ylabel "Latency (ms)" offset 1.5,0,0
 set xlabel "Number of cores"
 set xtics ("1" 1, "2" 2 1, "4" 4, "8" 8, "16" 16, "24" 24, "32" 32)
-#set yrange [0:40]
+set yrange [0:]
 set xrange [0:35]
-set terminal jpeg font ',15'
-set output "../graphs_DBx/core/core_f.jpeg"
-set key top left
+set terminal png font ',15'
+set output "../graphs_DBx/core/core_f.png"
+set key reverse top left Left
 
-plot "../dat_DBx/core_f.dat" every 4::0::24 title "Scan" lc rgb "purple" ps 1 pt 9 with linespoints,\
-      "../dat_DBx/core_f.dat" every 4::1::25 title "Hash" lc rgb "blue" ps 1 pt 8 with linespoints,\
-      "../dat_DBx/core_f.dat" every 4::2::26 title "BTree" lc rgb "green" ps 1 pt 7 with linespoints,\
-      "../dat_DBx/core_f.dat" every 4::3::27 title "CUBIT" lc rgb "red" ps 1 pt 6 with linespoints
+plot "../dat_DBx/core_f.dat" every 4::0::24 title "Scan" lc rgb "black" lw 3 ps 1.5 pt 12 dt 7 with linespoints,\
+      "../dat_DBx/core_f.dat" every 4::1::25 title "Hash" lc rgb "green" lw 3 ps 1.5 pt 10 dt 3 with linespoints,\
+      "../dat_DBx/core_f.dat" every 4::2::26 title "BTree" lc rgb "orange" lw 3 ps 1.5 pt 8 dt 8 with linespoints,\
+      "../dat_DBx/core_f.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 3 ps 1.5 pt 6 dt 4 with linespoints
 
-set terminal eps font ',15'
+set terminal eps font ',15' size 4, 5
 set output "../graphs_DBx/core/core_f.eps"
 replot
 
 ############################## histograms###############################
 reset
-set key invert top left
+set key reverse top left Left
 
-set terminal jpeg font ',15'
-set output "../graphs_DBx/core/histograms.jpeg"
+set terminal png font ',15'
+set output "../graphs_DBx/core/histograms.png"
 
 set origin 0,0.05
 set size 1,0.95
@@ -77,6 +77,6 @@ set xtics font ",8"
 plot "../dat_DBx/index_time.dat" using ($3/1e3):xtic(4) title "Fetching tuples" with histograms fill pattern 4 border rgb "black" lc rgb "black", \
      "../dat_DBx/index_time.dat" using ($2/1e3):xtic(4) title "Indexing" with histograms fs solid border rgb "black" lc rgb "black"
 
-set terminal eps font ',15'
+set terminal eps font ',15' size 4, 5
 set output "../graphs_DBx/core/histograms.eps"
 replot
