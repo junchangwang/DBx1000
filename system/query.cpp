@@ -70,6 +70,10 @@ Query_queue::threadInitQuery(void * This) {
 void 
 Query_thd::init(workload * h_wl, int thread_id) {
 	uint64_t request_cnt;
+	uint64_t year = 0;
+	uint64_t date;
+	double discount;
+	double quantity;
 	q_idx = 0;
 	request_cnt = WARMUP / g_thread_cnt + MAX_TXN_PER_PART + 4;
 #if ABORT_BUFFER_ENABLE
@@ -94,6 +98,34 @@ Query_thd::init(workload * h_wl, int thread_id) {
 #elif WORKLOAD == TPCH
 		new(&queries[qid]) tpch_query();
 		queries[qid].init(thread_id, h_wl);
+
+		// Generate Q6 related vars
+		// Using this way, we can guarantee each (scan, hash, btree, cubit) group use the same config.
+		if (qid % 4 == 0) {
+			year = URand(93, 97, 0);
+			date = (uint64_t)(year * 1000 + 1);
+			discount = ((double)URand(2, 9, 0)) / 100;
+			quantity = (double)URand(24, 25, 0);
+		}
+
+		// Generate type
+		TPCHTxnType type;
+		if (qid % 4 == 0) type = TPCH_Q6_SCAN;
+		else if (qid % 4 == 1) type = TPCH_Q6_HASH;
+		else if (qid % 4 == 2) type = TPCH_Q6_BTREE;
+		else type = TPCH_Q6_CUBIT;
+
+		if (qid % 100 == 20) /* magic number */
+			type = TPCH_RF1;
+		else if (qid % 100 == 40)
+			type = TPCH_RF2;
+
+		queries[qid].type = type;
+
+		// Assign Q6 parameters
+		queries[qid].date = date;
+		queries[qid].discount = discount;
+		queries[qid].quantity = quantity;
 #endif
 	}
 }
