@@ -166,7 +166,7 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 	{
 		for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 			row_t * r_lt = ((row_t *)local_item->location);
-			row_t * r_lt_local = get_row(r_lt, RD);
+			row_t * r_lt_local = get_row(r_lt, SCAN);
 			if (r_lt_local == NULL) {
 				// Skip the deleted item.
 				// return finish(Abort);
@@ -229,7 +229,7 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 	{
 		for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 			row_t * r_lt = ((row_t *)local_item->location);
-			row_t * r_lt_local = get_row(r_lt, RD);
+			row_t * r_lt_local = get_row(r_lt, SCAN);
 			if (r_lt_local == NULL) {
 				// Skip the deleted item
 				// return finish(Abort);
@@ -342,7 +342,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	for(int k = 0; k < cnt; k++) 
 	{
 		row_t *row_tmp = (row_t *) &row_buffer[ids[k]];
-		row_t *row_local = get_row(row_tmp, RD);
+		row_t *row_local = get_row(row_tmp, SCAN);
 		if (row_local == NULL) {
 			// return finish(Abort);
 			continue;
