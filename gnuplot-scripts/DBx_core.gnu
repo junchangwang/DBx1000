@@ -20,26 +20,26 @@ set output "../graphs_DBx/core/core.eps"
 replot
 
 ###################################### core_f
-reset
-set size 0.99,1.0
-#set term pdf font ",10" size 5.2, 2.4
-set ylabel "Latency (ms)" offset 1.5,0,0
-set xlabel "Number of cores"
-set xtics ("1" 1, "2" 2 1, "4" 4, "8" 8, "16" 16, "24" 24, "32" 32)
-set yrange [0:]
-set xrange [0:35]
-set terminal png font ',15'
-set output "../graphs_DBx/core/core_f.png"
-set key reverse top left Left
+# reset
+# set size 0.99,1.0
+# #set term pdf font ",10" size 5.2, 2.4
+# set ylabel "Latency (ms)" offset 1.5,0,0
+# set xlabel "Number of cores"
+# set xtics ("1" 1, "2" 2 1, "4" 4, "8" 8, "16" 16, "24" 24, "32" 32)
+# set yrange [0:]
+# set xrange [0:35]
+# set terminal png font ',15'
+# set output "../graphs_DBx/core/core_f.png"
+# set key reverse top left Left
 
-plot "../dat_DBx/core_f.dat" every 4::0::24 title "Scan" lc rgb "black" lw 3 ps 1.5 pt 12 dt 7 with linespoints,\
-      "../dat_DBx/core_f.dat" every 4::1::25 title "Hash" lc rgb "green" lw 3 ps 1.5 pt 10 dt 3 with linespoints,\
-      "../dat_DBx/core_f.dat" every 4::2::26 title "BTree" lc rgb "orange" lw 3 ps 1.5 pt 8 dt 8 with linespoints,\
-      "../dat_DBx/core_f.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 3 ps 1.5 pt 6 dt 4 with linespoints
+# plot "../dat_DBx/core_f.dat" every 4::0::24 title "Scan" lc rgb "black" lw 3 ps 1.5 pt 12 dt 7 with linespoints,\
+#       "../dat_DBx/core_f.dat" every 4::1::25 title "Hash" lc rgb "green" lw 3 ps 1.5 pt 10 dt 3 with linespoints,\
+#       "../dat_DBx/core_f.dat" every 4::2::26 title "BTree" lc rgb "orange" lw 3 ps 1.5 pt 8 dt 8 with linespoints,\
+#       "../dat_DBx/core_f.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 3 ps 1.5 pt 6 dt 4 with linespoints
 
-set terminal eps font ',15' size 4, 5
-set output "../graphs_DBx/core/core_f.eps"
-replot
+# set terminal eps font ',15' size 4, 5
+# set output "../graphs_DBx/core/core_f.eps"
+# replot
 
 ############################## histograms###############################
 reset
