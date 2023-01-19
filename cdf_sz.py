@@ -33,10 +33,11 @@ def check(exp_name):
 #####################
 #####################
 
-experiments_lookup = ['Scan', 
-                      'Hash',
+experiments_lookup = [
+                      'CUBIT',
                       'BTree',
-                      'CUBIT'
+                      'Hash',
+                      'Scan'
                       ]
 
 # file_map
@@ -105,14 +106,14 @@ def figure():
         data = np.loadtxt(file_name)
         sorted_data = np.sort(data)
         yvals=np.arange(len(sorted_data))/float(len(sorted_data)-1)
-        ax.plot(sorted_data, yvals, label=nm_map[file_name], ls=ls_map[file_name], color=co_map[file_name])
+        ax.plot(sorted_data, yvals, label=nm_map[file_name], ls=ls_map[file_name], color=co_map[file_name], lw = '2')
 
     #plt.xlim(left=0,right=400000)
     plt.ylim(0, 1)
     plt.xlabel("TXN Response Time (ms)", fontsize='16')
     plt.ylabel("Cumulative Fraction", fontsize='16')
-    legend = ax.legend(loc='lower right', shadow=True, fontsize='10')
-
+    legend = ax.legend(loc='lower right', shadow=True, fontsize='15')
+    plt.tick_params(labelsize=14)
 
     fig = 1
 
