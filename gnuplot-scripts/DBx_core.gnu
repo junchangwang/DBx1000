@@ -15,7 +15,7 @@ plot "../dat_DBx/core.dat" every 4::0::24 title "Scan" lc rgb "black" lw 3 ps 1.
       "../dat_DBx/core.dat" every 4::2::26 title "BTree" lc rgb "orange" lw 3 ps 1.5 pt 8 dt 8 with linespoints,\
       "../dat_DBx/core.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 3 ps 1.5 pt 6 dt 4 with linespoints
 
-set terminal eps font ',15' size 4, 5
+set terminal eps font ',15'
 set output "../graphs_DBx/core/core.eps"
 replot
 
@@ -64,19 +64,19 @@ set xtics nomirror rotate by -45 scale 0
 set ylabel "Latency (ms)" offset 1,0,0
 
 #unset xtics
-set label "1" font ",13" at screen 0.24, screen 0.04
-set label "2" font ",13" at screen 0.345, screen 0.04
-set label "4" font ",13" at screen 0.45, screen 0.04
-set label "8" font ",13" at screen 0.56, screen 0.04
-set label "16" font ",13" at screen 0.66, screen 0.04
-set label "24" font ",13" at screen 0.77, screen 0.04
-set label "32(cores)" font ",13" at screen 0.84, screen 0.04
+set label "1" font ",13" at screen 0.2, screen 0.04
+set label "2" font ",13" at screen 0.3, screen 0.04
+set label "4" font ",13" at screen 0.415, screen 0.04
+set label "8" font ",13" at screen 0.535, screen 0.04
+set label "16" font ",13" at screen 0.64, screen 0.04
+set label "24" font ",13" at screen 0.75, screen 0.04
+set label "32(cores)" font ",13" at screen 0.83, screen 0.04
 
 set xtics font ",8"
 
-plot "../dat_DBx/index_time.dat" using ($3/1e3):xtic(4) title "Fetching tuples" with histograms fill pattern 4 border rgb "black" lc rgb "black", \
+plot "../dat_DBx/index_time.dat" using ($3/1e3):xtic(4) title "Fetching tuples" with histograms fill pattern 7 border rgb "black" lc rgb "black", \
      "../dat_DBx/index_time.dat" using ($2/1e3):xtic(4) title "Indexing" with histograms fs solid border rgb "black" lc rgb "black"
 
-set terminal eps font ',15' size 4, 5
+set terminal eps font ',15'
 set output "../graphs_DBx/core/histograms.eps"
 replot
