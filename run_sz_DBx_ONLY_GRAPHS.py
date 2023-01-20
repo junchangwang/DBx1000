@@ -232,7 +232,7 @@ def  run_latency():
 
 
 def run():
-    gen_raw_data()
+    # gen_raw_data()
 
     print ('DBx1000 core')
     print ('-' * 10)

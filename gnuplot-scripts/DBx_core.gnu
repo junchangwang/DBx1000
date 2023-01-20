@@ -43,7 +43,7 @@ replot
 
 ############################## histograms index and tuples ###############################
 reset
-set key reverse invert top left Left
+set key reverse invert top right Left
 
 set terminal png font ',15'
 set output "../graphs_DBx/core/histograms.png"
@@ -84,7 +84,7 @@ replot
 
 ############################## histograms run time ###############################
 reset
-set key reverse invert top left Left
+set key reverse invert top right Left
 
 set terminal png font ',15'
 set output "../graphs_DBx/core/histograms_run_time.png"
