@@ -56,6 +56,14 @@ nm_map = {
     'CUBIT'      :   'CUBIT '
 }
 
+# label_name_map
+label_nm_map = {
+    'Scan'   :   'SCAN ',
+    'Hash'    :   'Hash ',
+    'BTree'    :   '$\mathregular{B^+}$-Tree ',
+    'CUBIT'      :   'CUBIT '
+}
+
 # linestyle_map
 ls_map = {
     'Scan'   :   'solid',
@@ -106,7 +114,7 @@ def figure():
         data = np.loadtxt(file_name)
         sorted_data = np.sort(data)
         yvals=np.arange(len(sorted_data))/float(len(sorted_data)-1)
-        ax.plot(sorted_data, yvals, label=nm_map[file_name], ls=ls_map[file_name], color=co_map[file_name], lw = '2')
+        ax.plot(sorted_data, yvals, label=label_nm_map[file_name], ls=ls_map[file_name], color=co_map[file_name], lw = '2')
 
     #plt.xlim(left=0,right=400000)
     plt.ylim(0, 1)
