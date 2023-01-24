@@ -319,7 +319,7 @@ def main():
 
         build()
         run()
-        gen_graph()
+        # gen_graph()
         os.system(cmd2)
         os.system(cmd3)
         os.system(cmd.format(itr))
