@@ -275,22 +275,6 @@ def run():
     # run time
     run_latency()
 
-def gen_graph():
-    os.chdir("gnuplot-scripts")
-    #os.system("./check_dat_files.sh")
-    #os.system("./prepare_normalized.sh")
-    # os.system("rm -r ../graphs")
-    os.system("make make_dir_DBx")
-    os.system("make figure_DBx_core")
-    os.chdir("../graphs_DBx")
-    os.system('echo "Figures generated in \"`pwd`\""')
-    #os.system('ls -l')
-
-    #cdf
-    os.chdir("../")
-    os.system('python3 cdf_sz.py > graphs_DBx/cdf_output')
-
-
 def main():
     os.system('make -j')
     itr = 0
@@ -319,7 +303,6 @@ def main():
 
         build()
         run()
-        # gen_graph()
         os.system(cmd2)
         os.system(cmd3)
         os.system(cmd.format(itr))

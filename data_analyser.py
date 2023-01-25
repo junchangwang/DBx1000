@@ -16,17 +16,6 @@ ossystem = os.system
 
 
 ###################################### cmd #########################################
-def build():      
-    os.system("./rundb -M build")
-
-
-def gen_raw_data(): 
-    core_number = [1, 2, 4, 8, 16, 24, 32]
-    # core_number = [1, 2, 4]
-    for num in core_number:
-        cmd = './rundb -t{} -M cache > dat_tmp_DBx/core_{}.dat'.format(num, num)
-        os.system(cmd)
-        print ('Data file dat_tmp_DBx/core_{}.dat has been generated.'.format(num))
 
 def latency_analysis(filename):
     f = open(filename)
@@ -161,7 +150,7 @@ def  run_indexAndTuples():
     ret = [[]]
     ret.clear()
     for num in core_number:
-        ret.append(index_time_analysis('dat_tmp_DBx/core_{}.dat'.format(num)))
+        ret.append(index_time_analysis('eva_data/dat_tmp_DBx/core_{}.dat'.format(num)))
 
     f.write('1  {0}  {1} "Hash"\n'.format(ret[0][0], ret[0][1]))
     f.write('2  {0}  {1} "B^+-Tree"\n'.format(ret[0][2], ret[0][3]))
@@ -199,7 +188,7 @@ def  run_latency():
     ret = [[]]
     ret.clear()
     for num in core_number:
-        ret.append(latency_analysis('dat_tmp_DBx/core_{}.dat'.format(num)))
+        ret.append(latency_analysis('eva_data/dat_tmp_DBx/core_{}.dat'.format(num)))
 
     f.write('1  {0}  "Hash"\n'.format(ret[0][0]))
     f.write('2  {0}  "B^+-Tree"\n'.format(ret[0][1]))
@@ -232,15 +221,13 @@ def  run_latency():
 
 
 def run():
-    # gen_raw_data()
-
     print ('DBx1000 core')
     print ('-' * 10)
     core_number = [1, 2, 4, 8, 16, 24, 32]
     # core_number = [1, 2, 4]
     f = open('dat_DBx/core.dat','w')
     for num in core_number:
-        res = throughput_analysis('dat_tmp_DBx/core_{}.dat'.format(num))
+        res = throughput_analysis('eva_data/dat_tmp_DBx/core_{}.dat'.format(num))
         print(res)
         print('\n')
         for tp in res:
@@ -257,10 +244,11 @@ def run():
     #         f.write('{} {} \n'.format(num, tp))
     # f.close()  
 
+    print ('DBx1000 memory')
     print ('-' * 10)
     f = open('dat_DBx/memory.dat','w')
     for num in core_number:
-        res = memory_analysis('dat_tmp_DBx/core_{}.dat'.format(num))
+        res = memory_analysis('eva_data/dat_tmp_DBx/core_{}.dat'.format(num))
         print(res)
         print('\n')
         for tp in res:
@@ -277,14 +265,10 @@ def run():
 
 def gen_graph():
     os.chdir("gnuplot-scripts")
-    #os.system("./check_dat_files.sh")
-    #os.system("./prepare_normalized.sh")
-    # os.system("rm -r ../graphs")
     os.system("make make_dir_DBx")
     os.system("make figure_DBx_core")
     os.chdir("../graphs_DBx")
     os.system('echo "Figures generated in \"`pwd`\""')
-    #os.system('ls -l')
 
     #cdf
     os.chdir("../")
@@ -292,31 +276,15 @@ def gen_graph():
 
 
 def main():
-    # os.system('make -j')
-    itr = 0
-    cmd = 'mv graphs_DBx graphs_DBx_{}'
-    # cmd2 = "mv dat_DBx graphs_DBx/eva_data"
-    # cmd3 = "mv dat_tmp_DBx graphs_DBx/eva_data"
-    while itr < 1:
-        os.chdir(ROOT_PATH)
-        datdir = 'dat_DBx'
-        if os.path.exists(datdir) and os.path.isdir(datdir):
-            print ('Deleting existing directory ./dat_DBx')
-            shutil.rmtree(datdir)
-        os.mkdir(datdir)
+    if len(sys.argv) < 2:
+        print ("Must specify the directory containing experimental results.")
+    else:
+        print ("[data_analyser] To process director ", sys.argv[1])
 
-        os.system('mkdir -p graphs_DBx')
-
-        # build()
-        run()
-        gen_graph()
-        # os.system(cmd2)
-        # os.system(cmd3)
-        # os.system(cmd.format(itr))
-        itr += 1
-    print('Done!\n')
-
-
+    run()
+    gen_graph()
+    
+    print('[data_analyser] Done!\n')
 
 if __name__ == '__main__':
     main()
