@@ -304,6 +304,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	result &= *btv_shipdate;
 
 	auto tmp_3 = std::chrono::high_resolution_clock::now();
+	index_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-start).count();
 
 	int cnt = 0;
 	double revenue = 0;
@@ -335,8 +336,6 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	}
 
 	auto tmp_4 = std::chrono::high_resolution_clock::now();
-	// end
-	index_ms += std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-start).count();
 
 	// Fetch tuples in ID list
 	for(int k = 0; k < cnt; k++) 
@@ -360,7 +359,6 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	// cout << "CUBIT " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
 	string tmp = "CUBIT " + to_string(cnt) + " " + to_string(time_elapsed_ms) + "  " + to_string(index_ms) + "  " + to_string(time_elapsed_ms-index_ms) + "\n";
 	output_info[tid].push_back(tmp);
-
 
 	// Detailed performance analysis
 	// cout << "     tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
