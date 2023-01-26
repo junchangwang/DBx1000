@@ -88,6 +88,9 @@ RC tpch_txn_man::run_Q6_scan(int tid, tpch_query * query) {
 	double revenue = 0;
 	uint64_t max_items = (uint64_t) _wl->t_lineitem->cur_tab_size;
 	for (uint64_t row_id = 0; row_id < max_items; row_id ++) {
+                // We rely on hardware cache prefeching and adjacent prefeching, which is smart enough to handle this.
+                // The only concern is that when a large number of workers run Q6_scan concurrently,
+                // they compete for the cache, especially the LLC.
 		row_t * r_lt = (row_t *) &_wl->t_lineitem->row_buffer[row_id];
 		assert(r_lt != NULL);
 		row_t * r_lt_local = get_row(r_lt, SCAN);
@@ -160,7 +163,7 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 	}
 
 	auto end_f = std::chrono::high_resolution_clock::now();
-	index_ms += std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
+	index_ms = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
 
 	for (auto const &item : item_list) 
 	{
@@ -184,7 +187,7 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	// cout << "Hash " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
-	string tmp = "Hash " + to_string(cnt) + " " + to_string(time_elapsed_ms) + "  " + to_string(index_ms) + "  " + to_string(time_elapsed_ms-index_ms) + "\n";
+	string tmp = "Hash " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(time_elapsed_ms) + "  " + to_string(index_ms) + "  " + to_string(time_elapsed_ms-index_ms) + "\n";
 	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
@@ -223,7 +226,7 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 	}
 
 	auto end_f = std::chrono::high_resolution_clock::now();
-	index_ms += std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
+	index_ms = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
 
 	for (auto const &item : item_list)
 	{
@@ -247,7 +250,7 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	// cout << "BTree " << cnt << " " << time_elapsed_ms << "  " << index_ms << "  " << time_elapsed_ms-index_ms << endl;
-	string tmp = "BTree " + to_string(cnt) + " " + to_string(time_elapsed_ms) + "  " + to_string(index_ms) + "  " + to_string(time_elapsed_ms-index_ms) + "\n";
+	string tmp = "BTree " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(time_elapsed_ms) + "  " + to_string(index_ms) + "  " + to_string(time_elapsed_ms-index_ms) + "\n";
 	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
@@ -361,11 +364,13 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	output_info[tid].push_back(tmp);
 
 	// Detailed performance analysis
-	// cout << "     tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
-	// 		<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
-	// 		<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()
-	// 		<< "  tmp_4: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count()
-	// 		<< "  end: " << std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count() << endl;
+        if (tid == 0) {
+	        cout << "     tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
+			<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
+			<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()
+			<< "  tmp_4: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count()
+			<< "  end: " << std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count() << endl;
+        }
 
 	delete [] ids;
 	assert(rc == RCOK);
