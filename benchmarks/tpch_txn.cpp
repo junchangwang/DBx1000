@@ -157,7 +157,10 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 				}
 
 				itemid_t * item = index_read((INDEX *)index, key, 0);
-				item_list.push_back(item);
+				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
+					item_list.push_back(local_item);
+				}
+				cnt ++;
 			}
 		}
 	}
@@ -165,22 +168,19 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 	auto end_f = std::chrono::high_resolution_clock::now();
 	index_ms = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
 
-	for (auto const &item : item_list) 
+	for (auto const &local_item : item_list) 
 	{
-		for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
-			row_t * r_lt = ((row_t *)local_item->location);
-			row_t * r_lt_local = get_row(r_lt, SCAN);
-			if (r_lt_local == NULL) {
-				// Skip the deleted item.
-				// return finish(Abort);
-				continue;
-			}
-			// cout << "address = " << &r_lt_local->data << endl;
-			double l_extendedprice;
-			r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-			revenue += l_extendedprice * ((double)discount / 100);
-			cnt ++;
+		row_t * r_lt = ((row_t *)local_item->location);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
+		if (r_lt_local == NULL) {
+			// Skip the deleted item.
+			// return finish(Abort);
+			continue;
 		}
+		// cout << "address = " << &r_lt_local->data << endl;
+		double l_extendedprice;
+		r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+		revenue += l_extendedprice * ((double)discount / 100);
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
@@ -220,7 +220,10 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 				}
 
 				itemid_t * item = index_read(index, key, 0);
-				item_list.push_back(item);
+				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
+					item_list.push_back(local_item);
+				}
+				cnt ++;
 			}
 		}
 	}
@@ -228,22 +231,19 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 	auto end_f = std::chrono::high_resolution_clock::now();
 	index_ms = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
 
-	for (auto const &item : item_list)
+	for (auto const &local_item : item_list)
 	{
-		for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
-			row_t * r_lt = ((row_t *)local_item->location);
-			row_t * r_lt_local = get_row(r_lt, SCAN);
-			if (r_lt_local == NULL) {
-				// Skip the deleted item
-				// return finish(Abort);
-				continue;
-			}
-			// cout << "address = " << &r_lt_local->data << endl;
-			double l_extendedprice;
-			r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-			revenue += l_extendedprice * ((double)discount / 100);
-			cnt ++;
+		row_t * r_lt = ((row_t *)local_item->location);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
+		if (r_lt_local == NULL) {
+			// Skip the deleted item
+			// return finish(Abort);
+			continue;
 		}
+		// cout << "address = " << &r_lt_local->data << endl;
+		double l_extendedprice;
+		r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+		revenue += l_extendedprice * ((double)discount / 100);
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
@@ -307,7 +307,6 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	result &= *btv_shipdate;
 
 	auto tmp_3 = std::chrono::high_resolution_clock::now();
-	index_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-start).count();
 
 	int cnt = 0;
 	double revenue = 0;
@@ -339,6 +338,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	}
 
 	auto tmp_4 = std::chrono::high_resolution_clock::now();
+	index_ms = std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-start).count();
 
 	// Fetch tuples in ID list
 	for(int k = 0; k < cnt; k++) 
@@ -364,13 +364,13 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	output_info[tid].push_back(tmp);
 
 	// Detailed performance analysis
-        if (tid == 0) {
-	        cout << "     tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
-			<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
-			<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()
-			<< "  tmp_4: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count()
-			<< "  end: " << std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count() << endl;
-        }
+        // if (tid == 0) {
+	//         cout << "[CUBIT Q6]: tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
+	// 		<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
+	// 		<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()
+	// 		<< "  tmp_4: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count()
+	// 		<< "  end: " << std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_4).count() << endl;
+        // }
 
 	delete [] ids;
 	assert(rc == RCOK);
