@@ -277,6 +277,7 @@ def run():
 
 def main():
     os.system('make -j')
+    os.system('rm -fr graphs_DBx_*')
     itr = 0
     cmd = 'mv graphs_DBx graphs_DBx_{}'
     cmd2 = "mv dat_DBx graphs_DBx/eva_data"
