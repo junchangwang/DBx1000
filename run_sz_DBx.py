@@ -282,6 +282,7 @@ def main():
     cmd = 'mv graphs_DBx graphs_DBx_{}'
     cmd2 = "mv dat_DBx graphs_DBx/eva_data"
     cmd3 = "mv dat_tmp_DBx graphs_DBx/eva_data"
+    cmd4 = "mkdir -P graphs_DBx/eva_data"
     while itr < 3:
         os.chdir(ROOT_PATH)
         datdir = 'dat_DBx'
@@ -304,8 +305,9 @@ def main():
 
         build()
         run()
-        os.system(cmd2)
+        os.system(cmd4)
         os.system(cmd3)
+        os.system(cmd2)
         os.system(cmd.format(itr))
         itr += 1
     print('Done!\n')

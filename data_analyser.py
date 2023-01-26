@@ -150,7 +150,7 @@ def  run_indexAndTuples():
     ret = [[]]
     ret.clear()
     for num in core_number:
-        ret.append(index_time_analysis('eva_data/dat_tmp_DBx/core_{}.dat'.format(num)))
+        ret.append(index_time_analysis('dat_tmp_DBx/core_{}.dat'.format(num)))
 
     f.write('1  {0}  {1} "Hash"\n'.format(ret[0][0], ret[0][1]))
     f.write('2  {0}  {1} "B^+-Tree"\n'.format(ret[0][2], ret[0][3]))
@@ -188,7 +188,7 @@ def  run_latency():
     ret = [[]]
     ret.clear()
     for num in core_number:
-        ret.append(latency_analysis('eva_data/dat_tmp_DBx/core_{}.dat'.format(num)))
+        ret.append(latency_analysis('dat_tmp_DBx/core_{}.dat'.format(num)))
 
     f.write('1  {0}  "Hash"\n'.format(ret[0][0]))
     f.write('2  {0}  "B^+-Tree"\n'.format(ret[0][1]))
@@ -220,14 +220,14 @@ def  run_latency():
     f.close()  
 
 
-def run():
+def gen_dat_DBx():
     print ('DBx1000 core')
     print ('-' * 10)
     core_number = [1, 2, 4, 8, 16, 24, 32]
     # core_number = [1, 2, 4]
     f = open('dat_DBx/core.dat','w')
     for num in core_number:
-        res = throughput_analysis('eva_data/dat_tmp_DBx/core_{}.dat'.format(num))
+        res = throughput_analysis('dat_tmp_DBx/core_{}.dat'.format(num))
         print(res)
         print('\n')
         for tp in res:
@@ -248,7 +248,7 @@ def run():
     print ('-' * 10)
     f = open('dat_DBx/memory.dat','w')
     for num in core_number:
-        res = memory_analysis('eva_data/dat_tmp_DBx/core_{}.dat'.format(num))
+        res = memory_analysis('dat_tmp_DBx/core_{}.dat'.format(num))
         print(res)
         print('\n')
         for tp in res:
@@ -281,8 +281,20 @@ def main():
     else:
         print ("[data_analyser] To process director ", sys.argv[1])
 
-    run()
+    copy = False
+    if os.path.exists('dat_DBx'):
+        print ("dat_DBx already exists. Skip building.")
+    else:
+        os.system("mkdir dat_DBx")
+        gen_dat_DBx()
+        copy = True
+
     gen_graph()
+
+    if copy:
+        cmd = "cp -r dat_DBx " + sys.argv[1] + "/eva_data/"
+        print (cmd)
+        os.system(cmd)
     
     print('[data_analyser] Done!\n')
 

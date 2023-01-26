@@ -42,10 +42,10 @@ experiments_lookup = [
 
 # file_map
 file_map = {
-    'Scan'   :   'eva_data/dat_tmp_DBx/core_32.dat',
-    'Hash'    :   'eva_data/dat_tmp_DBx/core_32.dat',
-    'BTree'    :   'eva_data/dat_tmp_DBx/core_32.dat',
-    'CUBIT'      :   'eva_data/dat_tmp_DBx/core_32.dat'
+    'Scan'   :   'dat_tmp_DBx/core_32.dat',
+    'Hash'    :   'dat_tmp_DBx/core_32.dat',
+    'BTree'    :   'dat_tmp_DBx/core_32.dat',
+    'CUBIT'      :   'dat_tmp_DBx/core_32.dat'
 }
 
 # name_map
