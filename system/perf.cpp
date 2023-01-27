@@ -4,9 +4,10 @@
  **
  ** -------------------------------------------------------------------------*/
 
+#include <signal.h>
+#include <unistd.h>
 #include <cstdio>
 #include <cassert>
-#include <signal.h>
 #include <cstring>
 
 int gen_perf_process(char *tag) {
