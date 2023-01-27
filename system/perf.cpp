@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cassert>
 #include <cstring>
+#include <string>
 
 int gen_perf_process(char *tag) {
     int perf_pid = fork();
@@ -24,8 +25,11 @@ int gen_perf_process(char *tag) {
             char output_filename[36];
 	    memset(output_filename, 0, 36);
             snprintf(output_filename, 36, "perf.output.%s.%d", tag, perf_pid);
-            char const *perfargs[12] = {"perf", "stat", "-e",
-                    "cache-references,cache-misses,cycles,instructions,branches,branch-misses,page-faults,cpu-migrations", "-p",
+	    std::string events = "cache-references,cache-misses,cycles,instructions,branches,branch-misses,page-faults,cpu-migrations";
+	    events += ",L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses";
+	    events += ",LLC-loads,LLC-load-misses";
+	    events += ",dTLB-loads,dTLB-load-misses";
+            char const *perfargs[12] = {"perf", "stat", "-e", events.c_str(), "-p",
                     perf_pid_opt, "-o", output_filename, "--append", NULL};
             execvp("perf", (char **)perfargs);
             assert(0 && "perf failed to start");
