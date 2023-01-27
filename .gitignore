@@ -9,4 +9,4 @@ output
 graphs_DBx*/
 dat_*
 bm_*
-perf.*
+perf.output.*
