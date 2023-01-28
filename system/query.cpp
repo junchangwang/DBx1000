@@ -110,15 +110,10 @@ Query_thd::init(workload * h_wl, int thread_id) {
 
 		// Generate type
 		TPCHTxnType type;
-		// if (qid % 4 == 0) type = TPCH_Q6_SCAN;
-		// else if (qid % 4 == 1) type = TPCH_Q6_HASH;
-		// else if (qid % 4 == 2) type = TPCH_Q6_BTREE;
-		// else type = TPCH_Q6_CUBIT;
-
-		if (qid % 4 == 0) type = TPCH_Q6_CUBIT;
-		else if (qid % 4 == 1) type = TPCH_Q6_BTREE;
-		else if (qid % 4 == 2) type = TPCH_Q6_HASH;
-		else type = TPCH_Q6_SCAN;
+		if (qid % 4 == 0) type = TPCH_Q6_SCAN;
+		else if (qid % 4 == 1) type = TPCH_Q6_HASH;
+		else if (qid % 4 == 2) type = TPCH_Q6_BTREE;
+		else type = TPCH_Q6_CUBIT;
 
 		if (qid % 100 == 20) /* magic number */
 			type = TPCH_RF1;
