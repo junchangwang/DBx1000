@@ -10,3 +10,4 @@ graphs_DBx*/
 dat_*
 bm_*
 perf.output.*
+perf.data*
