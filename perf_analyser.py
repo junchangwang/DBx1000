@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 
 from calendar import c
 from multiprocessing.pool import ApplyResult
@@ -9,23 +10,33 @@ import shutil
 import sys
 import os
 
-
 ROOT_PATH = os.getcwd()
 
 ossystem = os.system
 
-def analyser(filename):
+# Data set
+cache_references = []
+cache_misses = []
+cycles = []
+instructions = []
+branches = []
+branch_misses = []
+page_faults = []
+cpu_migrations = []
+###
+L1_dcache_loads = []
+L1_dcache_load_misses = []
+L1_icache_load_misses = []
+LLC_loads = []
+LLC_load_misses = []
+dTLB_loads = []
+dTLB_load_misses = []
+####
+seconds = []
+
+def process_output(filename):
     f = open(filename)
-    ret = []
-    cache_references = []
-    cache_misses = []
-    cycles = []
-    instructions = []
-    branches = []
-    branch_misses = []
-    page_faults = []
-    cpu_migrations = []
-    seconds = []
+
     for line in f:
         line = line.replace(',','')
         line = line.replace('<not counted>','0')
@@ -48,69 +59,89 @@ def analyser(filename):
             page_faults.append(float(a[0]))
         if a[1] == 'cpu-migrations':
             cpu_migrations.append(float(a[0]))
+
+        if a[1] == 'L1-dcache-loads':
+            L1_dcache_loads.append(float(a[0]))
+        if a[1] == 'L1-dcache-load-misses':
+            L1_dcache_load_misses.append(float(a[0]))
+        if a[1] == 'L1-icache-load-misses':
+            L1_icache_load_misses.append(float(a[0]))
+        if a[1] == 'LLC-loads':
+            LLC_loads.append(float(a[0]))
+        if a[1] == 'LLC-load-misses':
+            LLC_load_misses.append(float(a[0]))
+        if a[1] == 'dTLB-loads':
+            dTLB_loads.append(float(a[0]))
+        if a[1] == 'dTLB-load-misses':
+            dTLB_load_misses.append(float(a[0]))                                                            
+
         if a[1] == 'seconds':
             seconds.append(float(a[0]))
-    if len(cache_references) != 0:
-        ret.append(sum(cache_references) / len(cache_references)) 
-    else:
-        ret.append(0)
-    if len(cache_misses) != 0:
-        ret.append(sum(cache_misses) / len(cache_misses)) 
-    else:
-        ret.append(0)
-    if len(cycles) != 0:
-        ret.append(sum(cycles) / len(cycles)) 
-    else:
-        ret.append(0)
-    if len(instructions) != 0:
-        ret.append(sum(instructions) / len(instructions)) 
-    else:
-        ret.append(0)
-    if len(branches) != 0:
-        ret.append(sum(branches) / len(branches)) 
-    else:
-        ret.append(0)
-    if len(branch_misses) != 0:
-        ret.append(sum(branch_misses) / len(branch_misses)) 
-    else:
-        ret.append(0)
-    if len(page_faults) != 0:
-        ret.append(sum(page_faults) / len(page_faults)) 
-    else:
-        ret.append(0)
-    if len(cpu_migrations) != 0:
-        ret.append(sum(cpu_migrations) / len(cpu_migrations)) 
-    else:
-        ret.append(0)
-    if len(seconds) != 0:
-        ret.append(sum(seconds) / len(seconds)) 
-    else:
-        ret.append(0)
-    # print (ret)
-    return ret
+            
+def printout(name, tmp_list):
+    print(name + ': \n\t' + str(round(sum(tmp_list))) + "\n\t" + 
+            str(len(tmp_list)) + "\n\t" + str(round(sum(tmp_list)/len(tmp_list))))
 
+def missrate(name, misses, accesses):
+    print('--- ' + name + ' miss rate: \t' + str("{:.2f}".format(sum(misses) / sum(accesses)*100)) + '%')
 
+def analyzer():
+    printout('cache-references', cache_references)
+        
+    printout('cache-misses', cache_misses)
 
+    ###
+    missrate('Cache', cache_misses, cache_references)
 
+    printout('cycles', cycles)
 
+    printout('instructions', instructions)
+
+    print('--- CPI: \t' + str(sum(cycles) / sum(instructions)))
+
+    printout('branches', branches)
+    
+    printout('branch-misses', branch_misses)
+
+    ###
+    missrate('Branch', branch_misses, branches)
+
+    printout('page-faults', page_faults)
+
+    printout('cpu-migrations', cpu_migrations)
+
+    printout('L1-dcache-loads', L1_dcache_loads)
+
+    printout('L1-dcache-loads-misses', L1_dcache_load_misses)
+
+    ###
+    missrate('L1', L1_dcache_load_misses, L1_dcache_loads)
+
+    printout('LLC-loads', LLC_loads)
+
+    printout('LLC-loads-misses', LLC_load_misses)
+
+    ###
+    missrate('LLC', LLC_load_misses, LLC_loads)
+
+    printout('dTLB-loads', dTLB_loads)
+
+    printout('dTLB-load-misses', dTLB_load_misses)
+
+    ###
+    missrate('TLB', dTLB_load_misses, dTLB_loads)
+
+    printout('seconds', seconds)
 
 
 def main():
     # ret = analyser('perf.output.CUBIT.121774')
-    print(str(sys.argv[1]) + " output:")
-    ret = analyser(str(sys.argv[1]))
-    print('cache-references: ' + str(ret[0]))
-    print('cache-misses: ' + str(ret[1]))
-    print('cycles: ' + str(ret[2]))
-    print('instructions: ' + str(ret[3]))
-    print('branches: ' + str(ret[4]))
-    print('branch-misses: ' + str(ret[5]))
-    print('page-faults: ' + str(ret[6]))
-    print('cpu-migrations: ' + str(ret[7]))
-    print('seconds time elapsed: ' + str(ret[8]))
-
-    print('Done!\n')
-
+    print ("[perf_analyser]: Start analyzing output file: " + str(sys.argv[1]))
+    
+    process_output(str(sys.argv[1]))
+    analyzer()
+    
+    print ('[perf_analyser]: Done!\n')
 
 
 if __name__ == '__main__': 
