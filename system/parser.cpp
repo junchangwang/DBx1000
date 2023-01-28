@@ -119,6 +119,10 @@ void parser(int argc, char * argv[]) {
 			i++;
 			Mode = argv[i];
 		}
+		else if (argv[i][1] == 'P') {
+			i++;
+			ENABLE_PERF = argv[i];
+		}
 		else if (argv[i][1] == 'h') {
 			print_usage();
 			exit(0);

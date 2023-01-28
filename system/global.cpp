@@ -59,6 +59,7 @@ double g_perc_payment = PERC_PAYMENT;
 bool g_wh_update = WH_UPDATE;
 char * output_file = NULL;
 char * Mode = NULL;
+char * ENABLE_PERF = NULL;
 
 // TPCH
 uint64_t SF = (uint64_t)(1);
