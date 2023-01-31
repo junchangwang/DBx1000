@@ -121,7 +121,7 @@ void parser(int argc, char * argv[]) {
 		}
 		else if (argv[i][1] == 'P') {
 			i++;
-			ENABLE_PERF = argv[i];
+			perf_enabled = true;
 		}
 		else if (argv[i][1] == 'h') {
 			print_usage();
