@@ -118,11 +118,11 @@ def figure():
 
     #plt.xlim(left=0,right=400000)
     plt.ylim(0, 1)
-    plt.xlabel("TXN Response Time (ms)", fontsize='16')
-    plt.ylabel("Cumulative Fraction", fontsize='16')
-    legend = ax.legend(loc='lower right', shadow=True, fontsize='15')
+    plt.xlabel("TXN Response Time (ms)", fontsize='20')
+    plt.ylabel("Cumulative Fraction", fontsize='20')
+    legend = ax.legend(loc='lower right', shadow=True, fontsize='20')
     plt.tick_params(labelsize=14)
-
+    plt.tight_layout()
     fig = 1
 
     if fig == 0:

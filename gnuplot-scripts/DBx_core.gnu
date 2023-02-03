@@ -1,21 +1,21 @@
 reset
 set size 0.99,1.0
 #set term pdf font ",10" size 5.2, 2.4
-set ylabel "Throughput (transactions/s)" offset 1.5,0,0 font ',20'
-set xlabel "Number of cores" font ',20'
+set ylabel "Throughput (Trans/s)" offset 1.5,0,0 font ',25'
+set xlabel "Number of cores" font ',25'
 set xtics ("1" 1, "2" 2, "4" 4, "8" 8, "16" 16, "24" 24, "32" 32)
 set yrange [0:]
 set xrange [0:35]
 set terminal png font ',15'
 set output "../graphs_DBx/core/core.png"
-set key reverse top left Left
+set key font ",18" reverse top left Left
 
-plot "../dat_DBx/core.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 7 ps 1.5 pt 6 dt 4 with linespoints,\
-      "../dat_DBx/core.dat" every 4::2::26 title "B^+-Tree" lc rgb "orange" lw 7 ps 1.5 pt 8 dt 8 with linespoints,\
-      "../dat_DBx/core.dat" every 4::1::25 title "Hash" lc rgb "green" lw 7 ps 1.5 pt 10 dt 3 with linespoints,\
-      "../dat_DBx/core.dat" every 4::0::24 title "Scan" lc rgb "black" lw 7 ps 1.5 pt 12 dt 7 with linespoints
+plot "../dat_DBx/core.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 8 ps 1.5 pt 6 dt 4 with linespoints,\
+      "../dat_DBx/core.dat" every 4::2::26 title "B^+-Tree" lc rgb "orange" lw 8 ps 1.5 pt 4 dt 2 with linespoints,\
+      "../dat_DBx/core.dat" every 4::1::25 title "Hash" lc rgb "green" lw 8 ps 1.5 pt 10 dt 3 with linespoints,\
+      "../dat_DBx/core.dat" every 4::0::24 title "Scan" lc rgb "black" lw 8 ps 1.5 pt 8 dt 8 with linespoints
 
-set terminal eps font ',16.5' enhanced
+set terminal eps font ',17' enhanced
 set output "../graphs_DBx/core/core.eps"
 replot
 
@@ -30,20 +30,20 @@ replot
 # set xrange [0:35]
 # set terminal png font ',15'
 # set output "../graphs_DBx/core/core_f.png"
-# set key reverse top left Left
+# set key font ",18" reverse top left Left
 
-# plot "../dat_DBx/core_f.dat" every 4::0::24 title "Scan" lc rgb "black" lw 7 ps 1.5 pt 12 dt 7 with linespoints,\
-#       "../dat_DBx/core_f.dat" every 4::1::25 title "Hash" lc rgb "green" lw 7 ps 1.5 pt 10 dt 3 with linespoints,\
-#       "../dat_DBx/core_f.dat" every 4::2::26 title "BTree" lc rgb "orange" lw 7 ps 1.5 pt 8 dt 8 with linespoints,\
-#       "../dat_DBx/core_f.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 7 ps 1.5 pt 6 dt 4 with linespoints
+# plot "../dat_DBx/core_f.dat" every 4::0::24 title "Scan" lc rgb "black" lw 8 ps 1.5 pt 12 dt 7 with linespoints,\
+#       "../dat_DBx/core_f.dat" every 4::1::25 title "Hash" lc rgb "green" lw 8 ps 1.5 pt 10 dt 3 with linespoints,\
+#       "../dat_DBx/core_f.dat" every 4::2::26 title "BTree" lc rgb "orange" lw 8 ps 1.5 pt 8 dt 8 with linespoints,\
+#       "../dat_DBx/core_f.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 8 ps 1.5 pt 6 dt 4 with linespoints
 
-# set terminal eps font ',15' size 4, 5
+# set terminal eps font ',17' size 4, 5
 # set output "../graphs_DBx/core/core_f.eps"
 # replot
 
 ############################## histograms index and tuples ###############################
 reset
-set key reverse invert top right Left
+set key font ",18" reverse invert top left Left
 
 set terminal png font ',15'
 set output "../graphs_DBx/core/histograms.png"
@@ -75,16 +75,16 @@ set label "32(cores)" font ",18" at screen 0.83, screen 0.04
 set xtics font ",8"
 
 plot "../dat_DBx/index_time.dat" using ($3/1e3):xtic(4) title "Fetching tuples" with histograms fill pattern 7 border rgb "black" lc rgb "black", \
-      "../dat_DBx/index_time.dat" using ($2/1e3):xtic(4) title "Indexing" with histograms fs solid border rgb "black" lc rgb "black"
+      "../dat_DBx/index_time.dat" using ($2/1e3):xtic(4) title "Reading index" with histograms fs solid border rgb "black" lc rgb "black"
      
 
-set terminal eps font ',15' enhanced
+set terminal eps font ',17' enhanced
 set output "../graphs_DBx/core/histograms.eps"
 replot
 
 ############################## histograms run time ###############################
 reset
-set key reverse invert top right Left
+set key font ",18" reverse invert top left Left
 
 set terminal png font ',15'
 set output "../graphs_DBx/core/histograms_run_time.png"
