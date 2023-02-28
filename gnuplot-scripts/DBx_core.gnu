@@ -12,10 +12,10 @@ set key font ",18" reverse top left Left
 
 plot "../dat_DBx/core.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 8 ps 1.5 pt 6 dt 4 with linespoints,\
       "../dat_DBx/core.dat" every 4::2::26 title "B^+-Tree" lc rgb "orange" lw 8 ps 1.5 pt 4 dt 2 with linespoints,\
-      "../dat_DBx/core.dat" every 4::1::25 title "Hash" lc rgb "green" lw 8 ps 1.5 pt 10 dt 3 with linespoints,\
+      "../dat_DBx/core.dat" every 4::1::25 title "Hash" lc rgb "sea-green" lw 8 ps 1.5 pt 10 dt 3 with linespoints,\
       "../dat_DBx/core.dat" every 4::0::24 title "Scan" lc rgb "black" lw 8 ps 1.5 pt 8 dt 8 with linespoints
 
-set terminal eps font ',17' enhanced
+set terminal eps font 'Linux Libertine O,17' enhanced
 set output "../graphs_DBx/core/core.eps"
 replot
 
@@ -33,7 +33,7 @@ replot
 # set key font ",18" reverse top left Left
 
 # plot "../dat_DBx/core_f.dat" every 4::0::24 title "Scan" lc rgb "black" lw 8 ps 1.5 pt 12 dt 7 with linespoints,\
-#       "../dat_DBx/core_f.dat" every 4::1::25 title "Hash" lc rgb "green" lw 8 ps 1.5 pt 10 dt 3 with linespoints,\
+#       "../dat_DBx/core_f.dat" every 4::1::25 title "Hash" lc rgb "sea-green" lw 8 ps 1.5 pt 10 dt 3 with linespoints,\
 #       "../dat_DBx/core_f.dat" every 4::2::26 title "BTree" lc rgb "orange" lw 8 ps 1.5 pt 8 dt 8 with linespoints,\
 #       "../dat_DBx/core_f.dat" every 4::3::27 title "CUBIT" lc rgb "blue" lw 8 ps 1.5 pt 6 dt 4 with linespoints
 
@@ -78,7 +78,7 @@ plot "../dat_DBx/index_time.dat" using ($3/1e3):xtic(4) title "Fetching tuples" 
       "../dat_DBx/index_time.dat" using ($2/1e3):xtic(4) title "Reading index" with histograms fs solid border rgb "black" lc rgb "black"
      
 
-set terminal eps font ',17' enhanced
+set terminal eps font 'Linux Libertine O,17' enhanced
 set output "../graphs_DBx/core/histograms.eps"
 replot
 
@@ -118,6 +118,6 @@ plot "../dat_DBx/run_time.dat" every 3    using 1:($2/1e3) title "Hash" with box
      "../dat_DBx/run_time.dat" every 3::1 using 1:($2/1e3) title "B^+-Tree" with boxes fs solid 1.0 border rgb "black" lc rgb "grey", \
      "../dat_DBx/run_time.dat" every 3::2 using 1:($2/1e3) title "CUBIT" with boxes fs solid 1.0 border rgb "black" lc rgb "black"     
 
-set terminal eps font ',17' enhanced
+set terminal eps font 'Linux Libertine O,17' enhanced
 set output "../graphs_DBx/core/histograms_run_time.eps"
 replot
