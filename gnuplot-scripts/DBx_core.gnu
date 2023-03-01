@@ -66,15 +66,20 @@ set xtics nomirror rotate by -45 scale 0
 set ylabel "Latency (ms)" offset 0.1,0,0 font ',29'
 
 #unset xtics
-set label "1" font ",25" at screen 0.21, screen 0.1
-set label "2" font ",25" at screen 0.32, screen 0.1
-set label "4" font ",25" at screen 0.435, screen 0.1
-set label "8" font ",25" at screen 0.54, screen 0.1
-set label "16" font ",25" at screen 0.64, screen 0.1
-set label "24" font ",25" at screen 0.75, screen 0.1
-set label "32(cores)" font ",25" at screen 0.83, screen 0.1
+# set label "1" font ",25" at screen 0.21, screen 0.1
+# set label "2" font ",25" at screen 0.32, screen 0.1
+# set label "4" font ",25" at screen 0.435, screen 0.1
+# set label "8" font ",25" at screen 0.54, screen 0.1
+# set label "16" font ",25" at screen 0.64, screen 0.1
+# set label "24" font ",25" at screen 0.75, screen 0.1
+# set label "32(cores)" font ",25" at screen 0.83, screen 0.1
 
-set xtics font ",8"
+set label "1" font ",25" at screen 0.25, screen 0.04
+set label "4" font ",25" at screen 0.445, screen 0.04
+set label "16" font ",25" at screen 0.64, screen 0.04
+set label "32(cores)" font ",25" at screen 0.80, screen 0.04
+
+set xtics font ",22"
 set ytics font ",25"
 
 plot "../dat_DBx/index_time.dat" using ($3/1e3):xtic(4) title "Fetching tuples" with histograms fill pattern 7 border rgb "black" lc rgb "black", \
