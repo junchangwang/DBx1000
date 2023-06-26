@@ -1,13 +1,13 @@
 CC=g++
-CFLAGS=-O3 -g -std=c++17
+CFLAGS= -g -std=c++17
 
 .SUFFIXES: .o .cpp .h
 
-SRC_DIRS = ./ ./benchmarks/ ./concurrency_control/ ./storage/ ./system/
-INCLUDE = -I. -I./benchmarks -I./concurrency_control -I./storage -I./system
+SRC_DIRS = ./ ./benchmarks/ ./concurrency_control/ ./storage/ ./system/ ./storage/bwtree/
+INCLUDE = -I. -I./benchmarks -I./concurrency_control -I./storage -I./system -I./storage/bwtree/
 INCLUDE += -I./NB-UpBit/src
 
-CFLAGS += $(INCLUDE) -D NOGRAPHITE=1 -Werror
+CFLAGS += $(INCLUDE) -D NOGRAPHITE=1 
 LDFLAGS = -L. -pthread -lrt -ljemalloc 
 LDFLAGS += -L./NB-UpBit/build -lbitmap
 LDFLAGS += -L/usr/lib/x86_64-linux-gnu -lboost_filesystem -lboost_program_options -lboost_system -lurcu -latomic

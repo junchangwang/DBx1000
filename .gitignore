@@ -11,3 +11,5 @@ dat_*
 bm_*
 perf.output.*
 perf.data*
+.idea/
+

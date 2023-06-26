@@ -9,6 +9,7 @@ class row_t;
 class table_t;
 class base_query;
 class INDEX;
+class index_bwtree;
 
 // each thread has a txn_man. 
 // a txn_man corresponds to a single transaction.
@@ -90,6 +91,7 @@ public:
 	TxnType 		vll_txn_type;
 	itemid_t *		index_read(INDEX * index, idx_key_t key, int part_id);
 	void 			index_read(INDEX * index, idx_key_t key, int part_id, itemid_t *& item);
+	std::vector<itemid_t *> index_read(index_bwtree * index, idx_key_t key, int part_id);
 	row_t * 		get_row(row_t * row, access_t type);
 protected:	
 	void 			insert_row(row_t * row, table_t * table);

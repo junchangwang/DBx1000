@@ -8,6 +8,7 @@
 #include "table.h"
 #include "catalog.h"
 #include "index_btree.h"
+#include "index_bwtree.h"
 #include "index_hash.h"
 
 void txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
@@ -209,6 +210,14 @@ txn_man::index_read(INDEX * index, idx_key_t key, int part_id, itemid_t *& item)
 	uint64_t starttime = get_sys_clock();
 	index->index_read(key, item, part_id, get_thd_id());
 	INC_TMP_STATS(get_thd_id(), time_index, get_sys_clock() - starttime);
+}
+
+std::vector<itemid_t *>
+txn_man::index_read(index_bwtree * index, idx_key_t key,  int part_id) {
+	uint64_t starttime = get_sys_clock();
+	std::vector<itemid_t *> items;
+	items = index->bwindex_read(key, part_id, get_thd_id());
+	return items;
 }
 
 RC txn_man::finish(RC rc) {
