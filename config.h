@@ -150,6 +150,7 @@ enum TPCHTxnType {TPCH_ALL,
 				TPCH_Q6_HASH,
 				TPCH_Q6_BTREE,
                 TPCH_Q6_BWTREE,
+                TPCH_Q6_ART,
 				TPCH_Q6_CUBIT,
 				TPCH_RF1,
 				TPCH_RF2};

@@ -10,6 +10,7 @@ class table_t;
 class base_query;
 class INDEX;
 class index_bwtree;
+class index_art;
 
 // each thread has a txn_man. 
 // a txn_man corresponds to a single transaction.

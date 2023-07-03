@@ -62,7 +62,7 @@ char * Mode = NULL;
 bool perf_enabled = false;
 
 // TPCH
-uint64_t SF = (uint64_t)(2);
+uint64_t SF = (uint64_t)(1);
 uint64_t g_num_orders = (uint64_t)1500000 * SF;  // FIXME! 1,500,000 * SF
 uint64_t g_max_lineitems = g_num_orders * 6;
 uint64_t g_nor_in_lineitems = 0UL;

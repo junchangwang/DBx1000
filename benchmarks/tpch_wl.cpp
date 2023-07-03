@@ -8,6 +8,7 @@
 #include "index_hash.h"
 #include "index_btree.h"
 #include "index_bwtree.h"
+#include "index_art.h"
 #include "row.h"
 #include "query.h"
 #include "txn.h"
@@ -150,6 +151,10 @@ RC tpch_wl::init_schema(const char * schema_file) {
     new(i_Q6_bwtree) index_bwtree();
     i_Q6_bwtree->init(part_cnt, tables[tname]);
 
+    i_Q6_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
+    new(i_Q6_art) index_art();
+    i_Q6_art->init(part_cnt, tables[tname]);
+
 	return RCOK;
 }
 
@@ -197,6 +202,7 @@ RC tpch_wl::printMemory() {
 
 	cout << "BtreeMemory: "; i_Q6_btree->index_size();
     cout << "BwtreeMemory: "; i_Q6_bwtree->index_size();
+    cout << "ARTMemory: "; i_Q6_art->index_size();
 	cout << "HashMemory: ";  i_Q6_hashtable->index_size();
 	cout << "CubitMemory:" << endl;
 
@@ -229,6 +235,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 	long  long  i_Q6_hashtable_time = (long  long)0;
 	long  long  i_Q6_btree_time = (long  long)0;
     long  long  i_Q6_bwtree_time = (long  long)0;
+    long  long  i_Q6_art_time = (long  long)0;
 	long  long  i_bitmap_time = (long  long)0;
 	long  long  orders_allocate = (long  long)0;
 	long  long  orders_set_value = (long  long)0;
@@ -368,6 +375,13 @@ void tpch_wl::init_tab_orderAndLineitem() {
             index_insert((INDEX *)i_Q6_bwtree, Q6_key, row2, 0);
             end = std::chrono::high_resolution_clock::now();
             i_Q6_bwtree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+            start = std::chrono::high_resolution_clock::now();
+            index_insert((INDEX *)i_Q6_art, Q6_key, row2, 0);
+			itemid_t * ptr;
+			i_Q6_art->index_read(Q6_key, ptr, 0, 0);
+            end = std::chrono::high_resolution_clock::now();
+            i_Q6_art_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 			auto ts_7 = std::chrono::high_resolution_clock::now();
 

@@ -1,3 +1,5 @@
+#include <cstdio>
+
 #include "global.h"
 #include "helper.h"
 #include "wl.h"
@@ -6,6 +8,7 @@
 #include "index_hash.h"
 #include "index_btree.h"
 #include "index_bwtree.h"
+#include "index_art.h"
 #include "catalog.h"
 #include "mem_alloc.h"
 

@@ -9,6 +9,7 @@
 #include "catalog.h"
 #include "index_btree.h"
 #include "index_bwtree.h"
+#include "index_art.h"
 #include "index_hash.h"
 
 void txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {

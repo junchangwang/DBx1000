@@ -13,12 +13,14 @@ public:
 	double hash_run_time;
 	double btree_run_time;
 	double bwtree_run_time;
+	double art_run_time;
 	double cubit_run_time;
 	// uint64_t Q6_tnx_cnt;
 	uint64_t Q6_scan_txn_cnt;
 	uint64_t Q6_hash_txn_cnt;
 	uint64_t Q6_btree_txn_cnt;
 	uint64_t Q6_bwtree_txn_cnt;
+	uint64_t Q6_art_txn_cnt;
 	uint64_t Q6_cubit_txn_cnt;
 	double time_man;
 	double time_index;
