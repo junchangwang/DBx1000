@@ -9,6 +9,7 @@
 #include "global.h"
 #include "helper.h"
 #include "index_base.h"
+#include <shared_mutex>
 
 class index_art : public index_base {
 public:
