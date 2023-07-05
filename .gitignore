@@ -2,7 +2,7 @@
 *.d
 rundb
 .vscode/
-NB-UpBit/
+CUBIT-PDS/
 build/
 cscope.*
 output

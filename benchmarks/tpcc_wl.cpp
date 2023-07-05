@@ -55,7 +55,7 @@ RC tpcc_wl::init_bitmap_c_w_id( )
 	// they are used by nicolas.
 	config->n_rows = 0; 
 	config->n_queries = 900;
-	config->n_deletes = 100;
+	config->n_udis = 100;
 	config->verbose = false;
 	config->time_out = 100;
 	
