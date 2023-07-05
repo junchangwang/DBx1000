@@ -28,7 +28,7 @@ int index_bwtree::index_size() {
     int item_cnt = 0;
 
     if (roots == NULL) {
-        cout << "NULL" << endl;
+        // cout << "NULL" << endl;
         return -1;
     }
 

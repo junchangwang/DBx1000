@@ -41,8 +41,8 @@ int IndexHash::index_size()
 		}
 	}
 
-	cout << "Number of items in the Hashtable: " << item_cnt <<
-			". Size in bytes: " << size << endl;
+	// cout << "Number of items in the Hashtable: " << item_cnt <<
+	// 		". Size in bytes: " << size << endl;
 	return size;
 }
 

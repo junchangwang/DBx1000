@@ -59,8 +59,8 @@ int index_btree::index_size() {
 		}
 	} while (!last_iter);
 
-	cout << "Number of items in the B-treeTable: " << item_cnt <<
-			". Size in bytes: " << size << endl;
+	// cout << "Number of items in the B-treeTable: " << item_cnt <<
+	// 		". Size in bytes: " << size << endl;
 	return size;
 }
 

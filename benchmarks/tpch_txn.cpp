@@ -587,7 +587,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	// cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_us << endl << endl;
+	cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_us << endl << endl;
 	string tmp = "CUBIT " + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 

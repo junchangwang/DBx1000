@@ -101,7 +101,7 @@ Query_thd::init(workload * h_wl, int thread_id) {
 
 		// Generate Q6 related vars
 		// Using this way, we can guarantee each (scan, hash, btree, cubit) group use the same config.
-		if (qid % 4 == 0) {
+		if (qid % 6 == 0) {
 			year = URand(93, 97, 0);
 			date = (uint64_t)(year * 1000 + 1);
 			discount = ((double)URand(2, 9, 0)) / 100;
