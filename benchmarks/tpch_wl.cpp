@@ -200,11 +200,11 @@ RC tpch_wl::printMemory() {
 
 	cout << "*************************Print Memory concumption: *******" << endl;	
 
-	cout << "HashMemory: " <<  i_Q6_hashtable->index_size() << endl;
-	cout << "BtreeMemory: " << i_Q6_btree->index_size() << endl;
-    cout << "BwtreeMemory: " << i_Q6_bwtree->index_size() << endl;
-    cout << "ARTMemory: " << i_Q6_art->index_size() << endl;
-	cout << "CubitMemory:" << bitmap << endl;
+	cout << "HashMemory (MB): " <<  i_Q6_hashtable->index_size()/1000000 << endl;
+	cout << "BtreeMemory (MB): " << i_Q6_btree->index_size()/1000000 << endl;
+    cout << "BwtreeMemory (MB): " << i_Q6_bwtree->index_size()/1000000 << endl;
+    cout << "ARTMemory (MB): " << i_Q6_art->index_size()/1000000 << endl;
+	cout << "CubitMemory (MB):" << bitmap/1000000 << endl;
 
 	cout << "*************************Print Memory concumption end *******" << endl;	
 	return RCOK;

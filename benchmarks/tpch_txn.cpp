@@ -162,7 +162,7 @@ RC tpch_txn_man::run_Q6_scan(int tid, tpch_query * query) {
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_us << endl;
+	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "SCAN " + to_string(cnt) + " " + to_string(time_elapsed_us) + "\n";
 	output_info[tid].push_back(tmp);
 
@@ -238,7 +238,7 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << endl;
+	cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << item_list.size() << endl;
 	string tmp = "Hash " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 
@@ -314,7 +314,7 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << endl;
+	cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << item_list.size() << endl;
 	string tmp = "BTree " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 
@@ -387,7 +387,7 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
         usleep(WAIT_FOR_PERF_U);
     }
 
-	cout << "********Q6 with BWTree revenue is : " << revenue << "  . Number of items: " << cnt << endl;;
+	cout << "********Q6 with BWTree revenue is : " << revenue << "  . Number of items: " << item_list.size() << endl;;
     string tmp = "BWTree " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
     output_info[tid].push_back(tmp);
 
@@ -464,7 +464,7 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	cout << "********Q6 with ART revenue is : " << revenue << "  . Number of items: " << cnt << endl;
+	cout << "********Q6 with ART revenue is : " << revenue << "  . Number of items: " << item_list.size() << endl;
 	string tmp = "ART " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 
@@ -587,7 +587,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << ". Microseconds: " << time_elapsed_us << endl << endl;
+	cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "CUBIT " + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 

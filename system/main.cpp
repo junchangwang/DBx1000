@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 	BaseTable *bitmap = NULL;
 	Table_config *config = NULL;
 	
-#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true)
+#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == TPCH && TPCH_EVA_CUBIT == true)
 	bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_c_w_id;
 	config = bitmap->config;
 
