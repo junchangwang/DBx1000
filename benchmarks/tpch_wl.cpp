@@ -200,20 +200,11 @@ RC tpch_wl::printMemory() {
 
 	cout << "*************************Print Memory concumption: *******" << endl;	
 
-	cout << "BtreeMemory: "; i_Q6_btree->index_size();
-    cout << "BwtreeMemory: "; i_Q6_bwtree->index_size();
-    cout << "ARTMemory: "; i_Q6_art->index_size();
-	cout << "HashMemory: ";  i_Q6_hashtable->index_size();
-	cout << "CubitMemory:" << endl;
-
-	cout << "All bitmaps concumption:" << endl;
-    cout << "M FP " << fence_pointers << std::endl;
-	cout << "M BM " << bitmap << std::endl;
-	
-	// cout << "each bitmap concumption: (discount, quantity, shipdate)" << endl;
-	// dynamic_cast<nbub::Nbub *>(bitmap_discount)->printMemory();
-	// dynamic_cast<nbub::Nbub *>(bitmap_quantity)->printMemory();
-	// dynamic_cast<nbub::Nbub *>(bitmap_shipdate)->printMemory();
+	cout << "HashMemory: " <<  i_Q6_hashtable->index_size() << endl;
+	cout << "BtreeMemory: " << i_Q6_btree->index_size() << endl;
+    cout << "BwtreeMemory: " << i_Q6_bwtree->index_size() << endl;
+    cout << "ARTMemory: " << i_Q6_art->index_size() << endl;
+	cout << "CubitMemory:" << bitmap << endl;
 
 	cout << "*************************Print Memory concumption end *******" << endl;	
 	return RCOK;
@@ -414,15 +405,17 @@ void tpch_wl::init_tab_orderAndLineitem() {
 	cout << "*************************INDEX build time: *******" << endl
 		<< "Overall time (microseconds):" << std::chrono::duration_cast<std::chrono::microseconds>(end_g - start_g).count() << endl
 		<< "i_order_time:" << i_order_time << ", " 
-		<< "i_Q6_hashtable_time:" << i_Q6_hashtable_time << ", "
 		<< "i_lineitem_time:" << i_lineitem_time << ", "
+		<< "i_Q6_hashtable_time:" << i_Q6_hashtable_time << ", "
 		<< "i_Q6_btree_time:" << i_Q6_btree_time << ", "
+		<< "i_Q6_bwtree_time:" << i_Q6_bwtree_time << ", "
+		<< "i_Q6_art_time:" << i_Q6_art_time <<", "
 		<< "i_bitmap_time:" << i_bitmap_time << endl
 	    << "orders_allocate:" << orders_allocate << ", "
 		<< "orders_set_value:" << orders_set_value << ", "
 		<< "lineitem_allocate:" << lineitem_allocate << ", "
 		<< "lineitem_set_value:" << lineitem_set_value << endl
-		<< "sum = " << i_order_time + i_Q6_hashtable_time + i_lineitem_time + i_Q6_btree_time + i_bitmap_time + orders_allocate 
+		<< "sum = " << i_order_time + i_Q6_hashtable_time + i_lineitem_time + i_Q6_btree_time + i_Q6_bwtree_time + i_Q6_art_time + i_bitmap_time + orders_allocate 
 						+ orders_set_value + lineitem_allocate + lineitem_set_value << endl
 		<<"*************************INDEX build time end*******" << endl;
 
