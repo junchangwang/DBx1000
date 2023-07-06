@@ -198,8 +198,8 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 				itemid_t * item = index_read((INDEX *)index, key, 0);
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					item_list.push_back(local_item);
+					cnt ++;
 				}
-				cnt ++;
 			}
 		}
 	}
@@ -227,7 +227,9 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 		// cout << "address = " << &r_lt_local->data << endl;
 		double l_extendedprice;
 		r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-		revenue += l_extendedprice * ((double)discount / 100);
+		double l_discount;
+		r_lt_local->get_value(L_DISCOUNT, l_discount);
+		revenue += l_extendedprice * l_discount;
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
@@ -238,7 +240,7 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << item_list.size() << endl;
+	cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "Hash " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 
@@ -274,8 +276,8 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 				itemid_t * item = index_read(index, key, 0);
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					item_list.push_back(local_item);
+					cnt ++;
 				}
-				cnt ++;
 			}
 		}
 	}
@@ -303,7 +305,9 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 		// cout << "address = " << &r_lt_local->data << endl;
 		double l_extendedprice;
 		r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-		revenue += l_extendedprice * ((double)discount / 100);
+		double l_discount;
+		r_lt_local->get_value(L_DISCOUNT, l_discount);
+		revenue += l_extendedprice * l_discount;
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
@@ -314,7 +318,7 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << item_list.size() << endl;
+	cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "BTree " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 
@@ -347,8 +351,8 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
                 vector<itemid_t *> items = index_read(index, key, 0);
 				for (auto item : items) {
 					item_list.push_back(item);
+                	cnt ++;
 				}
-                cnt ++;
             }
         }
     }
@@ -376,7 +380,9 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
         // cout << "address = " << &r_lt_local->data << endl;
         double l_extendedprice;
         r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-        revenue += l_extendedprice * ((double)discount / 100);
+		double l_discount;
+		r_lt_local->get_value(L_DISCOUNT, l_discount);
+		revenue += l_extendedprice * l_discount;
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -387,7 +393,7 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
         usleep(WAIT_FOR_PERF_U);
     }
 
-	cout << "********Q6 with BWTree revenue is : " << revenue << "  . Number of items: " << item_list.size() << endl;;
+	cout << "********Q6 with BWTree revenue is : " << revenue << "  . Number of items: " << cnt << endl;;
     string tmp = "BWTree " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
     output_info[tid].push_back(tmp);
 
@@ -424,8 +430,8 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 				itemid_t * item = index_read((INDEX *)index, key, 0);
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					item_list.push_back(local_item);
+					cnt ++;
 				}
-				cnt ++;
 			}
 		}
 	}
@@ -453,7 +459,9 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 		// cout << "address = " << &r_lt_local->data << endl;
 		double l_extendedprice;
 		r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-		revenue += l_extendedprice * ((double)discount / 100);
+		double l_discount;
+		r_lt_local->get_value(L_DISCOUNT, l_discount);
+		revenue += l_extendedprice * l_discount;
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
@@ -464,7 +472,7 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 		usleep(WAIT_FOR_PERF_U);
 	}
 
-	cout << "********Q6 with ART revenue is : " << revenue << "  . Number of items: " << item_list.size() << endl;
+	cout << "********Q6 with ART revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "ART " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 
