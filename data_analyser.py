@@ -14,15 +14,18 @@ ROOT_PATH = os.getcwd()
 
 ossystem = os.system
 
+core_number = [1, 2, 4, 8, 16, 24, 32]
 
 ###################################### cmd #########################################
 
 def latency_analysis(filename):
     f = open(filename)
     # Svec = [] # scan     
-    Hvec = [] # hash
-    Bvec = [] # btree
-    Cvec = [] # cubit
+    Hash = [] # hash
+    BTree = [] # btree
+    BwTree = []
+    ART = []
+    CUBIT = [] # cubit
 
     ret = []
 
@@ -31,23 +34,35 @@ def latency_analysis(filename):
         if len(a) != 5:
             continue
         elif line.startswith('Hash '):
-            Hvec.append(float(a[-3]))
+            Hash.append(float(a[-3]))
         elif line.startswith('BTree '):
-            Bvec.append(float(a[-3]))
+            BTree.append(float(a[-3]))
+        elif line.startswith('BWTree '):
+            BwTree.append(float(a[-3]))
+        elif line.startswith('ART '):
+            ART.append(float(a[-3]))
         elif line.startswith('CUBIT '):
-            Cvec.append(float(a[-3]))
+            CUBIT.append(float(a[-3]))
         else:
             continue
-    if len(Hvec) != 0:
-        ret.append(sum(Hvec) / len(Hvec)) 
+    if len(Hash) != 0:
+        ret.append(sum(Hash) / len(Hash)) 
     else:
         ret.append(0)
-    if len(Bvec) != 0:
-        ret.append(sum(Bvec) / len(Bvec)) 
+    if len(BTree) != 0:
+        ret.append(sum(BTree) / len(BTree)) 
     else:
         ret.append(0)
-    if len(Cvec) != 0:
-        ret.append(sum(Cvec) / len(Cvec)) 
+    if len(BwTree) != 0:
+        ret.append(sum(BwTree) / len(BwTree)) 
+    else:
+        ret.append(0)
+    if len(ART) != 0:
+        ret.append(sum(ART) / len(ART)) 
+    else:
+        ret.append(0)
+    if len(CUBIT) != 0:
+        ret.append(sum(CUBIT) / len(CUBIT)) 
     else:
         ret.append(0)
     return ret
@@ -183,7 +198,6 @@ def index_time_analysis(filename):
 
 def  run_indexAndTuples():
     f = open('dat_DBx/index_time.dat', 'w')
-    core_number = [1, 2, 4, 8, 16, 24, 32]
     ret = [[]]
     ret.clear()
     for num in core_number:
@@ -192,17 +206,17 @@ def  run_indexAndTuples():
     pos = 1
     for run in [0,1,2,3,4,5,6]:
         f.write('{0}  {1}  {2} "Hash"\n'.format(pos, ret[run][0], ret[run][1]))
-        pos ++
-        f.write('{0}  {1} {2} "B^+-Tree"\n'.format(pos, ret[run][2], ret[run][3]))
-        pos ++
-        f.write('{0}  {1} {2} "Bw-Tree"\n'.format(pos, ret[run][4], ret[run][5]))
-        pos ++
-        f.write('{0}  {1} {2} "ART"\n'.format(pos, ret[run][6], ret[run][7]))
-        pos ++
+        pos += 1
+        f.write('{0}  {1}  {2} "B^+-Tree"\n'.format(pos, ret[run][2], ret[run][3]))
+        pos += 1
+        f.write('{0}  {1}  {2} "Bw-Tree"\n'.format(pos, ret[run][4], ret[run][5]))
+        pos += 1
+        f.write('{0}  {1}  {2} "ART"\n'.format(pos, ret[run][6], ret[run][7]))
+        pos += 1
         f.write('{0}  {1}  {2} "CUBIT"\n'.format(pos, ret[run][8], ret[run][9]))
-        pos ++
-        f.write('{0}  0         0 ""\n'.format(pos))
-        pos++
+        pos += 1
+        f.write('{0}  0    0 ""\n'.format(pos))
+        pos += 1
 
 
 #     f.write('1  {0}  {1} "Hash"\n'.format(ret[0][0], ret[0][1]))
@@ -238,46 +252,57 @@ def  run_indexAndTuples():
 
 def  run_latency():
     f = open('dat_DBx/run_time.dat', 'w')
-    core_number = [1, 2, 4, 8, 16, 24, 32]
     ret = [[]]
     ret.clear()
     for num in core_number:
         ret.append(latency_analysis('dat_tmp_DBx/core_{}.dat'.format(num)))
 
-    f.write('1  {0}  "Hash"\n'.format(ret[0][0]))
-    f.write('2  {0}  "B^+-Tree"\n'.format(ret[0][1]))
-    f.write('3  {0}  "CUBIT"\n'.format(ret[0][2]))
+    pos = 1
+    for run in [0,1,2,3,4,5,6]:
+        f.write('{0}  {1}  "Hash"\n'.format(pos, ret[run][0]))
+        pos += 1
+        f.write('{0}  {1}  "B^+-Tree"\n'.format(pos, ret[run][1]))
+        pos += 1
+        f.write('{0}  {1}  "Bw+-Tree"\n'.format(pos, ret[run][2]))
+        pos += 1
+        f.write('{0}  {1}  "ART"\n'.format(pos, ret[run][3]))
+        pos += 1
+        f.write('{0}  {1}  "CUBIT"\n'.format(pos, ret[run][4]))
+        pos += 2
 
-    f.write('5  {0}  "Hash"\n'.format(ret[1][0]))
-    f.write('6  {0}  "B^+-Tree"\n'.format(ret[1][1]))
-    f.write('7  {0}  "CUBIT"\n'.format(ret[1][2]))
+    # f.write('1  {0}  "Hash"\n'.format(ret[0][0]))
+    # f.write('2  {0}  "B^+-Tree"\n'.format(ret[0][1]))
+    # f.write('3  {0}  "CUBIT"\n'.format(ret[0][2]))
 
-    f.write('9  {0}  "Hash"\n'.format(ret[2][0]))
-    f.write('10  {0}  "B^+-Tree"\n'.format(ret[2][1]))
-    f.write('11  {0}  "CUBIT"\n'.format(ret[2][2]))
+    # f.write('5  {0}  "Hash"\n'.format(ret[1][0]))
+    # f.write('6  {0}  "B^+-Tree"\n'.format(ret[1][1]))
+    # f.write('7  {0}  "CUBIT"\n'.format(ret[1][2]))
 
-    f.write('13  {0}  "Hash"\n'.format(ret[3][0]))
-    f.write('14  {0}  "B^+-Tree"\n'.format(ret[3][1]))
-    f.write('15  {0}  "CUBIT"\n'.format(ret[3][2]))
+    # f.write('9  {0}  "Hash"\n'.format(ret[2][0]))
+    # f.write('10  {0}  "B^+-Tree"\n'.format(ret[2][1]))
+    # f.write('11  {0}  "CUBIT"\n'.format(ret[2][2]))
 
-    f.write('17  {0}  "Hash"\n'.format(ret[4][0]))
-    f.write('18  {0}  "B^+-Tree"\n'.format(ret[4][1]))
-    f.write('19  {0}  "CUBIT"\n'.format(ret[4][2]))
+    # f.write('13  {0}  "Hash"\n'.format(ret[3][0]))
+    # f.write('14  {0}  "B^+-Tree"\n'.format(ret[3][1]))
+    # f.write('15  {0}  "CUBIT"\n'.format(ret[3][2]))
 
-    f.write('21  {0}  "Hash"\n'.format(ret[5][0]))
-    f.write('22  {0}  "B^+-Tree"\n'.format(ret[5][1]))
-    f.write('23  {0}  "CUBIT"\n'.format(ret[5][2]))
+    # f.write('17  {0}  "Hash"\n'.format(ret[4][0]))
+    # f.write('18  {0}  "B^+-Tree"\n'.format(ret[4][1]))
+    # f.write('19  {0}  "CUBIT"\n'.format(ret[4][2]))
 
-    f.write('25  {0}  "Hash"\n'.format(ret[6][0]))
-    f.write('26  {0}  "B^+-Tree"\n'.format(ret[6][1]))
-    f.write('27  {0}  "CUBIT"\n'.format(ret[6][2]))
+    # f.write('21  {0}  "Hash"\n'.format(ret[5][0]))
+    # f.write('22  {0}  "B^+-Tree"\n'.format(ret[5][1]))
+    # f.write('23  {0}  "CUBIT"\n'.format(ret[5][2]))
+
+    # f.write('25  {0}  "Hash"\n'.format(ret[6][0]))
+    # f.write('26  {0}  "B^+-Tree"\n'.format(ret[6][1]))
+    # f.write('27  {0}  "CUBIT"\n'.format(ret[6][2]))
+
     f.close()  
-
 
 def gen_dat_DBx():
     print ('DBx1000 core')
     print ('-' * 10)
-    core_number = [1, 2, 4, 8, 16, 24, 32]
     # core_number = [1, 2, 4]
     f = open('dat_DBx/core.dat','w')
     for num in core_number:
