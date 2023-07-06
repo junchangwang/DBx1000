@@ -9,6 +9,7 @@ set xrange [0:35]
 set terminal png font ',15'
 set output "../graphs_DBx/core/core.png"
 set key font ",25" reverse top center horizontal Left
+set key at 13, 29
 set xtics  font ",29"
 # set ytics ("0" 0,"10" 10,"20" 20,"30" 30) font ",29"
 
@@ -25,7 +26,7 @@ replot
 
 ############################## histograms index and tuples ###############################
 reset
-set key font ",27" reverse invert top left Left
+set key font ",20" reverse invert top left Left
 
 set terminal png font ',15'
 set output "../graphs_DBx/core/histograms.png"
@@ -43,27 +44,18 @@ set boxwidth 0.75 relative
 set style fill solid 1.0 border -1
 set xtics nomirror rotate by -45 scale 0
 
-set ylabel "Latency (s)" offset 0.1,0,0 font ',29'
+set ylabel "Latency (s)" offset 0.1,0,0 font ',25'
 
-#unset xtics
-# set label "1" font ",25" at screen 0.21, screen 0.1
-# set label "2" font ",25" at screen 0.32, screen 0.1
-# set label "4" font ",25" at screen 0.435, screen 0.1
-# set label "8" font ",25" at screen 0.54, screen 0.1
-# set label "16" font ",25" at screen 0.64, screen 0.1
-# set label "24" font ",25" at screen 0.75, screen 0.1
-# set label "32(cores)" font ",25" at screen 0.83, screen 0.1
+set label "1" font ",25" at screen 0.23, screen 0.04
+set label "4" font ",25" at screen 0.43, screen 0.04
+set label "16" font ",25" at screen 0.6, screen 0.04
+set label "32(cores)" font ",25" at screen 0.8, screen 0.04
 
-set label "1" font ",29" at screen 0.23, screen 0.04
-set label "4" font ",29" at screen 0.43, screen 0.04
-set label "16" font ",29" at screen 0.6, screen 0.04
-set label "32(cores)" font ",29" at screen 0.78, screen 0.04
-
-set xtics font ",22"
-set ytics font ",29"
+set xtics font ",16"
+set ytics font ",25"
 
 plot "../dat_DBx/index_time.dat" using ($3/1e6):xtic(4) title "Fetching tuples" with histograms fill pattern 7 border rgb "black" lc rgb "black", \
-      "../dat_DBx/index_time.dat" using ($2/1e6):xtic(4) title "Reading index" with histograms fs solid border rgb "black" lc rgb "black"
+     "../dat_DBx/index_time.dat" using ($2/1e6):xtic(4) title "Reading index" with histograms fs solid border rgb "black" lc rgb "black"
      
 
 set terminal eps size 5, 3 font 'Linux Libertine O,20'  enhanced
