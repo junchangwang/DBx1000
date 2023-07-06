@@ -59,10 +59,11 @@ double g_perc_payment = PERC_PAYMENT;
 bool g_wh_update = WH_UPDATE;
 char * output_file = NULL;
 char * Mode = NULL;
+bool perf_enabled = false;
 
 // TPCH
 uint64_t SF = (uint64_t)(1);
-uint64_t g_num_orders = (uint64_t)( 1500000*10 ) * SF;  // FIXME! 1,500,000 * SF
+uint64_t g_num_orders = (uint64_t)1500000 * SF;  // FIXME! 1,500,000 * SF
 uint64_t g_max_lineitems = g_num_orders * 6;
 uint64_t g_nor_in_lineitems = 0UL;
 uint64_t STARTDATE = (uint64_t)92001; // 1992.01.01

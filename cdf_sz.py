@@ -6,6 +6,9 @@ import re
 import statistics as stati
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
+
+plt.rcParams["font.family"] = "Linux Libertine O"
 
 def draw_cdf(data):
     sorted_data = np.sort(data)
@@ -66,10 +69,10 @@ label_nm_map = {
 
 # linestyle_map
 ls_map = {
-    'Scan'   :   'solid',
-    'Hash'   :   'dashed',
-    'BTree'   :   (0, (3, 1, 1, 1)), #'densely dashdotted',
-    'CUBIT'        :   'dotted'
+    'Scan'   :   (0, (3, 1, 1, 1, 1, 1)),
+    'Hash'   :   '-.',
+    'BTree'   :   'dashed', 
+    'CUBIT'        :   '-'
 
 }
 
@@ -77,7 +80,7 @@ ls_map = {
 co_map = {
     'Scan'   :   'black',
     'Hash'   :   'g',
-    'BTree'   :   'orange',
+    'BTree'   :   'brown',
     'CUBIT'        :   'blue'
 }
 
@@ -118,11 +121,11 @@ def figure():
 
     #plt.xlim(left=0,right=400000)
     plt.ylim(0, 1)
-    plt.xlabel("TXN Response Time (ms)", fontsize='16')
-    plt.ylabel("Cumulative Fraction", fontsize='16')
-    legend = ax.legend(loc='lower right', shadow=True, fontsize='15')
-    plt.tick_params(labelsize=14)
-
+    plt.xlabel("TXN Response Time (ms)", fontsize='20')
+    plt.ylabel("Cumulative Fraction", fontsize='20')
+    legend = ax.legend(loc='lower right', shadow=True, fontsize='20')
+    plt.tick_params(labelsize=18)
+    plt.tight_layout()
     fig = 1
 
     if fig == 0:

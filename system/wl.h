@@ -6,6 +6,8 @@ class row_t;
 class table_t;
 class IndexHash;
 class index_btree;
+class index_bwtree;
+class index_art;
 class Catalog;
 class lock_man;
 class txn_man;

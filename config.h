@@ -4,7 +4,7 @@
 /***********************************************/
 // Simulation + Hardware
 /***********************************************/
-#define THREAD_CNT					1
+#define THREAD_CNT					4
 #define PART_CNT					1 
 // each transaction only accesses 1 virtual partition. But the lock/ts manager and index are not aware of such partitioning. VIRTUAL_PART_CNT describes the request distribution and is only used to generate queries. For HSTORE, VIRTUAL_PART_CNT should be the same as PART_CNT.
 #define VIRTUAL_PART_CNT			1
@@ -149,6 +149,8 @@ enum TPCHTxnType {TPCH_ALL,
 				TPCH_Q6_SCAN,
 				TPCH_Q6_HASH,
 				TPCH_Q6_BTREE,
+                TPCH_Q6_BWTREE,
+                TPCH_Q6_ART,
 				TPCH_Q6_CUBIT,
 				TPCH_RF1,
 				TPCH_RF2};

@@ -90,6 +90,7 @@ extern UInt32 g_ts_batch_num;
 extern map<string, string> g_params;
 
 extern char * Mode;
+extern bool perf_enabled;
 
 // YCSB
 extern UInt32 g_cc_alg;

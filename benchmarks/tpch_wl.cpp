@@ -7,6 +7,8 @@
 #include "table.h"
 #include "index_hash.h"
 #include "index_btree.h"
+#include "index_bwtree.h"
+#include "index_art.h"
 #include "row.h"
 #include "query.h"
 #include "txn.h"
@@ -125,7 +127,7 @@ RC tpch_wl::init_schema(const char * schema_file) {
 	i_lineitem = indexes["LINEITEM_IDX"];
 	i_orders = indexes["ORDERS_IDX"];
 
-	// Explicitly build i_Q6_hashtable and i_Q6_btree
+	// Explicitly build i_Q6_hashtable and i_Q6_btree and i_Q6_bwtree
 	string tname("LINEITEM");
 	int part_cnt = (CENTRAL_INDEX)? 1 : g_part_cnt;
 
@@ -144,6 +146,14 @@ RC tpch_wl::init_schema(const char * schema_file) {
 	i_Q6_btree = (index_btree *) _mm_malloc(sizeof(index_btree), 64);
 	new(i_Q6_btree) index_btree();
 	i_Q6_btree->init(part_cnt, tables[tname]);
+
+    i_Q6_bwtree = (index_bwtree *) _mm_malloc(sizeof(index_bwtree), 64);
+    new(i_Q6_bwtree) index_bwtree();
+    i_Q6_bwtree->init(part_cnt, tables[tname]);
+
+    i_Q6_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
+    new(i_Q6_art) index_art();
+    i_Q6_art->init(part_cnt, tables[tname]);
 
 	return RCOK;
 }
@@ -190,18 +200,11 @@ RC tpch_wl::printMemory() {
 
 	cout << "*************************Print Memory concumption: *******" << endl;	
 
-	cout << "BtreeMemory: "; i_Q6_btree->index_size();
-	cout << "HashMemory: ";  i_Q6_hashtable->index_size();
-	cout << "CubitMemory:" << endl;
-
-	cout << "All bitmaps concumption:" << endl;
-    cout << "M FP " << fence_pointers << std::endl;
-	cout << "M BM " << bitmap << std::endl;
-	
-	// cout << "each bitmap concumption: (discount, quantity, shipdate)" << endl;
-	// dynamic_cast<nbub::Nbub *>(bitmap_discount)->printMemory();
-	// dynamic_cast<nbub::Nbub *>(bitmap_quantity)->printMemory();
-	// dynamic_cast<nbub::Nbub *>(bitmap_shipdate)->printMemory();
+	cout << "HashMemory (MB): " <<  i_Q6_hashtable->index_size()/1000000 << endl;
+	cout << "BtreeMemory (MB): " << i_Q6_btree->index_size()/1000000 << endl;
+    cout << "BwtreeMemory (MB): " << i_Q6_bwtree->index_size()/1000000 << endl;
+    cout << "ARTMemory (MB): " << i_Q6_art->index_size()/1000000 << endl;
+	cout << "CubitMemory (MB):" << bitmap/1000000 << endl;
 
 	cout << "*************************Print Memory concumption end *******" << endl;	
 	return RCOK;
@@ -222,6 +225,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 	long  long  i_lineitem_time = (long  long)0;
 	long  long  i_Q6_hashtable_time = (long  long)0;
 	long  long  i_Q6_btree_time = (long  long)0;
+    long  long  i_Q6_bwtree_time = (long  long)0;
+    long  long  i_Q6_art_time = (long  long)0;
 	long  long  i_bitmap_time = (long  long)0;
 	long  long  orders_allocate = (long  long)0;
 	long  long  orders_set_value = (long  long)0;
@@ -272,6 +277,9 @@ void tpch_wl::init_tab_orderAndLineitem() {
 		uint64_t lines = URand(1, 7, 0);
 		// uint64_t lines = 1;
 		g_nor_in_lineitems += lines;
+
+        i_Q6_bwtree->UpdateThreadLocal(g_thread_cnt);
+        i_Q6_bwtree->AssignGCID(0);
 		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
 			row_t * row2;
 			uint64_t row_id2 = 0;
@@ -354,6 +362,18 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			end = std::chrono::high_resolution_clock::now();
 			i_Q6_btree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
+            start = std::chrono::high_resolution_clock::now();
+            index_insert((INDEX *)i_Q6_bwtree, Q6_key, row2, 0);
+            end = std::chrono::high_resolution_clock::now();
+            i_Q6_bwtree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+            start = std::chrono::high_resolution_clock::now();
+            index_insert((INDEX *)i_Q6_art, Q6_key, row2, 0);
+			itemid_t * ptr;
+			i_Q6_art->index_read(Q6_key, ptr, 0, 0);
+            end = std::chrono::high_resolution_clock::now();
+            i_Q6_art_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
 			auto ts_7 = std::chrono::high_resolution_clock::now();
 
 			// if (Mode != "cache")
@@ -378,20 +398,24 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			i_bitmap_time += std::chrono::duration_cast<std::chrono::microseconds>(ts_8 - ts_7).count();
 		}
 	}
+    i_Q6_bwtree->UnregisterThread(0);
+    //i_Q6_bwtree->UpdateThreadLocal(1);
 
 	auto end_g = std::chrono::high_resolution_clock::now();
 	cout << "*************************INDEX build time: *******" << endl
 		<< "Overall time (microseconds):" << std::chrono::duration_cast<std::chrono::microseconds>(end_g - start_g).count() << endl
 		<< "i_order_time:" << i_order_time << ", " 
-		<< "i_Q6_hashtable_time:" << i_Q6_hashtable_time << ", "
 		<< "i_lineitem_time:" << i_lineitem_time << ", "
+		<< "i_Q6_hashtable_time:" << i_Q6_hashtable_time << ", "
 		<< "i_Q6_btree_time:" << i_Q6_btree_time << ", "
+		<< "i_Q6_bwtree_time:" << i_Q6_bwtree_time << ", "
+		<< "i_Q6_art_time:" << i_Q6_art_time <<", "
 		<< "i_bitmap_time:" << i_bitmap_time << endl
 	    << "orders_allocate:" << orders_allocate << ", "
 		<< "orders_set_value:" << orders_set_value << ", "
 		<< "lineitem_allocate:" << lineitem_allocate << ", "
 		<< "lineitem_set_value:" << lineitem_set_value << endl
-		<< "sum = " << i_order_time + i_Q6_hashtable_time + i_lineitem_time + i_Q6_btree_time + i_bitmap_time + orders_allocate 
+		<< "sum = " << i_order_time + i_Q6_hashtable_time + i_lineitem_time + i_Q6_btree_time + i_Q6_bwtree_time + i_Q6_art_time + i_bitmap_time + orders_allocate 
 						+ orders_set_value + lineitem_allocate + lineitem_set_value << endl
 		<<"*************************INDEX build time end*******" << endl;
 
@@ -660,11 +684,11 @@ RC tpch_wl::init_bitmap()
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
 	config_shipdate->n_queries = MAX_TXN_PER_PART;
-	config_shipdate->n_deletes = MAX_TXN_PER_PART * 0.1;
+	config_shipdate->n_udis = MAX_TXN_PER_PART * 0.1;
 	config_shipdate->verbose = false;
 	config_shipdate->time_out = 100;
 	config_shipdate->autoCommit = false;
-	config_shipdate->n_merge_threash = 4;
+	config_shipdate->n_merge_threshold = 16;
 	config_shipdate->db_control = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
@@ -717,11 +741,11 @@ RC tpch_wl::init_bitmap()
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
 	config_discount->n_queries = MAX_TXN_PER_PART;
-	config_discount->n_deletes = MAX_TXN_PER_PART * 0.1;
+	config_discount->n_udis = MAX_TXN_PER_PART * 0.1;
 	config_discount->verbose = false;
 	config_discount->time_out = 100;
 	config_discount->autoCommit = false;
-	config_discount->n_merge_threash = 4;
+	config_discount->n_merge_threshold = 16;
 	config_discount->db_control = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
@@ -775,11 +799,11 @@ RC tpch_wl::init_bitmap()
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
 	config_quantity->n_queries = MAX_TXN_PER_PART;
-	config_quantity->n_deletes = MAX_TXN_PER_PART * 0.1;
+	config_quantity->n_udis = MAX_TXN_PER_PART * 0.1;
 	config_quantity->verbose = false;
 	config_quantity->time_out = 100;
 	config_quantity->autoCommit = false;
-	config_quantity->n_merge_threash = 4;
+	config_quantity->n_merge_threshold = 16;
 	config_quantity->db_control = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
