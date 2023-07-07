@@ -690,6 +690,10 @@ RC tpch_wl::init_bitmap()
 	config_shipdate->autoCommit = false;
 	config_shipdate->n_merge_threshold = 16;
 	config_shipdate->db_control = true;
+
+	config_shipdate->segmented_btv = true;
+	config_shipdate->encoded_word_len = 31;
+	config_shipdate->rows_per_seg = 100000;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_shipdate->approach == "ub") {
@@ -747,6 +751,10 @@ RC tpch_wl::init_bitmap()
 	config_discount->autoCommit = false;
 	config_discount->n_merge_threshold = 16;
 	config_discount->db_control = true;
+
+	config_discount->segmented_btv = true;
+	config_discount->encoded_word_len = 31;
+	config_discount->rows_per_seg = 100000;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_discount->approach == "ub") {
@@ -790,7 +798,7 @@ RC tpch_wl::init_bitmap()
 	enable_fence_pointer = config_quantity->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
 	config_quantity->approach = {"nbub-lk"};
-	config_quantity->nThreads_for_getval = 2;
+	config_quantity->nThreads_for_getval = 4;
 	config_quantity->show_memory = true;
 	config_quantity->on_disk = false;
 	config_quantity->showEB = false;
@@ -805,6 +813,10 @@ RC tpch_wl::init_bitmap()
 	config_quantity->autoCommit = false;
 	config_quantity->n_merge_threshold = 16;
 	config_quantity->db_control = true;
+
+	config_quantity->segmented_btv = true;
+	config_quantity->encoded_word_len = 31;
+	config_quantity->rows_per_seg = 100000;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_quantity->approach == "ub") {
