@@ -60,7 +60,7 @@ def main():
         gen_raw_data()
         os.system(cmd4)
         os.system(cmd3)
-        os.system(cmd2)
+        # os.system(cmd2)
         os.system(cmd.format(itr))
         itr += 1
     print('Done!\n')

@@ -8,14 +8,13 @@ set yrange [0:]
 set xrange [0:35]
 set terminal png font ',15'
 set output "../graphs_DBx/core/core.png"
-set key font ",25" reverse top center horizontal Left
-set key at 13, 29
+set key font ",20" reverse top left vertical Left
 set xtics  font ",29"
 # set ytics ("0" 0,"10" 10,"20" 20,"30" 30) font ",29"
 
 plot "../dat_DBx/core.dat" every 6::5::41 title "CUBIT" lc rgb "blue" lw 8 ps 1.5 pt 6 with linespoints,\
+      "../dat_DBx/core.dat" every 6::3::39 title "Bw-Tree" lc rgb "skyblue" lw 8 ps 1.5 pt 8 dt "-" with linespoints,\
       "../dat_DBx/core.dat" every 6::4::40 title "ART" lc rgb "light-red" lw 8 ps 1.5 pt 8 dt "-" with linespoints,\
-      "../dat_DBx/core.dat" every 6::3::39 title "Bw+-Tree" lc rgb "skyblue" lw 8 ps 1.5 pt 8 dt "-" with linespoints,\
       "../dat_DBx/core.dat" every 6::2::38 title "B^+-Tree" lc rgb "brown" lw 8 ps 1.5 pt 8 dt "-" with linespoints,\
       "../dat_DBx/core.dat" every 6::1::37 title "Hash" lc rgb "sea-green" lw 8 ps 1.5 pt 10 dt 9 with linespoints,\
       "../dat_DBx/core.dat" every 6::0::36 title "Scan" lc rgb "black" lw 8 ps 1.5 pt 12 dt 5 with linespoints
