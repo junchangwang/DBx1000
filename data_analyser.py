@@ -92,23 +92,22 @@ def throughput_analysis(filename):
 def memory_analysis(filename):
     f = open(filename)
     ret = []
-    bitmap_memory = 0
-    
+
     for line in f:
         a = line.split()
-        if line.startswith('HashMemory: '):
+        if line.startswith('HashMemory '):
             ret.append(float(a[-1]))
-        elif line.startswith('BtreeMemory: '):
+        elif line.startswith('BtreeMemory '):
             ret.append(float(a[-1]))
-        elif line.startswith('BwtreeMemory: '):
+        elif line.startswith('BwtreeMemory '):
             ret.append(float(a[-1]))
-        elif line.startswith('ARTMemory: '):
+        elif line.startswith('ARTMemory '):
             ret.append(float(a[-1]))
-        elif line.startswith('CUBITMemory: '):
+        elif line.startswith('CUBITMemory '):
             ret.append(float(a[-1]))
         else:
             continue
-    ret.append(bitmap_memory)
+
     return ret
 
 def index_time_analysis(filename):
@@ -327,12 +326,16 @@ def gen_dat_DBx():
     print ('DBx1000 memory')
     print ('-' * 10)
     f = open('dat_DBx/memory.dat','w')
-    for num in core_number:
-        res = memory_analysis('dat_tmp_DBx/core_{}.dat'.format(num))
-        print(res)
-        print('\n')
-        for tp in res:
-            f.write('{} {} \n'.format(num, tp))
+
+    res = memory_analysis('dat_tmp_DBx/core_{}.dat'.format(1))
+    print(res)
+    print('\n')
+
+    cnt = 0
+    for tp in res:
+        f.write('{} {} \n'.format(cnt, tp))
+        cnt += 1
+
     f.close()  
 
     print ('-' * 10)
