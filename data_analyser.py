@@ -200,11 +200,12 @@ def  run_indexAndTuples():
     f = open('dat_DBx/index_time.dat', 'w')
     ret = [[]]
     ret.clear()
-    for num in core_number:
+    use_number = [1, 4, 16, 32]
+    for num in use_number:
         ret.append(index_time_analysis('dat_tmp_DBx/core_{}.dat'.format(num)))
 
     pos = 1
-    for run in [0,1,2,3,4,5,6]:
+    for run in [0,1,2,3]:
         f.write('{0}  {1}  {2} "Hash"\n'.format(pos, ret[run][0], ret[run][1]))
         pos += 1
         f.write('{0}  {1}  {2} "B^+-Tree"\n'.format(pos, ret[run][2], ret[run][3]))
@@ -258,7 +259,7 @@ def  run_latency():
         ret.append(latency_analysis('dat_tmp_DBx/core_{}.dat'.format(num)))
 
     pos = 1
-    for run in [0,1,2,3,4,5,6]:
+    for run in [0,1,2,3]:
         f.write('{0}  {1}  "Hash"\n'.format(pos, ret[run][0]))
         pos += 1
         f.write('{0}  {1}  "B^+-Tree"\n'.format(pos, ret[run][1]))
