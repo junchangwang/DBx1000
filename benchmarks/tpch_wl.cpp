@@ -694,6 +694,7 @@ RC tpch_wl::init_bitmap()
 	config_shipdate->segmented_btv = true;
 	config_shipdate->encoded_word_len = 31;
 	config_shipdate->rows_per_seg = 100000;
+	config_shipdate->enable_parallel_cnt = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_shipdate->approach == "ub") {
@@ -755,6 +756,7 @@ RC tpch_wl::init_bitmap()
 	config_discount->segmented_btv = true;
 	config_discount->encoded_word_len = 31;
 	config_discount->rows_per_seg = 100000;
+	config_discount->enable_parallel_cnt = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_discount->approach == "ub") {
@@ -817,6 +819,7 @@ RC tpch_wl::init_bitmap()
 	config_quantity->segmented_btv = true;
 	config_quantity->encoded_word_len = 31;
 	config_quantity->rows_per_seg = 100000;
+	config_quantity->enable_parallel_cnt = true;
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_quantity->approach == "ub") {
