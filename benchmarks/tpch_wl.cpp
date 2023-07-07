@@ -369,8 +369,6 @@ void tpch_wl::init_tab_orderAndLineitem() {
 
             start = std::chrono::high_resolution_clock::now();
             index_insert((INDEX *)i_Q6_art, Q6_key, row2, 0);
-			itemid_t * ptr;
-			i_Q6_art->index_read(Q6_key, ptr, 0, 0);
             end = std::chrono::high_resolution_clock::now();
             i_Q6_art_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
@@ -399,7 +397,6 @@ void tpch_wl::init_tab_orderAndLineitem() {
 		}
 	}
     i_Q6_bwtree->UnregisterThread(0);
-    //i_Q6_bwtree->UpdateThreadLocal(1);
 
 	auto end_g = std::chrono::high_resolution_clock::now();
 	cout << "*************************INDEX build time: *******" << endl
