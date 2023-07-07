@@ -5,6 +5,8 @@
 #ifndef ART_OPTIMISTICLOCK_COUPLING_N_H
 #define ART_OPTIMISTICLOCK_COUPLING_N_H
 #include "N.h"
+#include <queue>
+#include <utility>
 
 using namespace ART;
 
@@ -76,6 +78,8 @@ namespace ART_OLC {
         void insert(const Key &k, TID tid, ART::ThreadInfo &epocheInfo);
 
         void remove(const Key &k, ART::ThreadInfo &epocheInfo);
+
+        int size(ART::ThreadInfo &threadEpocheInfo) const;
     };
 }
 #endif //ART_OPTIMISTICLOCK_COUPLING_N_H

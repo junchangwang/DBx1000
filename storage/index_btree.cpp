@@ -39,6 +39,14 @@ int index_btree::index_size() {
 	bool last_iter = false;
 	do {
 		c = p;
+		size += sizeof(*c);
+		size += c->num_keys * 8 * 2;
+		bt_node * cursor = c;
+		while (cursor->next != NULL) {
+			size += sizeof(*cursor);
+			size += cursor->num_keys * 8 * 2;
+			cursor = cursor->next;	
+		}
 		if (!c->is_leaf) 
 			p = (bt_node *)c->pointers[0];
 		else
@@ -53,7 +61,7 @@ int index_btree::index_size() {
 					item_cnt ++;
 					size += sizeof(*item);
 					item = item->next;
-					}
+				}
 			}
 			c = c->next;
 		}

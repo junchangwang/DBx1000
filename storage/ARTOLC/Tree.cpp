@@ -8,6 +8,10 @@
 
 #include "helper.h"
 
+#define N4_SIZE   52
+#define N16_SIZE  160
+#define N48_SIZE  656
+#define N256_SIZE 2064
 
 namespace ART_OLC {
 
@@ -560,6 +564,90 @@ namespace ART_OLC {
                 }
             }
         }
+    }
+
+    int Tree::size(ART::ThreadInfo &threadEpocheInfo) const {
+        int size = 0;
+
+        EpocheGuardReadonly EpocheGuard(threadEpocheInfo);
+        int restartCount = 0;
+    restart:
+        if (restartCount++)
+            yield(restartCount);
+        bool needRestart = false;
+        uint64_t v;
+
+        std::queue<N *> queue;
+        queue.push(root);
+
+        while (!queue.empty()) {
+            int len = queue.size();
+            for (int i = 0; i < len; i++) {
+                N *node = queue.front();
+
+                // v = node->readLockOrRestart(needRestart);
+                if (needRestart) goto restart;
+
+                if (N::isLeaf(node)) {
+                    TID tid = N::getLeaf(node);
+                    itemid_t *item = reinterpret_cast<itemid_t *>(tid);
+                    while (item != nullptr) {
+                        size += sizeof(*item);
+                        item = item->next;
+                    }
+                    queue.pop();
+                    continue;
+                }
+
+                switch (node->getType()) {
+                case NTypes::N4: {
+                    size += N4_SIZE;
+                    auto n = static_cast<const N4*>(node);
+                    for (int i = 0; i < 4; i++) {
+                        if (n->children[i] != nullptr) queue.push(n->children[i]); 
+                    }
+                    // node->readUnlockOrRestart(v, needRestart);
+                    if (needRestart) goto restart;
+                    break;
+                }
+                case NTypes::N16: {
+                    size += N16_SIZE;
+                    auto n = static_cast<const N16*>(node); 
+                    for (int i = 0; i < 16; i++) {
+                        if (n->children[i] != nullptr) queue.push(n->children[i]); 
+                    }
+                    // node->readUnlockOrRestart(v, needRestart);
+                    if (needRestart) goto restart;
+                    break;
+                }
+                case NTypes::N48: {
+                    size += N48_SIZE;
+                    auto n = static_cast<const N48*>(node);
+                    for (int i = 0; i < 48; i++) {
+                        if (n->children[i] != nullptr) queue.push(n->children[i]); 
+                    }
+                    // node->readUnlockOrRestart(v, needRestart);
+                    if (needRestart) goto restart;
+                    break;
+                }
+                case NTypes::N256: {
+                    size += N256_SIZE;
+                    auto n = static_cast<const N256*>(node);
+                    for (int i = 0; i < 256; i++) {
+                        if (n->children[i] != nullptr) queue.push(n->children[i]);
+                    }
+                    // node->readUnlockOrRestart(v, needRestart);
+                    if (needRestart) goto restart;
+                    break;
+                }
+                default:
+                    break;
+                }
+                queue.pop();
+            }
+        }
+        
+        return size;
     }
 
     inline typename Tree::CheckPrefixResult Tree::checkPrefix(N *n, const Key &k, uint32_t &level) {

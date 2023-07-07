@@ -29,6 +29,8 @@ int IndexHash::index_size()
 		for (int j = 0; j < bucket_cnt_per_part; j++) {
 				bucket = &_buckets[i][j];
 				cur_node = bucket->first_node;
+				size += sizeof(bucket);
+				size += sizeof(cur_node);
 				while (cur_node != NULL) {
 					item = cur_node->items;
 					while (item != NULL) {

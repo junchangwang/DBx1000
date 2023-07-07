@@ -40,8 +40,17 @@ RC index_art::init(uint64_t part_cnt, table_t * table) {
 }
 
 int index_art::index_size() {
-    // todo
-    return -1;
+    int size = 0;
+
+    for (uint64_t i = 0; i < part_cnt; i++) {
+        ART_OLC::Tree * root = find_root(i);
+        assert(root != NULL);
+
+        ART::ThreadInfo thread_info = root->getThreadInfo();
+        size += root->size(thread_info);
+    }
+
+    return size;
 }
 
 ART_OLC::Tree * index_art::find_root(uint64_t part_id) {

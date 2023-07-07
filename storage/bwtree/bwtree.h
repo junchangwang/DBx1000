@@ -2792,7 +2792,7 @@ namespace wangziqi2013
       static const size_t LEAF_PREALLOCATION_SIZE = 0UL;
 #endif
 
-    private:
+    public:
       /*
        * class InnerNode - Inner node that holds keys and NodeID arrays
        *

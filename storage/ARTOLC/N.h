@@ -226,6 +226,7 @@ namespace ART_OLC {
 
     class N48 : public N {
         uint8_t childIndex[256];
+    public:
         N *children[48];
     public:
         static const uint8_t emptyMarker = 48;
@@ -260,6 +261,7 @@ namespace ART_OLC {
     };
 
     class N256 : public N {
+    public:
         N *children[256];
 
     public:
