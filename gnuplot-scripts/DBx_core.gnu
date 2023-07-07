@@ -33,8 +33,8 @@ set output "../graphs_DBx/core/histograms.png"
 set origin 0,0.05
 set size 1,0.95
 
-#set yrange [0:3e3]
-set autoscale y
+set yrange [0:1.55]
+#set autoscale y
 
 #set title "Breakdown of Updates"
 set style data histograms
