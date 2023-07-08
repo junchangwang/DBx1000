@@ -1,6 +1,8 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#define ORDERED_LEAF_LIST 1
+
 /***********************************************/
 // Simulation + Hardware
 /***********************************************/
