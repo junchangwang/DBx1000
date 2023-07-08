@@ -448,12 +448,20 @@ namespace ART_OLC {
                     N *new_node = N::setLeaf(tid);
                     itemid_t * new_item = reinterpret_cast<itemid_t *>(tid);
 #ifdef ORDERED_LEAF_LIST
-                    itemid_t *current_item = target_item;
-                    while (current_item->next != NULL && new_item->primary_key >= current_item->primary_key) {
+                    if (new_item->primary_key <= target_item->primary_key) {
+                        N::change(node, k[level], new_node);
+                        new_item->next = target_item;
+                    } else {
+                        itemid_t *current_item = target_item;
+                        itemid_t *prior_item = current_item;
                         current_item = current_item->next;
+                        while (current_item != NULL && new_item->primary_key >= current_item->primary_key) {
+                            current_item = current_item->next;
+                            prior_item = prior_item->next;
+                        }
+                        prior_item->next = new_item;
+                        new_item->next = current_item;
                     }
-                    new_item->next = current_item->next;
-                    current_item->next = new_item;
 #else
 
                     N::change(node, k[level], new_node);

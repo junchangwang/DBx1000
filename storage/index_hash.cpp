@@ -188,12 +188,20 @@ void BucketHeader::insert_item(idx_key_t key,
 		if (cur_node->items == NULL) {
 			cur_node->items = item;
 		} else {
-			itemid_t* current = cur_node->items;
-			while (current->next != NULL && item->primary_key >= current->primary_key) {
+			if (item->primary_key <= cur_node->items->primary_key) {
+				item->next = cur_node->items->next;
+				cur_node->items->next = item;
+			} else {
+				itemid_t* current = cur_node->items;
+				itemid_t* prior = current;
 				current = current->next;
+				while (current != NULL && item->primary_key >= current->primary_key) {
+					current = current->next;
+					prior = prior->next;
+				}
+				prior->next = item;
+				item->next = current;
 			}
-			item->next = current->next;
-			current->next = item;
 		}
 #else
 		item->next = cur_node->items;
