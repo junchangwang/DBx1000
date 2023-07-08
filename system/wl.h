@@ -34,5 +34,9 @@ public:
 // protected:
 	void index_insert(string index_name, uint64_t key, row_t * row);
 	void index_insert(INDEX * index, uint64_t key, row_t * row, int64_t part_id = -1);
+
+	void index_insert_with_primary_key(string index_name, uint64_t key, uint64_t primary_key,  row_t * row);
+	void index_insert_with_primary_key(INDEX * index, uint64_t key, uint64_t primary_key, row_t * row, int64_t part_id = -1);
+
 };
 

@@ -7,6 +7,7 @@
 #include "Key.h"
 
 #include "helper.h"
+#include "config.h"
 
 #define N4_SIZE   52
 #define N16_SIZE  160
@@ -444,11 +445,20 @@ namespace ART_OLC {
                     N *target = N::getChild(k[level], node);
                     TID target_tid = N::getLeaf(target);
                     itemid_t *target_item = reinterpret_cast<itemid_t *>(target_tid);
+                    N *new_node = N::setLeaf(tid);
+                    itemid_t * new_item = reinterpret_cast<itemid_t *>(tid);
+#ifdef ORDERED_LEAF_LIST
+                    itemid_t *current_item = target_item;
+                    while (current_item->next != NULL && new_item->primary_key >= current_item->primary_key) {
+                        current_item = current_item->next;
+                    }
+                    new_item->next = current_item->next;
+                    current_item->next = new_item;
+#else
 
-                    N *head = N::setLeaf(tid);
-                    N::change(node, k[level], head);
-                    itemid_t * head_item = reinterpret_cast<itemid_t *>(tid);
-                    head_item->next = target_item;
+                    N::change(node, k[level], new_node);
+                    new_item->next = target_item;
+#endif
 
                     node->writeUnlock();
                     return;

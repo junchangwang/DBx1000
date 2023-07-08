@@ -353,7 +353,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			uint64_t Q6_key = tpch_lineitemKey_index(shipdate, discount, (uint64_t)quantity);
 			// cout << "Q6_insert_key = " << Q6_key << endl; 
 			start = std::chrono::high_resolution_clock::now();
-			index_insert((INDEX *)i_Q6_hashtable, Q6_key, row2, 0);
+			index_insert_with_primary_key((INDEX *)i_Q6_hashtable, Q6_key, key, row2, 0);
 			end = std::chrono::high_resolution_clock::now();
 			i_Q6_hashtable_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
@@ -368,7 +368,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
             i_Q6_bwtree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
             start = std::chrono::high_resolution_clock::now();
-            index_insert((INDEX *)i_Q6_art, Q6_key, row2, 0);
+            index_insert_with_primary_key((INDEX *)i_Q6_art, Q6_key, key, row2, 0);
             end = std::chrono::high_resolution_clock::now();
             i_Q6_art_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 

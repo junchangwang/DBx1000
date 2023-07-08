@@ -183,8 +183,21 @@ void BucketHeader::insert_item(idx_key_t key,
 			first_node = new_node;
 		}
 	} else {
+#ifdef ORDERED_LEAF_LIST
+		if (cur_node->items == NULL) {
+			cur_node->items = item;
+		} else {
+			itemid_t* current = cur_node->items;
+			while (current->next != NULL && item->primary_key >= current->primary_key) {
+				current = current->next;
+			}
+			item->next = current->next;
+			current->next = item;
+		}
+#else
 		item->next = cur_node->items;
 		cur_node->items = item;
+#endif
 	}
 }
 
