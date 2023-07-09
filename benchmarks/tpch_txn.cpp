@@ -111,11 +111,11 @@ RC tpch_txn_man::run_Q6_scan(int tid, tpch_query * query) {
 	itemid_t * item;
 	int cnt = 0;
 	
-	int perf_pid;
-	if (perf_enabled == true && tid == 0) {
-		perf_pid = gen_perf_process((char *)"SCAN");
-		usleep(WAIT_FOR_PERF_U);
-	}
+//	int perf_pid;
+//	if (perf_enabled == true && tid == 0) {
+//		perf_pid = gen_perf_process((char *)"SCAN");
+//		usleep(WAIT_FOR_PERF_U);
+//	}
 	
 	auto start = std::chrono::high_resolution_clock::now();
 
@@ -157,10 +157,10 @@ RC tpch_txn_man::run_Q6_scan(int tid, tpch_query * query) {
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
-	if (perf_enabled == true && tid == 0) {
-		kill_perf_process(perf_pid);
-		usleep(WAIT_FOR_PERF_U);
-	}
+//	if (perf_enabled == true && tid == 0) {
+//		kill_perf_process(perf_pid);
+//		usleep(WAIT_FOR_PERF_U);
+//	}
 
 	cout << "********Q6 with SCAN  revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "SCAN " + to_string(cnt) + " " + to_string(time_elapsed_us) + "\n";
@@ -181,15 +181,15 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 	long  long index_us = (long  long)0;
 	vector<itemid_t *> item_list{};
 
+	auto start = std::chrono::high_resolution_clock::now();
+
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+
 	int perf_pid;
 	if (perf_enabled == true && tid == 0) {
 		perf_pid = gen_perf_process((char *)"HASH");
 		usleep(WAIT_FOR_PERF_U);
 	}
-
-	auto start = std::chrono::high_resolution_clock::now();
-
-	shared_lock<shared_mutex> r_lock(index->rw_lock);
 
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
@@ -210,13 +210,12 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 		}
 	}
 
-	auto end_f = std::chrono::high_resolution_clock::now();
-	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
-
 	if (perf_enabled == true && tid == 0) {
 		kill_perf_process(perf_pid);
-		usleep(WAIT_FOR_PERF_U);
 	}
+
+	auto end_f = std::chrono::high_resolution_clock::now();
+	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
 
 	// int perf_pid;
 	// if (perf_enabled == true && tid == 0) {
@@ -270,15 +269,15 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 	long  long index_us = (long  long)0;
 	vector<itemid_t *> item_list{};
 
+	auto start = std::chrono::high_resolution_clock::now();
+
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+
 	int perf_pid;
 	if (perf_enabled == true && tid == 0) {
 		perf_pid = gen_perf_process((char *)"BTREE");
 		usleep(WAIT_FOR_PERF_U);
 	}
-
-	auto start = std::chrono::high_resolution_clock::now();
-
-	shared_lock<shared_mutex> r_lock(index->rw_lock);
 
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
@@ -299,13 +298,12 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 		}
 	}
 
-	auto end_f = std::chrono::high_resolution_clock::now();
-	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
-
 	if (perf_enabled == true && tid == 0) {
 		kill_perf_process(perf_pid);
-		usleep(WAIT_FOR_PERF_U);
 	}
+
+	auto end_f = std::chrono::high_resolution_clock::now();
+	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
 
 	// int perf_pid;
 	// if (perf_enabled == true && tid == 0) {
@@ -358,13 +356,13 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
     long long index_us = (long long) 0;
     vector<itemid_t *> item_list{};
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     int perf_pid;
     if (perf_enabled == true && tid == 0) {
         perf_pid = gen_perf_process((char *)"BWTREE");
         usleep(WAIT_FOR_PERF_U);
     }
-
-    auto start = std::chrono::high_resolution_clock::now();
 
     index->AssignGCID(tid);
     for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
@@ -386,13 +384,12 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
     }
     index->UnregisterThread(tid);
 
-    auto end_f = std::chrono::high_resolution_clock::now();
-    index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
-
     if (perf_enabled == true && tid == 0) {
         kill_perf_process(perf_pid);
-        usleep(WAIT_FOR_PERF_U);
     }
+
+    auto end_f = std::chrono::high_resolution_clock::now();
+    index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
 
     // int perf_pid;
     // if (perf_enabled == true && tid == 0) {
@@ -446,15 +443,15 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 	long  long index_us = (long  long)0;
 	vector<itemid_t *> item_list{};
 
+	auto start = std::chrono::high_resolution_clock::now();
+
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+
 	int perf_pid;
 	if (perf_enabled == true && tid == 0) {
 		perf_pid = gen_perf_process((char *)"ART");
 		usleep(WAIT_FOR_PERF_U);
 	}
-
-	auto start = std::chrono::high_resolution_clock::now();
-
-	shared_lock<shared_mutex> r_lock(index->rw_lock);
 
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
 		for (uint64_t j = (uint64_t)(discount - 1); j <= (uint64_t)(discount + 1); j++) {
@@ -475,13 +472,12 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 		}
 	}
 
-	auto end_f = std::chrono::high_resolution_clock::now();
-	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
-
 	if (perf_enabled == true && tid == 0) {
 		kill_perf_process(perf_pid);
-		usleep(WAIT_FOR_PERF_U);
 	}
+
+	auto end_f = std::chrono::high_resolution_clock::now();
+	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
 
 	// int perf_pid;
 	// if (perf_enabled == true && tid == 0) {
@@ -615,7 +611,6 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 
 	if (perf_enabled == true && tid == 0) {
 		kill_perf_process(perf_pid);
-		usleep(WAIT_FOR_PERF_U);
 	}
 
 	// int perf_pid;
