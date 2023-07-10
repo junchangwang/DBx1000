@@ -6,6 +6,7 @@ import statistics as stati
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import  gridspec
+import sys
 
 dir = os.getcwd()
 
@@ -85,7 +86,7 @@ mark_map = {
 
 
 def get_data():
-    f = open('graphs_DBx_1/eva_data/dat_DBx/core.dat')
+    f = open('dat_DBx/core.dat')
     pos = 0  
     for line in f:
         a = line.split()
@@ -104,7 +105,7 @@ def get_data():
         pos += 1
     f.close()
     
-    f = open('graphs_DBx_1/eva_data/dat_DBx/memory.dat')
+    f = open('dat_DBx/memory.dat')
     for line in f:
         a = line.split()
         Bar_val.append(float(a[1]) / 1024)
@@ -113,7 +114,7 @@ def get_data():
 
 def draw():
     #plt.rcParams['font.size'] = 20
-    plt.figure(figsize = (6, 8), tight_layout = True)
+    plt.figure(figsize = (6, 8))
 
     gs = gridspec.GridSpec(2, 1, height_ratios = [1.8, 1], hspace = 0.4)
     ax1 = plt.subplot(gs[0, 0])
@@ -127,7 +128,7 @@ def draw():
         
     
     ax1.set_ylabel("Throughput (Txns/s)", fontsize= 22)
-    ax1.set_xlabel("Number of cores", fontsize= 22)
+    ax1.set_xlabel("(a) Number of cores", fontsize= 22)
     ax1.set_xticks(x_val)
     ax1.legend(loc = 'upper left', fontsize = 16, frameon = False)
     
@@ -140,18 +141,34 @@ def draw():
     ax2.bar('Trie', Bar_val[3], lw = 0.8, fc = 'purple', width = 0.5)
     ax2.bar('Ours', Bar_val[4], lw = 0.8, fc = 'blue', width = 0.5)
     
+    ## text
     ax2.text(0, Bar_val[0] + 0.05, round(Bar_val[0], 2), ha = 'center', va = "bottom", fontsize = 20)
     ax2.text(1, Bar_val[1] + 0.05, round(Bar_val[1], 2), ha = 'center', va = "bottom", fontsize = 20)
     ax2.text(2, Bar_val[3] + 0.05, round(Bar_val[3], 2), ha = 'center', va = "bottom", fontsize = 20)
     ax2.text(3, Bar_val[4] + 0.05, round(Bar_val[4], 2), ha = 'center', va = "bottom", fontsize = 20)
     
     ax2.set_ylabel("Memory Size (GB)", fontsize = 22)
-    ax2.set_xlabel("Different Indexes", fontsize = 20)
+    ax2.set_xlabel("(b)", fontsize = 20)
               
     #plt.show()
     
-    plt.savefig(dir + '/graphs_DBx_1/graphs_DBx/Motivation.eps', format='eps', dpi= 1200)
+    plt.savefig('Motivation.eps', format='eps', bbox_inches = 'tight', dpi= 1200, pad_inches = 0.02)
     
-get_data()  
-draw()
+def main():
+    if len(sys.argv) < 2:
+        print ("Must specify the directory containing experimental results.")
+    else:
+        print ("[motivation.py] To process director ", sys.argv[1])
+ 
+    if os.path.exists(sys.argv[1] + '/eva_data'):
+        os.chdir(sys.argv[1] + "/eva_data")      
+    get_data()
+    
+    os.chdir("../graphs_DBx")
+    draw()
+    
+    print('[motivation] Done!\n')
+
+if __name__ == '__main__':
+    main()
 
