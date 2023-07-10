@@ -11,6 +11,11 @@
 #include <cassert>
 #include <cstring>
 #include <string>
+#include <iostream>
+
+using namespace std;
+
+#define WAIT_FOR_PERF_U (1000 * 50)
 
 int gen_perf_process(char *tag) {
     int perf_pid = fork();
@@ -33,9 +38,9 @@ int gen_perf_process(char *tag) {
             char const *perfargs[12] = {"perf", "stat", "-e", events.c_str(), "-p",
                     perf_pid_opt, "-o", output_filename, "--append", NULL};
             execvp("perf", (char **)perfargs);
-            assert(0 && "perf failed to start");
+            cout << "=== Failed to invoke perf:  " << strerror(errno) << endl;
     } else {
-            perror("fork did not.");
+            cout << "=== Fork did not work in perf ===" << endl;
     }   
 
     assert(0);
@@ -49,6 +54,7 @@ int kill_perf_process(int perf_pid)
 
         do {
                 kill(perf_pid, SIGINT);
+		usleep(WAIT_FOR_PERF_U);
                 child_pid = wait(&stat_val);
         } while (perf_pid != child_pid);
 
