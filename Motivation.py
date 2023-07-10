@@ -114,7 +114,7 @@ def get_data():
 
 def draw():
     #plt.rcParams['font.size'] = 20
-    plt.figure(figsize = (6, 8))
+    plt.figure(figsize = (6, 6.8))
 
     gs = gridspec.GridSpec(2, 1, height_ratios = [1.8, 1], hspace = 0.4)
     ax1 = plt.subplot(gs[0, 0])
