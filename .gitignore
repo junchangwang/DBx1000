@@ -6,7 +6,7 @@ CUBIT-PDS/
 build/
 cscope.*
 output
-graphs_DBx*/
+graphs_*
 dat_*
 bm_*
 perf.output.*

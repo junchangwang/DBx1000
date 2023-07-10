@@ -18,14 +18,14 @@ x_val = [1, 2, 4, 8, 16, 24, 32]
 Scan = []
 Hash = []
 B_plus_Tree = []
-B_Tree = []
+BwTree = []
 Trie = []
 CUBIT = []
 
 Bar_val = []
 
 algorithm_lookup_1 = ['CUBIT',
-                      'BTree',
+                      'BwTree',
                       'Trie',
                       'Hash',
                       'Scan'
@@ -44,16 +44,16 @@ list_map = {
     'BTree'  :   B_plus_Tree,
     'CUBIT'  :   CUBIT,
     'Trie'   :   Trie,
-    'B-Tree' :   B_Tree
+    'BwTree' :   BwTree
 }
 
 label_nm_map = {
     'Scan'   :   'SCAN',
     'Hash'   :   'Hash',
-    'BTree'  :   '$\mathregular{B^+}$-Tree ',
+    'BTree'  :   '$\mathregular{B^+}$-Tree',
     'CUBIT'  :   'Our approach',
     'Trie'   :   'Trie',
-    'B-Tree' :   'B-Tree'
+    'BwTree' :   '$\mathregular{B^+}$-Tree'
 }
 
 ls_map = {
@@ -61,17 +61,17 @@ ls_map = {
     'Hash'   :   '-.',
     'BTree'  :   'dashed', 
     'CUBIT'  :   '-',
-    'B-Tree' :   '--',
+    'BwTree' :   '--',
     'Trie'   :   ':'
 }
 
 co_map = {
     'Scan'   :   'black',
-    'Hash'   :   'g',
-    'BTree'  :   'brown',
+    'Hash'   :   'darkgreen',
+    'BTree'  :   'darkred',
     'CUBIT'  :   'blue',
-    'B-Tree' :   'c',
-    'Trie'   :   'tan'
+    'BwTree' :   'darkred',
+    'Trie'   :   'purple'
 }
 
 mark_map = {
@@ -79,8 +79,8 @@ mark_map = {
     'Hash'   :   'v',
     'BTree'  :   '^',
     'CUBIT'  :   'o',
-    'B-Tree' :   '>',
-    'Trie'   :   's'
+    'BwTree' :   '^',
+    'Trie'   :   'x'
 }
 
 
@@ -96,7 +96,7 @@ def get_data():
         elif(pos % 6 == 2): 
             B_plus_Tree.append(float(a[1]))
         elif(pos % 6 == 3): 
-            B_Tree.append(float(a[1]))
+            BwTree.append(float(a[1]))
         elif(pos % 6 == 4): 
             Trie.append(float(a[1]))
         elif(pos % 6 == 5): 
@@ -113,9 +113,9 @@ def get_data():
 
 def draw():
     #plt.rcParams['font.size'] = 20
-    plt.figure(figsize = (6, 8), tight_layout = True)
+    plt.figure(figsize = (6, 7.5), tight_layout = True)
 
-    gs = gridspec.GridSpec(2, 1, height_ratios = [1.8, 1], hspace = 0.3)
+    gs = gridspec.GridSpec(2, 1, height_ratios = [1.8, 1], hspace = 0.4)
     ax1 = plt.subplot(gs[0, 0])
     ax2 = plt.subplot(gs[1, 0])
     ax1.tick_params(labelsize = 22)
@@ -129,15 +129,15 @@ def draw():
     ax1.set_ylabel("Throughput (op/s)", fontsize= 22)
     ax1.set_xlabel("Number of cores", fontsize= 22)
     ax1.set_xticks(x_val)
-    ax1.legend(loc = 'upper left', fontsize = 18, frameon = False)
+    ax1.legend(loc = 'upper left', fontsize = 16, frameon = False)
     
     #### memory bar
     ax2.set_ylim(0, 2.4)
     ax2.set_yticks([0, 0.5, 1, 1.5, 2])
     
-    ax2.bar('Hash', Bar_val[0], lw = 0.8, fc = 'g', width = 0.5) 
-    ax2.bar('$\mathregular{B^+}$-Tree ', Bar_val[1], lw = 0.8, fc = 'brown', width = 0.5)
-    ax2.bar('Trie', Bar_val[3], lw = 0.8, fc = 'tan', width = 0.5)
+    ax2.bar('Hash', Bar_val[0], lw = 0.8, fc = 'darkgreen', width = 0.5) 
+    ax2.bar('$\mathregular{B^+}$-Tree ', Bar_val[1], lw = 0.8, fc = 'darkred', width = 0.5)
+    ax2.bar('Trie', Bar_val[3], lw = 0.8, fc = 'purple', width = 0.5)
     ax2.bar('Ours', Bar_val[4], lw = 0.8, fc = 'blue', width = 0.5)
     
     ax2.text(0, Bar_val[0] + 0.05, round(Bar_val[0], 2), ha = 'center', va = "bottom", fontsize = 20)
@@ -146,12 +146,12 @@ def draw():
     ax2.text(3, Bar_val[4] + 0.05, round(Bar_val[4], 2), ha = 'center', va = "bottom", fontsize = 20)
     
     ax2.set_ylabel("Memory Size (GB)", fontsize = 22)
-    # ax2.set_xlabel("(b) Different Indexes", fontsize = 20)
+    ax2.set_xlabel("Different Indexes", fontsize = 20)
               
               
     #plt.show()
     
-    plt.savefig(dir + '/graphs_DBx_1/graphs_DBx/mix.eps', format='eps', dpi= 1200)
+    plt.savefig(dir + '/graphs_DBx_1/graphs_DBx/Motivation.eps', format='eps', dpi= 1200)
     
 get_data()  
 draw()
