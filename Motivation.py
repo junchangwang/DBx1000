@@ -126,7 +126,7 @@ def draw():
         ax1.plot(x_val, list_map[exp], marker = mark_map[exp], ms = 11, mfc = 'w', c = co_map[exp], ls = ls_map[exp], lw = 2, label = label_nm_map[exp])
         
     
-    ax1.set_ylabel("Throughput (op/s)", fontsize= 22)
+    ax1.set_ylabel("Throughput (Txns/s)", fontsize= 22)
     ax1.set_xlabel("Number of cores", fontsize= 22)
     ax1.set_xticks(x_val)
     ax1.legend(loc = 'upper left', fontsize = 16, frameon = False)
