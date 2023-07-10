@@ -113,7 +113,7 @@ def get_data():
 
 def draw():
     #plt.rcParams['font.size'] = 20
-    plt.figure(figsize = (6, 7.5), tight_layout = True)
+    plt.figure(figsize = (6, 8), tight_layout = True)
 
     gs = gridspec.GridSpec(2, 1, height_ratios = [1.8, 1], hspace = 0.4)
     ax1 = plt.subplot(gs[0, 0])
@@ -147,7 +147,6 @@ def draw():
     
     ax2.set_ylabel("Memory Size (GB)", fontsize = 22)
     ax2.set_xlabel("Different Indexes", fontsize = 20)
-              
               
     #plt.show()
     
