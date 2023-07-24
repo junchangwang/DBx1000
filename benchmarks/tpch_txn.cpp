@@ -179,6 +179,9 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
 	long  long index_us = (long  long)0;
+	long long index_read_us = (long long)0;
+	long long leaf_read_us = (long long)0;
+	long long total_us = (long long)0;
 	vector<itemid_t *> item_list{};
 
 	auto start = std::chrono::high_resolution_clock::now();
@@ -201,11 +204,18 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 					continue;
 				}
 
-				itemid_t * item = index_read((INDEX *)index, key, 0);
-				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
+				auto start1 = std::chrono::high_resolution_clock::now();
+				itemid_t *item = index_read((INDEX *)index, key, 0);
+				auto end1 = std::chrono::high_resolution_clock::now();
+				index_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
+				auto start2 = std::chrono::high_resolution_clock::now();
+				for (itemid_t *local_item = item; local_item != NULL; local_item = local_item->next)
+				{
 					item_list.push_back(local_item);
 					cnt ++;
 				}
+				auto end2 = std::chrono::high_resolution_clock::now();
+				leaf_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
 			}
 		}
 	}
@@ -244,6 +254,7 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 	// if (perf_enabled == true && tid == 0) {
 	// 	kill_perf_process(perf_pid);
@@ -252,7 +263,9 @@ RC tpch_txn_man::run_Q6_hash(int tid, tpch_query * query, IndexHash *index)
 
 	cout << "********Q6 with Hash  revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "Hash " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
+	string tmp2 = "Hash(new) " + to_string(item_list.size()) + ":" + to_string(total_us) + " " + to_string(index_read_us) + " " + to_string(leaf_read_us) + " " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
+	output_info[tid].push_back(tmp2);
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -267,6 +280,9 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
 	long  long index_us = (long  long)0;
+	long long index_read_us = (long long)0;
+	long long leaf_read_us = (long long)0;
+	long long total_us = (long long)0;
 	vector<itemid_t *> item_list{};
 
 	auto start = std::chrono::high_resolution_clock::now();
@@ -289,11 +305,17 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 					continue;
 				}
 
+				auto start1 = std::chrono::high_resolution_clock::now();
 				itemid_t * item = index_read(index, key, 0);
+				auto end1 = std::chrono::high_resolution_clock::now();
+				index_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
+				auto start2 = std::chrono::high_resolution_clock::now();
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					item_list.push_back(local_item);
 					cnt ++;
 				}
+				auto end2 = std::chrono::high_resolution_clock::now();
+				leaf_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
 			}
 		}
 	}
@@ -332,6 +354,7 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 	// if (perf_enabled == true && tid == 0) {
 	// 	kill_perf_process(perf_pid);
@@ -340,7 +363,9 @@ RC tpch_txn_man::run_Q6_btree(int tid, tpch_query * query, index_btree *index)
 
 	cout << "********Q6 with BTree revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "BTree " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
+	string tmp2 = "BTree(new) " + to_string(item_list.size()) + ":" + to_string(total_us) + " " + to_string(index_read_us) + " " + to_string(leaf_read_us) + " " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
+	output_info[tid].push_back(tmp2);
 
 	assert(rc == RCOK);
 	return finish(rc);
@@ -354,6 +379,9 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
     uint64_t discount = (uint64_t)(query->discount * 100);
     double quantity = query->quantity;
     long long index_us = (long long) 0;
+	long long index_read_us = (long long)0;
+	long long leaf_read_us = (long long)0;
+	long long total_us = (long long)0;
     vector<itemid_t *> item_list{};
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -374,11 +402,17 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
                     continue;
                 }
 
+				auto start1 = std::chrono::high_resolution_clock::now();
                 vector<itemid_t *> items = index_read(index, key, 0);
+				auto end1 = std::chrono::high_resolution_clock::now();
+				index_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
+				auto start2 = std::chrono::high_resolution_clock::now();
 				for (auto item : items) {
 					item_list.push_back(item);
                 	cnt ++;
 				}
+				auto end2 = std::chrono::high_resolution_clock::now();
+				leaf_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
             }
         }
     }
@@ -417,6 +451,7 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
 
     auto end = std::chrono::high_resolution_clock::now();
     long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     // if (perf_enabled == true && tid == 0) {
     //     kill_perf_process(perf_pid);
@@ -425,7 +460,9 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
 
 	cout << "********Q6 with BWTree revenue is : " << revenue << "  . Number of items: " << cnt << endl;;
     string tmp = "BWTree " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
+	string tmp2 = "BWTree(new) " + to_string(item_list.size()) + ":" + to_string(total_us) + " " + to_string(index_read_us) + " " + to_string(leaf_read_us) + " " + to_string(tuple_us) + "\n";
     output_info[tid].push_back(tmp);
+    output_info[tid].push_back(tmp2);
 
     assert(rc == RCOK);
     return finish(rc);
@@ -441,6 +478,9 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 	uint64_t discount = (uint64_t)(query->discount * 100); // Unit is 1
 	double quantity = query->quantity;
 	long  long index_us = (long  long)0;
+	long long index_read_us = (long long)0;
+	long long leaf_read_us = (long long)0;
+	long long total_us = (long long)0;
 	vector<itemid_t *> item_list{};
 
 	auto start = std::chrono::high_resolution_clock::now();
@@ -463,11 +503,17 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 					continue;
 				}
 
+				auto start1 = std::chrono::high_resolution_clock::now();
 				itemid_t * item = index_read((INDEX *)index, key, 0);
+				auto end1 = std::chrono::high_resolution_clock::now();
+				index_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
+				auto start2 = std::chrono::high_resolution_clock::now();
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					item_list.push_back(local_item);
 					cnt ++;
 				}
+				auto end2 = std::chrono::high_resolution_clock::now();
+				leaf_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
 			}
 		}
 	}
@@ -506,6 +552,7 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 	// if (perf_enabled == true && tid == 0) {
 	// 	kill_perf_process(perf_pid);
@@ -514,7 +561,9 @@ RC tpch_txn_man::run_Q6_art(int tid, tpch_query * query, index_art *index)
 
 	cout << "********Q6 with ART revenue is : " << revenue << "  . Number of items: " << cnt << endl;
 	string tmp = "ART " + to_string(item_list.size()) + ":" + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
+	string tmp2 = "ART(new) " + to_string(item_list.size()) + ":" + to_string(total_us) + " " + to_string(index_read_us) + " " + to_string(leaf_read_us) + " " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
+	output_info[tid].push_back(tmp2);
 
 	assert(rc == RCOK);
 	return finish(rc);
