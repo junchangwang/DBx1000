@@ -1,6 +1,8 @@
+#include <cstdint>
 #include <cstdio>
 #include <shared_mutex>
 #include <signal.h>
+#include <tuple>
 #include "global.h"
 #include "tpch.h"
 #include "tpch_query.h"
@@ -116,43 +118,97 @@ RC tpch_txn_man::run_Q6_scan(int tid, tpch_query * query) {
 //		perf_pid = gen_perf_process((char *)"SCAN");
 //		usleep(WAIT_FOR_PERF_U);
 //	}
+
+    struct scan_block {
+	    void operator()(tpch_txn_man *obj, tpch_query *query, table_t *table, uint64_t row_start, uint64_t row_end, std::tuple<double, int> &result) {
+            for (uint64_t row_id = row_start; row_id < row_end; row_id++) {
+				row_t * r_lt = (row_t *) &table->row_buffer[row_id];
+				assert(r_lt != NULL);
+				row_t * r_lt_local = obj->get_row(r_lt, SCAN);
+				if (r_lt_local == NULL) {
+					// Skip the deleted item.
+					// return finish(Abort);
+					continue;
+				}
+
+				uint64_t l_shipdate;
+				r_lt_local->get_value(L_SHIPDATE, l_shipdate);
+				double l_discount;
+				r_lt_local->get_value(L_DISCOUNT, l_discount);
+				double l_quantity;
+				r_lt_local->get_value(L_QUANTITY, l_quantity);
+
+				if ((l_shipdate / 1000) == (query->date / 1000)
+					&& (uint64_t)(l_discount*100) >= (uint64_t)((uint64_t)(query->discount*100) - 1) 
+					&& (uint64_t)(l_discount*100) <= (uint64_t)((uint64_t)(query->discount*100) + 1) 
+					&& (uint64_t)l_quantity < (uint64_t)query->quantity)
+				{
+					double l_extendedprice;
+					r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+					std::get<0>(result) += l_extendedprice * l_discount;
+					std::get<1>(result) ++;
+				}
+			}
+		}
+	};
 	
 	auto start = std::chrono::high_resolution_clock::now();
 
 	double revenue = 0;
 	uint64_t max_items = (uint64_t) _wl->t_lineitem->cur_tab_size;
-	for (uint64_t row_id = 0; row_id < max_items; row_id ++) {
-                // We rely on hardware cache prefeching and adjacent prefeching, which is smart enough to handle this.
-                // The only concern is that when a large number of workers run Q6_scan concurrently,
-                // they compete for the cache, especially the LLC.
-		row_t * r_lt = (row_t *) &_wl->t_lineitem->row_buffer[row_id];
-		assert(r_lt != NULL);
-		row_t * r_lt_local = get_row(r_lt, SCAN);
-		if (r_lt_local == NULL) {
-			// Skip the deleted item.
-			// return finish(Abort);
-			continue;
-		}
 
-		uint64_t l_shipdate;
-		r_lt_local->get_value(L_SHIPDATE, l_shipdate);
-		double l_discount;
-		r_lt_local->get_value(L_DISCOUNT, l_discount);
-		double l_quantity;
-		r_lt_local->get_value(L_QUANTITY, l_quantity);
-
-		if ((l_shipdate / 1000) == (query->date / 1000)
-			&& (uint64_t)(l_discount*100) >= (uint64_t)((uint64_t)(query->discount*100) - 1) 
-			&& (uint64_t)(l_discount*100) <= (uint64_t)((uint64_t)(query->discount*100) + 1) 
-			&& (uint64_t)l_quantity < (uint64_t)query->quantity)
-		{
-				double l_extendedprice;
-				r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-				revenue += l_extendedprice * l_discount;
-
-				cnt ++;
-		}
+    std::vector<std::tuple<double, int>> results(TPCH_Q6_SCAN_THREADS);
+    uint64_t block_size = max_items / TPCH_Q6_SCAN_THREADS;
+	uint64_t block_start = 0;
+	std::vector<std::thread> threads(TPCH_Q6_SCAN_THREADS - 1);
+    for (int i = 0; i < TPCH_Q6_SCAN_THREADS - 1; i++) {
+    	uint64_t block_end = block_start + block_size - 1;
+        threads[i] = std::thread(scan_block(), this, query, _wl->t_lineitem, block_start, block_end, std::ref(results[i]));
+		block_start = block_end + 1;
 	}
+    scan_block()(this, query, _wl->t_lineitem, block_start, max_items - 1, results[TPCH_Q6_SCAN_THREADS - 1]);
+    for (auto &thread : threads) {
+		thread.join();
+    }
+
+    for (auto &result : results) {
+		revenue += std::get<0>(result);
+		cnt += std::get<1>(result);
+	}
+
+
+	// for (uint64_t row_id = 0; row_id < max_items; row_id ++) {
+    //             // We rely on hardware cache prefeching and adjacent prefeching, which is smart enough to handle this.
+    //             // The only concern is that when a large number of workers run Q6_scan concurrently,
+    //             // they compete for the cache, especially the LLC.
+	// 	row_t * r_lt = (row_t *) &_wl->t_lineitem->row_buffer[row_id];
+	// 	assert(r_lt != NULL);
+	// 	row_t * r_lt_local = get_row(r_lt, SCAN);
+	// 	if (r_lt_local == NULL) {
+	// 		// Skip the deleted item.
+	// 		// return finish(Abort);
+	// 		continue;
+	// 	}
+
+	// 	uint64_t l_shipdate;
+	// 	r_lt_local->get_value(L_SHIPDATE, l_shipdate);
+	// 	double l_discount;
+	// 	r_lt_local->get_value(L_DISCOUNT, l_discount);
+	// 	double l_quantity;
+	// 	r_lt_local->get_value(L_QUANTITY, l_quantity);
+
+	// 	if ((l_shipdate / 1000) == (query->date / 1000)
+	// 		&& (uint64_t)(l_discount*100) >= (uint64_t)((uint64_t)(query->discount*100) - 1) 
+	// 		&& (uint64_t)(l_discount*100) <= (uint64_t)((uint64_t)(query->discount*100) + 1) 
+	// 		&& (uint64_t)l_quantity < (uint64_t)query->quantity)
+	// 	{
+	// 			double l_extendedprice;
+	// 			r_lt_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+	// 			revenue += l_extendedprice * l_discount;
+
+	// 			cnt ++;
+	// 	}
+	// }
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
