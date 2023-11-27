@@ -1,8 +1,8 @@
 reset
 set size 0.99,1.0
 #set term pdf font ",10" size 5.2, 2.4
-set ylabel "Throughput (queries/s)" offset -0.8,0,0 font ',25'
-set xlabel "Number of worker threads" font ',29'
+set ylabel "Throughput (queries/s)" offset 0.8,-0.3 font ',29'
+set xlabel "Number of worker threads" offset 0,0.4 font ',29'
 set xtics ("1" 1,"4" 4, "8" 8, "16" 16, "24" 24, "32" 32)
 set yrange [0:]
 set xrange [0:35]
@@ -19,7 +19,10 @@ plot "../dat_DBx/core.dat" every 6::5::41 title "CUBIT" lc rgb "blue" lw 8 ps 1.
       "../dat_DBx/core.dat" every 6::1::37 title "Hash" lc rgb "sea-green" lw 8 ps 1.5 pt 10 dt 9 with linespoints,\
       "../dat_DBx/core.dat" every 6::0::36 title "Scan" lc rgb "black" lw 8 ps 1.5 pt 12 dt 5 with linespoints
 
-set terminal eps size 5, 3 font 'Linux Libertine O,22'  enhanced
+set terminal eps size 5, 3 font 'Linux Libertine O,25'  enhanced
+set lmargin 6.2
+set rmargin at screen 1
+set tmargin 0.2 
 set output "../graphs_DBx/core/core.eps"
 replot
 
