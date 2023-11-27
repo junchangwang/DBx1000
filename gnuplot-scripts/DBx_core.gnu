@@ -46,14 +46,14 @@ set boxwidth 0.75 relative
 set style fill solid 1.0 border -1
 set xtics nomirror rotate by -45 scale 0
 
-set ylabel "Latency (s)" offset 0.1,0,0 font ',29'
+set ylabel "Latency (s)" offset 1,0,0 font ',29'
 
 set label "1" font ",29" at screen 0.3, screen 0.04
 set label "8" font ",29" at screen 0.50, screen 0.04
 set label "32 (cores)" font ",29" at screen 0.74, screen 0.04
 
 set xtics font ",21"
-set ytics font ",21"
+set ytics font ",26"
 
 plot "../dat_DBx/index_time.dat" using ($3/1e6):xtic(4) title "Fetching tuples" with histograms fill pattern 7 border rgb "black" lc rgb "black", \
      "../dat_DBx/index_time.dat" using ($2/1e6):xtic(4) title "Reading index" with histograms fs solid border rgb "black" lc rgb "black"
