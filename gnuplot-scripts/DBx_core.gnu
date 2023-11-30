@@ -55,7 +55,7 @@ set label "8" font ",29" at screen 0.50, screen 0.04
 set label "32 (cores)" font ",29" at screen 0.74, screen 0.04
 
 set xtics font ",21"
-set ytics font ",21"
+set ytics font ",26"
 
 set label 77 "{/:Bold (b)}" at 15, 1.45 font 'Linux Libertine O,29'
 
