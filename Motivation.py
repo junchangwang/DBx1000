@@ -116,21 +116,20 @@ def draw():
     #plt.rcParams['font.size'] = 20
     plt.figure(figsize = (6, 6.8))
 
-    gs = gridspec.GridSpec(2, 1, height_ratios = [1.8, 1], hspace = 0.4)
+    gs = gridspec.GridSpec(2, 1, height_ratios = [1.8, 1], hspace = 0.47)
     ax1 = plt.subplot(gs[0, 0])
     ax2 = plt.subplot(gs[1, 0])
     ax1.tick_params(labelsize = 22)
     ax2.tick_params(labelsize = 22)
-    
     #### core plot
     for exp in algorithm_lookup_1:
         ax1.plot(x_val, list_map[exp], marker = mark_map[exp], ms = 11, mfc = 'w', c = co_map[exp], ls = ls_map[exp], lw = 2, label = label_nm_map[exp])
         
     
-    ax1.set_ylabel("Throughput (queries/s)", fontsize= 21)
-    ax1.set_xlabel("Number of cores", fontsize= 22)
+    ax1.set_ylabel("Throughput (queries/s)", fontsize= 24)
+    ax1.set_xlabel("Number of cores", fontsize= 24)
     ax1.set_xticks(x_val)
-    ax1.legend(loc = 'upper left', fontsize = 16, frameon = False)
+    ax1.legend(loc = 'upper left', fontsize = 19, frameon = False)
     
     #### memory bar
     ax2.set_ylim(0, 2.4)
@@ -147,11 +146,13 @@ def draw():
     ax2.text(2, Bar_val[3] + 0.05, round(Bar_val[3], 2), ha = 'center', va = "bottom", fontsize = 20)
     ax2.text(3, Bar_val[4] + 0.05, round(Bar_val[4], 2), ha = 'center', va = "bottom", fontsize = 20)
     
-    ax2.set_ylabel("Memory Size (GB)", fontsize = 22)
-    ax2.set_xlabel("(b)", fontsize = 20)
+    ax2.set_ylabel("Memory Size (GB)", fontsize = 24)
+    ax2.set_xlabel("(b)", fontsize = 26)
               
     #plt.show()
-    
+    ax1.yaxis.set_label_coords(-0.1,0.45)
+    ax2.yaxis.set_label_coords(-0.1,0.5)
+    plt.subplots_adjust(top = 0.975, right = 1)
     plt.savefig('Motivation.eps', format='eps', bbox_inches = 'tight', dpi= 1200, pad_inches = 0.02)
     
 def main():
