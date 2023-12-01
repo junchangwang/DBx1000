@@ -12,6 +12,8 @@ set key font ",20" reverse top left vertical Left
 set xtics  font ",29"
 # set ytics ("0" 0,"10" 10,"20" 20,"30" 30) font ",29"
 
+set label 77 "{/:Bold (a)}" at 15, 36 font 'Linux Libertine O,29'
+
 plot "../dat_DBx/core.dat" every 6::5::41 title "CUBIT" lc rgb "blue" lw 8 ps 1.5 pt 6 with linespoints,\
       "../dat_DBx/core.dat" every 6::3::39 title "Bw-Tree" lc rgb "brown" lw 8 ps 1.5 pt 8 dt "-" with linespoints,\
       "../dat_DBx/core.dat" every 6::4::40 title "ART" lc rgb "dark-violet" lw 8 ps 1.5 pt 2 dt "-" with linespoints,\
@@ -46,7 +48,7 @@ set boxwidth 0.75 relative
 set style fill solid 1.0 border -1
 set xtics nomirror rotate by -45 scale 0
 
-set ylabel "Latency (s)" offset 1,0,0 font ',29'
+set ylabel "Latency (s)" offset 1.6,0,0 font ',29'
 
 set label "1" font ",29" at screen 0.3, screen 0.04
 set label "8" font ",29" at screen 0.50, screen 0.04
@@ -55,11 +57,16 @@ set label "32 (cores)" font ",29" at screen 0.74, screen 0.04
 set xtics font ",21"
 set ytics font ",26"
 
+set label 77 "{/:Bold (b)}" at 15, 1.45 font 'Linux Libertine O,29'
+
 plot "../dat_DBx/index_time.dat" using ($3/1e6):xtic(4) title "Fetching tuples" with histograms fill pattern 7 border rgb "black" lc rgb "black", \
      "../dat_DBx/index_time.dat" using ($2/1e6):xtic(4) title "Reading index" with histograms fs solid border rgb "black" lc rgb "black"
      
 
 set terminal eps size 5, 3 font 'Linux Libertine O,21'  enhanced
+set lmargin 6.6
+set rmargin at screen 1
+set tmargin 0.6 
 set output "../graphs_DBx/core/histograms.eps"
 replot
 
