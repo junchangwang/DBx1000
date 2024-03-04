@@ -18,7 +18,7 @@
 // # of transactions to run for warmup
 #define WARMUP						0
 // YCSB or TPCC
-#define WORKLOAD 					TPCH
+#define WORKLOAD 					TPCC
 // print the transaction latency distribution
 #define PRT_LAT_DISTR				false
 #define STATS_ENABLE				true
@@ -112,7 +112,7 @@
 // max number of rows touched per transaction
 #define MAX_ROW_PER_TXN				64
 #define QUERY_INTVL 				1UL
-#define MAX_TXN_PER_PART 			100
+#define MAX_TXN_PER_PART 			1024
 #define FIRST_PART_LOCAL 			true
 #define MAX_TUPLE_SIZE				1024 // in bytes
 // ==== [YCSB] ====
@@ -136,7 +136,7 @@
 // are not modeled.
 #define TPCC_ACCESS_ALL 			false 
 #define WH_UPDATE					true
-#define NUM_WH 						1
+#define NUM_WH 						4
 #define TPCC_EVA_CUBIT				true
 //
 enum TPCCTxnType {TPCC_ALL, 
@@ -146,6 +146,18 @@ enum TPCCTxnType {TPCC_ALL,
 				TPCC_DELIVERY, 
 				TPCC_STOCK_LEVEL};
 extern TPCCTxnType 					g_tpcc_txn_type;
+//
+//#define TXN_TYPE					TPCC_ALL
+#define PERC_PAYMENT 				0.5
+#define FIRSTNAME_MINLEN 			8
+#define FIRSTNAME_LEN 				16
+#define LASTNAME_LEN 				16
+
+#define DIST_PER_WARE				10
+
+// ==== [TPCH] ====
+#define TPCH_EVA_CUBIT				true
+#define TPCH_EVA_RF					true
 
 enum TPCHTxnType {TPCH_ALL,
 				TPCH_Q6_SCAN,
@@ -157,16 +169,6 @@ enum TPCHTxnType {TPCH_ALL,
 				TPCH_RF1,
 				TPCH_RF2};
 extern TPCHTxnType 					g_tpch_txn_type;
-#define TPCH_EVA_CUBIT				true
-#define TPCH_EVA_RF					true
-
-//#define TXN_TYPE					TPCC_ALL
-#define PERC_PAYMENT 				0.5
-#define FIRSTNAME_MINLEN 			8
-#define FIRSTNAME_LEN 				16
-#define LASTNAME_LEN 				16
-
-#define DIST_PER_WARE				10
 
 /***********************************************/
 // TODO centralized CC management. 

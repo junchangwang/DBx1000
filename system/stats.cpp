@@ -221,6 +221,8 @@ void Stats::print() {
 		);
 		fclose(outf);
 	}
+
+#if (WORKLOAD == TPCH)
 	printf("[summary] txn_cnt=%ld, abort_cnt=%ld"
 		", run_time=%f, time_wait=%f, time_ts_alloc=%f"
 		", time_man=%f, time_index=%f, time_abort=%f, time_cleanup=%f, latency=%f"
@@ -259,6 +261,8 @@ void Stats::print() {
 	printf("txn count: total %ld, scan %ld, hash %ld, btree %ld, bwtree %ld, art %ld, cubit %ld\n", total_scan_Q6_txn_cnt + total_hash_Q6_txn_cnt + total_btree_Q6_txn_cnt + total_cubit_Q6_txn_cnt,total_scan_Q6_txn_cnt, total_hash_Q6_txn_cnt, total_btree_Q6_txn_cnt, total_bwtree_Q6_txn_cnt, total_art_Q6_txn_cnt, total_cubit_Q6_txn_cnt);
 	// printf("total_Q6 time %f\n", (total_scan_run_time + total_hash_run_time + total_btree_run_time + total_cubit_run_time) / BILLION);
 	printf("SF = %.4f\n", (double)g_num_orders/1500000);
+#endif
+
 	if (g_prt_lat_distr)
 		print_lat_distr();
 }

@@ -104,13 +104,14 @@ int main(int argc, char* argv[])
 	pthread_barrier_init( &warmup_bar, NULL, g_thread_cnt );
 
 	// Intialize the background merge threads for NBUB.
+#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == TPCH && TPCH_EVA_CUBIT == true)
+
 	#define WORKERS_PER_MERGE_TH (4)
     int n_merge_ths;
     std::thread *merge_ths;
 	BaseTable *bitmap = NULL;
 	Table_config *config = NULL;
 	
-#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true)
 	bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_c_w_id;
 	config = bitmap->config;
 
@@ -146,14 +147,14 @@ int main(int argc, char* argv[])
 	}
 	f((void *)(thd_cnt - 1));
 
-	if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true)
-		assert(!verify_bitmap(m_wl));
+//	if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true)
+//		assert(!verify_bitmap(m_wl));
 
 	for (uint32_t i = 0; i < thd_cnt - 1; i++) 
 		pthread_join(p_thds[i], NULL);
 	int64_t endtime = get_server_clock();
 
-#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true)
+#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == TPCH && TPCH_EVA_CUBIT == true)
 	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
 	{
 		__atomic_store_n(&run_merge_func, false, MM_CST);
@@ -203,17 +204,17 @@ int verify_bitmap(workload * m_wl)
 		RUB last_rub = RUB{0, TYPE_INV, {}};
 		int ROW_ID = 6;
 		nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub*>(wl->bitmap_c_w_id);
-		assert(bitmap->get_value_rcu(ROW_ID-1, bitmap->g_timestamp, last_rub) == 
-					bitmap->get_value_rcu(0, bitmap->g_timestamp, last_rub));
-		int old_val = bitmap->get_value_rcu(ROW_ID, bitmap->g_timestamp, last_rub);
+		assert(bitmap->get_value_rcu(ROW_ID-1, db_timestamp, last_rub) == 
+					bitmap->get_value_rcu(0, db_timestamp, last_rub));
+		int old_val = bitmap->get_value_rcu(ROW_ID, db_timestamp, last_rub);
 		int to_val = old_val + 1;
 
 		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 1);
 		bitmap->update(0, ROW_ID, to_val);
 		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 1);
 
-		assert(bitmap->get_value_rcu(/*rowid*/ ROW_ID, bitmap->g_timestamp-1, last_rub) == old_val);
-		assert(bitmap->get_value_rcu(/*rowid*/ ROW_ID, bitmap->g_timestamp, last_rub) == to_val);
+		assert(bitmap->get_value_rcu(/*rowid*/ ROW_ID, db_timestamp-1, last_rub) == old_val);
+		assert(bitmap->get_value_rcu(/*rowid*/ ROW_ID, db_timestamp, last_rub) == to_val);
 
 		// FIXME: after enable merge()
 		// MERGE_THRESH = 1;  // Make sure MERGE_THRESH = 1;

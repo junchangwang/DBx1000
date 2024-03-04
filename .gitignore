@@ -2,7 +2,6 @@
 *.d
 rundb
 .vscode/
-CUBIT-PDS/
 build/
 cscope.*
 output
@@ -12,4 +11,5 @@ bm_*
 perf.output.*
 perf.data*
 .idea/
+CUBIT/
 
