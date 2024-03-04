@@ -70,6 +70,7 @@ private:
 	static void * threadInitOrder(void * This);
 
 	static void * threadInitWarehouse(void * This);
+	static void * threadInitWarehouse_sequential(void * This);
 };
 
 class tpcc_txn_man : public txn_man
