@@ -113,6 +113,8 @@ extern char * output_file;
 extern UInt32 g_max_items;
 extern UInt32 g_cust_per_dist;
 
+// CHBench FIXME
+
 enum RC { RCOK, Commit, Abort, WAIT, ERROR, FINISH};
 
 //TPCH

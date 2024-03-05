@@ -26,6 +26,8 @@ Query_queue::init(workload * h_wl) {
 	assert(tpc_buffer != NULL);
 #elif WORKLOAD == TPCH
 	assert(tpc_buffer != NULL);
+#elif WORKLOAD == CHBench
+	assert(tpc_buffer != NULL);
 #endif
 	int64_t begin = get_server_clock();
 	pthread_t p_thds[g_thread_cnt - 1];
@@ -87,6 +89,8 @@ Query_thd::init(workload * h_wl, int thread_id) {
 	queries = (tpcc_query *) _mm_malloc(sizeof(tpcc_query) * request_cnt, 64);
 #elif WORKLOAD == TPCH
 	queries = (tpch_query *) _mm_malloc(sizeof(tpch_query) * request_cnt, 64);
+#elif WORKLOAD == CHBench
+	queries = (chbench_query*) _mm_malloc(sizeof(chbench_query) * request_cnt, 64);
 #endif
 	for (UInt32 qid = 0; qid < request_cnt; qid ++) {
 #if WORKLOAD == YCSB	
@@ -94,6 +98,9 @@ Query_thd::init(workload * h_wl, int thread_id) {
 		queries[qid].init(thread_id, h_wl, this);
 #elif WORKLOAD == TPCC
 		new(&queries[qid]) tpcc_query();
+		queries[qid].init(thread_id, h_wl);
+#elif WORKLOAD == CHBench
+		new(&queries[qid]) chbench_query();
 		queries[qid].init(thread_id, h_wl);
 #elif WORKLOAD == TPCH
 		new(&queries[qid]) tpch_query();

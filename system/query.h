@@ -7,6 +7,7 @@ class workload;
 class ycsb_query;
 class tpcc_query;
 class tpch_query;
+class chbench_query;
 
 class base_query {
 public:
@@ -28,6 +29,8 @@ public:
 	tpcc_query * queries;
 #elif WORKLOAD == TPCH
 	tpch_query * queries;
+#elif WORKLOAD == CHBench
+	chbench_query * queries;
 #endif
 	char pad[CL_SIZE - sizeof(void *) - sizeof(int)];
 	drand48_data buffer;

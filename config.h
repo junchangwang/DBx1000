@@ -17,8 +17,8 @@
 
 // # of transactions to run for warmup
 #define WARMUP						0
-// YCSB or TPCC
-#define WORKLOAD 					TPCC
+// YCSB, TPCC, TPCH, or CHBench
+#define WORKLOAD 					CHBench	
 // print the transaction latency distribution
 #define PRT_LAT_DISTR				false
 #define STATS_ENABLE				true
@@ -155,6 +155,16 @@ extern TPCCTxnType 					g_tpcc_txn_type;
 
 #define DIST_PER_WARE				10
 
+// ==== [CHBench] ====
+enum CHBenchTxnType {TPCC_ALL,  // FIXME: TPCC->CHBench
+				TPCC_PAYMENT, 
+				TPCC_NEW_ORDER, 
+				TPCC_ORDER_STATUS, 
+				TPCC_DELIVERY, 
+				TPCC_STOCK_LEVEL};
+extern CHBenchTxnType 					g_tpcc_txn_type;
+#define CHBench_EVA_CUBIT				true
+
 // ==== [TPCH] ====
 #define TPCH_EVA_CUBIT				true
 #define TPCH_EVA_RF					true
@@ -213,6 +223,7 @@ extern TestCases					g_test_case;
 #define TPCC						2
 #define TEST						3
 #define TPCH						4
+#define CHBench						5
 // Concurrency Control Algorithm
 #define NO_WAIT						1
 #define WAIT_DIE					2

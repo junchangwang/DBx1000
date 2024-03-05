@@ -74,7 +74,7 @@ map<string, string> g_params;
 // vector<vector<string>> output(g_thread_cnt, vector<string>()); // g_thread_cnt is not initialized yet
 vector<vector<string>> output_info(128, vector<string>());
 
-#if TPCC_SMALL
+#if (TPCC_SMALL || CHBench_SMALL)
 UInt32 g_max_items = 15000;
 UInt32 g_cust_per_dist = 3000;
 #else 
