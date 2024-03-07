@@ -18,7 +18,7 @@
 // # of transactions to run for warmup
 #define WARMUP						0
 // YCSB, TPCC, TPCH, or CHBench
-#define WORKLOAD 					CHBench	
+#define WORKLOAD 					CHBench
 // print the transaction latency distribution
 #define PRT_LAT_DISTR				false
 #define STATS_ENABLE				true
@@ -156,15 +156,15 @@ extern TPCCTxnType 					g_tpcc_txn_type;
 #define DIST_PER_WARE				10
 
 // ==== [CHBench] ====
-enum CHBenchTxnType {TPCC_ALL,  // FIXME: TPCC->CHBench
-				TPCC_PAYMENT, 
-				TPCC_NEW_ORDER, 
-				TPCC_ORDER_STATUS, 
-				TPCC_DELIVERY, 
-				TPCC_STOCK_LEVEL};
-extern CHBenchTxnType 					g_tpcc_txn_type;
-#define CHBench_EVA_CUBIT				true
-
+enum CHBenchTxnType {CHBENCH_ALL,  
+				CHBENCH_PAYMENT, 
+				CHBENCH_NEW_ORDER, 
+				CHBENCH_ORDER_STATUS, 
+				CHBENCH_DELIVERY, 
+				CHBENCH_STOCK_LEVEL};
+extern CHBenchTxnType 					g_chbench_txn_type;
+#define CHBENCH_EVA_CUBIT				true
+#define CHBENCH_SMALL					false
 // ==== [TPCH] ====
 #define TPCH_EVA_CUBIT				true
 #define TPCH_EVA_RF					true

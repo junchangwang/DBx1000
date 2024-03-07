@@ -5,6 +5,7 @@
 #include "table.h"
 #include "ycsb_query.h"
 #include "tpcc_query.h"
+#include "chbench_query.h"
 #include "tpc_helper.h"
 #include "tpch_query.h"
 

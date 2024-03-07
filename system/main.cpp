@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
 	pthread_barrier_init( &warmup_bar, NULL, g_thread_cnt );
 
 	// Intialize the background merge threads for NBUB.
-#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == TPCH && TPCH_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBench_EVA_CUBIT == true)
+#if ((WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == TPCH && TPCH_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true))
 
 	#define WORKERS_PER_MERGE_TH (4)
     int n_merge_ths;
@@ -119,7 +119,12 @@ int main(int argc, char* argv[])
 	BaseTable *bitmap = NULL;
 	Table_config *config = NULL;
 	
-	bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_c_w_id;
+	if( WORKLOAD == TPCC ) {
+		bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_c_w_id;
+	}
+	if( WORKLOAD == CHBench) {
+		bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_c_w_id;
+	}
 	config = bitmap->config;
 
 	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
