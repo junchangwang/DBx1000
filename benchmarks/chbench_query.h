@@ -46,6 +46,13 @@ public:
 	uint64_t ol_delivery_d;
 	// for order-status
 
+	// for chbench_q6
+	static int q6_id;
+	uint64_t min_delivery_d;
+	uint64_t max_delivery_d;
+	int64_t min_quantity;
+	int64_t max_quantity;
+
 
 private:
 	// warehouse id to partition id mapping
@@ -53,6 +60,7 @@ private:
 	void gen_payment(uint64_t thd_id);
 	void gen_new_order(uint64_t thd_id);
 	void gen_order_status(uint64_t thd_id);
+	void gen_q6(uint64_t thd_id);
 };
 
 #endif

@@ -152,7 +152,6 @@ row_t * txn_man::get_row(row_t * row, access_t type) {
 #endif
 		num_accesses_alloc ++;
 	}
-	
 	rc = row->get_row(type, this, accesses[ row_cnt ]->data);
 
 	if (rc == Abort) {

@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
 	pthread_barrier_init( &warmup_bar, NULL, g_thread_cnt );
 
 	// Intialize the background merge threads for NBUB.
-#if ((WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == TPCH && TPCH_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true))
+#if ((WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true))
 
 	#define WORKERS_PER_MERGE_TH (4)
     int n_merge_ths;
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 		pthread_join(p_thds[i], NULL);
 	int64_t endtime = get_server_clock();
 
-#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == TPCH && TPCH_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBench_EVA_CUBIT == true)
+#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBench_EVA_CUBIT == true)
 	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
 	{
 		__atomic_store_n(&run_merge_func, false, MM_CST);

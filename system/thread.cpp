@@ -182,8 +182,8 @@ RC thread_t::run() {
 			m_txn->abort_cnt ++;
 		}
 
-		if (rc == FINISH)
-			return rc;
+		if (rc == FINISH) 
+			return rc;	
 		if (!warmup_finish && txn_cnt >= WARMUP / g_thread_cnt) 
 		{
 			stats.clear( get_thd_id() );

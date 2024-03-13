@@ -9,6 +9,7 @@
 #include "index_hash.h"
 #include "index_btree.h"
 #include "chbench_const.h"
+#include "output_log.h"
 
 void chbench_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	txn_man::init(h_thd, h_wl, thd_id);
@@ -21,9 +22,9 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 	return evaluate_index(m_query);
 #else
 	switch (m_query->type) {
-		case TPCC_PAYMENT :
+		case CHBENCH_PAYMENT :
 			return run_payment(m_query); break;
-		case TPCC_NEW_ORDER :
+		case CHBENCH_NEW_ORDER :
 			return run_new_order(m_query); break;
 /*		case TPCC_ORDER_STATUS :
 			return run_order_status(m_query); break;
@@ -31,6 +32,12 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 			return run_delivery(m_query); break;
 		case TPCC_STOCK_LEVEL :
 			return run_stock_level(m_query); break;*/
+		case CHBENCH_Q6_SCAN :
+			return run_Q6_scan(tid, m_query); break;
+		case CHBENCH_Q6_BTREE :
+			return run_Q6_btree(tid, m_query); break;
+		case CHBENCH_Q6_BITMAP :
+			return run_Q6_bitmap(tid, m_query); break;
 		default:
 			assert(false);
 	}
@@ -494,6 +501,10 @@ RC chbench_txn_man::run_new_order(chbench_query * query) {
 		}
 		r_stock_local->set_value(S_QUANTITY, &quantity);
 
+
+
+		// need : change orderline
+
 		/*====================================================+
 		EXEC SQL INSERT
 			INTO order_line(ol_o_id, ol_d_id, ol_w_id, ol_number,
@@ -709,4 +720,271 @@ chbench_txn_man::run_delivery(chbench_query * query) {
 RC 
 chbench_txn_man::run_stock_level(chbench_query * query) {
 	return RCOK;
+}
+
+void chbench_txn_man::run_Q6_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, std::tuple<double, int> &result) {
+
+
+	// define constant condition
+	uint64_t min_delivery_d = query->min_delivery_d;
+	uint64_t max_delivery_d = query->max_delivery_d;
+	int64_t min_quantity = query->min_quantity;
+	int64_t max_quantity = query->max_quantity;
+
+	row_t* current_row;
+
+	for(uint64_t row_id = start_row; row_id < end_row; row_id++) {
+		current_row = (row_t*) &(_wl->t_orderline->row_buffer[row_id]);
+		assert(current_row != NULL);
+		row_t* row_local = get_row(current_row, SCAN);
+		if(row_local == NULL) {
+			continue;
+		}
+		
+		// extract artributions
+		uint64_t current_delivery_d;
+		int64_t current_quantity;
+		row_local->get_value(OL_DELIVERY_D, current_delivery_d);
+		row_local->get_value(OL_QUANTITY, current_quantity);
+
+		// check condition
+		if( current_delivery_d >= min_delivery_d && current_delivery_d < max_delivery_d && \
+			current_quantity >= min_quantity && current_quantity <= max_quantity ) {
+			double current_amount;
+			row_local->get_value(OL_AMOUNT, current_amount);
+			std::get<0>(result) += current_amount;
+			std::get<1>(result) ++;
+		} 
+	}
+	return;
+}
+
+RC chbench_txn_man::run_Q6_scan(int tid, chbench_query * query) {
+	/*
+		select	sum(ol_amount) as revenue
+		from	orderline
+		where	ol_delivery_d >= '1999-01-01 00:00:00.000000'
+				and ol_delivery_d < '2020-01-01 00:00:00.000000'
+				and ol_quantity between 1 and 100000
+	*/
+
+
+	RC rc = RCOK;
+	
+	double revenue = 0;
+	int cnt = 0;
+
+	// does here need atomic?
+	uint64_t max_orderlines = (uint64_t)_wl->t_orderline->cur_tab_size;
+
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	std::vector<std::tuple<double, int>> results(CHBENCH_Q6_SCAN_THREADS);
+    uint64_t block_size = max_orderlines / CHBENCH_Q6_SCAN_THREADS;
+	uint64_t block_start = 0;
+	std::vector<std::thread> threads(CHBENCH_Q6_SCAN_THREADS - 1);
+
+	for (int i = 0; i < CHBENCH_Q6_SCAN_THREADS - 1; i++) {
+        threads[i] = std::thread(&chbench_txn_man::run_Q6_scan_singlethread, *this,\
+								block_start, block_start + block_size, query, std::ref(results[i]));
+		block_start = block_start + block_size;
+	}
+	run_Q6_scan_singlethread(block_start, max_orderlines, query, std::ref(results[CHBENCH_Q6_SCAN_THREADS - 1]));
+
+	for (auto &thread : threads) {
+		thread.join();
+    }
+
+    for (auto &result : results) {
+		revenue += std::get<0>(result);
+		cnt += std::get<1>(result);
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+//	if (perf_enabled == true && tid == 0) {
+//		kill_perf_process(perf_pid);
+//		usleep(WAIT_FOR_PERF_U);
+//	}
+
+	string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	string tmp = output_information("SCAN", ans, to_string(time_elapsed_us) + "us");
+	// cout << tmp;
+	output_info[tid].push_back(tmp);
+	assert(rc == RCOK);
+	return finish(rc);
+	
+
+	// return RCOK;
+}
+
+
+
+RC chbench_txn_man::run_Q6_btree(int tid, chbench_query * query) {
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+	uint64_t max_delivery_d = query->max_delivery_d;
+	int64_t min_quantity = query->min_quantity;
+	int64_t max_quantity = query->max_quantity;
+
+	RC rc = RCOK;
+	
+	double revenue = 0;
+	int cnt = 0;
+	row_t* current_row;
+
+	long  long index_us = (long  long)0;
+	long long index_read_us = (long long)0;
+	long long leaf_read_us = (long long)0;
+	long long total_us = (long long)0;
+	vector<itemid_t *> item_list{};
+
+	INDEX* index = _wl->i_orderline;
+
+	auto start = std::chrono::high_resolution_clock::now();
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+	for(uint64_t date = min_delivery_d ; date < max_delivery_d; date++) {
+		for(int64_t quantity = min_quantity; quantity <= max_quantity; quantity++) {
+
+			uint64_t key = quantity * 10000 + date;
+
+			if ( !index->index_exist(key, 0) ){
+					continue;
+				}
+
+			auto start1 = std::chrono::high_resolution_clock::now();
+				itemid_t * item = index_read(index, key, 0);
+				auto end1 = std::chrono::high_resolution_clock::now();
+				index_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
+				auto start2 = std::chrono::high_resolution_clock::now();
+				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
+					item_list.push_back(local_item);
+				}
+				auto end2 = std::chrono::high_resolution_clock::now();
+				leaf_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
+		}
+	}
+
+	auto end_f = std::chrono::high_resolution_clock::now();
+	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
+
+	auto tmp_5 = std::chrono::high_resolution_clock::now();
+
+	for (auto const &local_item : item_list)
+	{
+		row_t * r_lt = ((row_t *)local_item->location);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
+		if (r_lt_local == NULL) {
+			// Skip the deleted item
+			// return finish(Abort);
+			continue;
+		}
+		cnt ++;
+		// cout << "address = " << &r_lt_local->data << endl;
+		double current_amount;
+		r_lt_local->get_value(OL_AMOUNT, current_amount);
+		revenue += current_amount;
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+	string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	
+	string tmp = output_information("BTREE", ans, to_string(total_us) + "us");
+	// cout << tmp;
+	output_info[tid].push_back(tmp);
+	
+
+	assert(rc == RCOK);
+	return finish(rc);
+}
+
+
+RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+	uint64_t max_delivery_d = query->max_delivery_d;
+	int64_t min_quantity = query->min_quantity;
+	int64_t max_quantity = query->max_quantity;
+
+	RC rc = RCOK;
+	
+	double revenue = 0;
+	int cnt = 0;
+	long  long index_us = (long  long)0;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	nbub::Nbub *bitmap_dd, *bitmap_qt;
+	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_deliverydate);
+	bitmap_dd->trans_begin(tid);
+	ibis::bitvector *btv_deliverydate = bitmap_dd->bitmaps[1]->btv;
+	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
+	bitmap_qt->trans_begin(tid);
+	ibis::bitvector result;
+	result.copy(*bitmap_qt->bitmaps[1]->btv);
+
+	result &= *btv_deliverydate;
+
+	row_t *row_buffer = _wl->t_orderline->row_buffer;
+
+	// selectivity 0.18
+	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.3;
+	int *ids = new int[n_ids_max];
+
+	// Convert bitvector to ID list
+	for (ibis::bitvector::indexSet is = result.firstIndexSet(); is.nIndices() > 0; ++ is) 
+	{
+		const ibis::bitvector::word_t *ii = is.indices();
+		if (is.isRange()) {
+			for (ibis::bitvector::word_t j = *ii;
+					j < ii[1];
+					++ j) {
+				ids[cnt] = j;
+				++ cnt;
+			}
+		}
+		else {
+			for (unsigned j = 0; j < is.nIndices(); ++ j) {
+				ids[cnt] = ii[j];
+				++ cnt;
+			}
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+	int deletecnt = 0;
+	start = std::chrono::high_resolution_clock::now();
+	// Fetch tuples in ID list
+	for(int k = 0; k < cnt; k++) 
+	{
+		row_t *row_tmp = (row_t *) &row_buffer[ids[k]];
+		row_t *row_local = get_row(row_tmp, SCAN);
+		if (row_local == NULL) {
+			deletecnt++;
+			// return finish(Abort);
+			continue;
+		}
+		double current_amount;
+		row_local->get_value(OL_AMOUNT, current_amount);
+		revenue += current_amount; 
+	}
+	end = std::chrono::high_resolution_clock::now();
+	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+	string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
+	output_info[tid].push_back(tmp);
+
+	delete [] ids;
+	assert(rc == RCOK);
+	bitmap_qt->trans_commit(tid);
+	bitmap_dd->trans_commit(tid);
+	return finish(rc);
 }

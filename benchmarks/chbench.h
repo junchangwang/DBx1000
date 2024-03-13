@@ -13,6 +13,8 @@
 #include "nbub/table_lf.h"
 #include "nbub/table_lk.h"
 
+#define CHBENCH_Q6_SCAN_THREADS 4
+
 class table_t;
 class INDEX;
 class chbench_query;
@@ -21,6 +23,7 @@ class chbench_wl : public workload {
 public:
 	RC init();
 	RC init_table();
+	RC init_bitmap(); 
 	RC init_bitmap_c_w_id();
 	RC init_schema(const char * schema_file);
 	RC get_txn_man(txn_man *& txn_manager, thread_t * h_thd);
@@ -46,7 +49,9 @@ public:
 	INDEX * 	i_orderline_wd; // key = (w_id, d_id). 
 
 	BaseTable *bitmap_c_w_id;
-	
+	BaseTable *bitmap_deliverydate;
+	BaseTable *bitmap_quantity;
+
 	bool ** delivering;
 	uint32_t next_tid;
 private:
@@ -86,6 +91,28 @@ private:
 	RC run_delivery(chbench_query * query);
 	RC run_stock_level(chbench_query * query);
 	RC evaluate_index(chbench_query *query);
+	void run_Q6_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, std::tuple<double, int> &result);
+	RC run_Q6_scan(int tid, chbench_query * query);
+	RC run_Q6_btree(int tid, chbench_query * query);
+	RC run_Q6_bitmap(int tid, chbench_query * query);
 };
+
+static inline int bitmap_quantity_bin(int64_t quantity) {
+	// [<1], [1,1000], [>1000]
+	if (quantity < 1)
+		return 0;
+	else if (quantity > 1000)
+		return 2;
+	else return 1;
+}
+
+	// [<1999], [1999,2020), [>=2020]
+static inline int bitmap_deliverydate_bin(uint64_t date) {
+	if (date < 1999)
+		return 0;
+	else if (date >= 2020)
+		return 2;
+	else return 1;
+}
 
 #endif

@@ -161,7 +161,10 @@ enum CHBenchTxnType {CHBENCH_ALL,
 				CHBENCH_NEW_ORDER, 
 				CHBENCH_ORDER_STATUS, 
 				CHBENCH_DELIVERY, 
-				CHBENCH_STOCK_LEVEL};
+				CHBENCH_STOCK_LEVEL,
+				CHBENCH_Q6_SCAN,
+				CHBENCH_Q6_BTREE,
+				CHBENCH_Q6_BITMAP};
 extern CHBenchTxnType 					g_chbench_txn_type;
 #define CHBENCH_EVA_CUBIT				true
 #define CHBENCH_SMALL					false

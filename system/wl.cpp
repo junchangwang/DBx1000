@@ -130,6 +130,7 @@ void workload::index_insert(INDEX * index, uint64_t key, row_t * row, int64_t pa
 	m_item->location = row;
 	m_item->valid = true;
 
+	unique_lock<shared_mutex> w_lock(index->rw_lock);
     assert( index->index_insert(key, m_item, pid) == RCOK );
 }
 

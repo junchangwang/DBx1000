@@ -22,13 +22,11 @@ RC table_t::get_new_row(row_t *& row) {
 RC table_t::get_new_row(row_t *& row, uint64_t part_id, uint64_t &row_id) {
 	RC rc = RCOK;
 
-	row_id = cur_tab_size;
-	cur_tab_size ++;
-	
+	row_id = ATOM_FETCH_ADD(cur_tab_size, 1);
 	row = (row_t *) _mm_malloc(sizeof(row_t), 64);
 	rc = row->init(this, part_id, row_id);
-	row->init_manager(row);
 
+	row->init_manager(row);
 	return rc;
 }
 
@@ -50,9 +48,7 @@ RC table_t::get_new_row_seq(row_t *& row, uint64_t part_id, uint64_t &row_id) {
 	assert(row_buffer);
 	assert(cur_tab_size < max_rows);
 
-	row_id = cur_tab_size;
-	cur_tab_size ++;
-	
+	row_id = ATOM_FETCH_ADD(cur_tab_size, 1);
 	row = (row_t *) &row_buffer[row_id];
 	rc = row->init(this, part_id, row_id);
 	row->init_manager(row);

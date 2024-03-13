@@ -6,7 +6,14 @@
 #include "wl.h"
 #include "table.h"
 
+int chbench_query::q6_id = 0;
+
 void chbench_query::init(uint64_t thd_id, workload * h_wl) {
+	// this thread is for running q6
+	if(thd_id == g_thread_cnt - 1) {
+		gen_q6(thd_id);
+		return;
+	}
 	double x = (double)(rand() % 100) / 100.0;
 	part_to_access = (uint64_t *) 
 		mem_allocator.alloc(sizeof(uint64_t) * g_part_cnt, thd_id);
@@ -132,4 +139,29 @@ chbench_query::gen_order_status(uint64_t thd_id) {
 		by_last_name = false;
 		c_id = NURand(1023, 1, g_cust_per_dist, w_id-1);
 	}
+}
+
+
+void chbench_query::gen_q6(uint64_t thd_id) {
+	min_delivery_d = 1999;
+	max_delivery_d = 2020;
+	min_quantity = 1;
+	max_quantity = 1000;
+	switch (q6_id%3)
+	{
+	case 0 :
+		type = CHBENCH_Q6_SCAN;
+		break;
+	case 1 :
+		type = CHBENCH_Q6_BTREE;
+		break;
+	case 2 :
+		type = CHBENCH_Q6_BITMAP;
+		break;
+	default:
+		assert(false);
+		break;
+	}
+	q6_id++;
+	return;
 }

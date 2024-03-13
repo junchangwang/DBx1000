@@ -13,6 +13,10 @@
 #include "mem_alloc.h"
 #include "chbench_const.h"
 
+// record the num of rows that meet q6 condition
+static int cnt = 0;
+
+
 RC chbench_wl::init() 
 {
 #if CHBENCH_EVA_CUBIT
@@ -28,6 +32,8 @@ RC chbench_wl::init()
 	cout << "reading schema file: " << path << endl;
 	init_schema( path.c_str() );
 	cout << "CHBENCH schema initialized" << endl;
+	t_orderline->init_row_buffer(g_cust_per_dist * g_num_wh * 150);
+	init_bitmap();
 	init_table();
 	next_tid = 0;
 
@@ -101,6 +107,7 @@ RC chbench_wl::init_schema(const char * schema_file) {
 	i_customer_id = indexes["CUSTOMER_ID_IDX"];
 	i_customers = indexes["CUSTOMERS_IDX"];
 	i_stock = indexes["STOCK_IDX"];
+	i_orderline = indexes["ORDERLINE_IDX"];
 	return RCOK;
 }
 
@@ -120,16 +127,17 @@ RC chbench_wl::init_table() {
 //		- order line
 /**********************************/
 	tpc_buffer = new drand48_data * [g_num_wh];
-//	pthread_t * p_thds = new pthread_t[g_num_wh - 1];
-//	for (uint32_t i = 0; i < g_num_wh - 1; i++) 
-//		pthread_create(&p_thds[i], NULL, threadInitWarehouse, this);
-//	threadInitWarehouse(this);
-//	for (uint32_t i = 0; i < g_num_wh - 1; i++) 
-//		pthread_join(p_thds[i], NULL);
+	pthread_t * p_thds = new pthread_t[g_num_wh - 1];
+	for (uint32_t i = 0; i < g_num_wh - 1; i++) 
+		pthread_create(&p_thds[i], NULL, threadInitWarehouse, this);
+	threadInitWarehouse(this);
+	for (uint32_t i = 0; i < g_num_wh - 1; i++) 
+		pthread_join(p_thds[i], NULL);
 
-	threadInitWarehouse_sequential(this);
+	// threadInitWarehouse_sequential(this);
 
 	printf("CHBENCH Data Initialization Complete!\n");
+	cout << "q6 should be " << cnt << endl;
 	return RCOK;
 }
 
@@ -398,12 +406,13 @@ void chbench_wl::init_tab_hist(uint64_t c_id, uint64_t d_id, uint64_t w_id) {
 }
 
 void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
+
 	uint64_t perm[g_cust_per_dist]; 
 	init_permutation(perm, wid); /* initialize permutation of customer numbers */
 	for (UInt32 oid = 1; oid <= g_cust_per_dist; oid++) {
 		row_t * row;
 		uint64_t row_id;
-		t_order->get_new_row(row, 0, row_id);
+		t_order->get_new_row(row, wh_to_part(wid), row_id);
 		row->set_primary_key(oid);
 		uint64_t o_ol_cnt = 1;
 		uint64_t cid = perm[oid - 1]; //get_permutation();
@@ -411,7 +420,7 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 		row->set_value(O_C_ID, cid);
 		row->set_value(O_D_ID, did);
 		row->set_value(O_W_ID, wid);
-		uint64_t o_entry = 2013;
+		uint64_t o_entry = URand(1983, 2023, wid-1);
 		row->set_value(O_ENTRY_D, o_entry);
 		if (oid < 2101)
 			row->set_value(O_CARRIER_ID, URand(1, 10, wid-1));
@@ -423,25 +432,59 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 		
 		// ORDER-LINE	
 #if !CHBENCH_SMALL
+
 		for (uint32_t ol = 1; ol <= o_ol_cnt; ol++) {
-			t_orderline->get_new_row(row, 0, row_id);
+			t_orderline->get_new_row_seq(row, 0, row_id);
 			row->set_value(OL_O_ID, oid);
 			row->set_value(OL_D_ID, did);
 			row->set_value(OL_W_ID, wid);
 			row->set_value(OL_NUMBER, ol);
 			row->set_value(OL_I_ID, URand(1, 100000, wid-1));
 			row->set_value(OL_SUPPLY_W_ID, wid);
+			uint64_t key; // create key for chbench_q6 index
+
+			// we modified ‘delivery_date’ and 'orderline_quantity', 
+			// because the original data for TPCC can't meet the requirement of CH_BENCHMARK's Q6
+
+			int64_t ol_quantity = (int64_t)URand(1, 25000, wid-1);
 			if (oid < 2101) {
 				row->set_value(OL_DELIVERY_D, o_entry);
-				row->set_value(OL_AMOUNT, 0);
+				row->set_value(OL_AMOUNT, (double)0);
+				key = ol_quantity*10000 + o_entry;
 			} else {
 				row->set_value(OL_DELIVERY_D, 0);
 				row->set_value(OL_AMOUNT, (double)URand(1, 999999, wid-1)/100);
+				key = ol_quantity*10000;
 			}
-			row->set_value(OL_QUANTITY, 5);
+			row->set_value(OL_QUANTITY, ol_quantity);
 			char ol_dist_info[24];
 	        MakeAlphaString(24, 24, ol_dist_info, wid-1);
 			row->set_value(OL_DIST_INFO, ol_dist_info);
+			index_insert(i_orderline, key, row, 0);
+
+			//for debug
+			if(bitmap_deliverydate_bin(oid < 2101?o_entry:(uint64_t)0) == 1 && bitmap_quantity_bin(ol_quantity) == 1)
+				ATOM_ADD(cnt, 1);
+
+
+
+			// bitmap insert
+			// if (Mode != "cache")
+			if (Mode == NULL || (Mode && strcmp(Mode, "build") == 0))
+			{
+				if (bitmap_deliverydate->config->approach == "naive" ) {
+					bitmap_deliverydate->append(0, row_id);
+				}
+				else if (bitmap_deliverydate->config->approach == "nbub-lk") {
+					nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_deliverydate);
+
+					bitmap->__init_append(0, row_id, bitmap_deliverydate_bin(oid < 2101?o_entry:(uint64_t)0));
+
+					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
+					// bitmap->__init_append(0, row_id2, quantity-1);
+					bitmap->__init_append(0, row_id, bitmap_quantity_bin(ol_quantity));
+				}
+			}
 		}
 #endif
 		// NEW ORDER
@@ -483,13 +526,13 @@ chbench_wl::init_permutation(uint64_t * perm_c_id, uint64_t wid) {
 
 void * chbench_wl::threadInitWarehouse(void * This) {
 	chbench_wl * wl = (chbench_wl *) This;
-	int tid = ATOM_FETCH_ADD(wl->next_tid, 1);
+	uint32_t tid = ATOM_FETCH_ADD(wl->next_tid, 1);
 	uint32_t wid = tid + 1;
 	tpc_buffer[tid] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
 	assert((uint64_t)tid < g_num_wh);
 	srand48_r(wid, tpc_buffer[tid]);
-	
-	if (tid == 0)
+	// cout << *tpc_buffer[tid]->__x << "_" << wid << endl;
+	if (tid == 0) 
 		wl->init_tab_item();
 	wl->init_tab_wh( wid );
 	wl->init_tab_dist( wid );
@@ -501,4 +544,134 @@ void * chbench_wl::threadInitWarehouse(void * This) {
 			wl->init_tab_hist(cid, did, wid);
 	}
 	return NULL;
+}
+
+
+RC chbench_wl::init_bitmap() 
+{
+	// auto start = std::chrono::high_resolution_clock::now();
+	// auto end = std::chrono::high_resolution_clock::now();
+	// long  long  time = (long  long)0;	
+
+	uint64_t n_rows = 0UL;
+	db_number_of_rows = n_rows;
+
+/********************* bitmap_deliverydate ******************************/
+	{
+	Table_config *config_deliverydate = new Table_config{};
+	config_deliverydate->n_workers = g_thread_cnt;
+	config_deliverydate->DATA_PATH = "";
+	config_deliverydate->INDEX_PATH = "";
+	config_deliverydate->n_rows = n_rows; 
+	config_deliverydate->g_cardinality = 3; // {<1999, [1999,2020), >=2020}
+	enable_fence_pointer = config_deliverydate->enable_fence_pointer = true;
+	INDEX_WORDS = 10000;  // Fence length 
+	config_deliverydate->approach = {"nbub-lk"};
+	config_deliverydate->nThreads_for_getval = 4;
+	config_deliverydate->show_memory = true;
+	config_deliverydate->on_disk = false;
+	config_deliverydate->showEB = false;
+    config_deliverydate->decode = false;
+
+	// DBx1000 doesn't use the following parameters;
+	// they are used by nicolas.
+	config_deliverydate->n_queries = MAX_TXN_PER_PART;
+	config_deliverydate->n_udis = MAX_TXN_PER_PART * 0.1;
+	config_deliverydate->verbose = false;
+	config_deliverydate->time_out = 100;
+	config_deliverydate->autoCommit = false;
+	config_deliverydate->n_merge_threshold = 16;
+	config_deliverydate->db_control = true;
+
+	config_deliverydate->segmented_btv = false;
+	config_deliverydate->encoded_word_len = 31;
+	config_deliverydate->rows_per_seg = 100000;
+	config_deliverydate->enable_parallel_cnt = false;
+	
+	// start = std::chrono::high_resolution_clock::now();
+	if (config_deliverydate->approach == "ub") {
+        bitmap_deliverydate = new ub::Table(config_deliverydate);
+    } else if (config_deliverydate->approach == "nbub-lk") {
+        bitmap_deliverydate = new nbub_lk::NbubLK(config_deliverydate);
+    } else if (config_deliverydate->approach == "nbub-lf" || config_deliverydate->approach =="nbub") {
+        bitmap_deliverydate = new nbub_lf::NbubLF(config_deliverydate);
+    } else if (config_deliverydate->approach == "ucb") {
+        bitmap_deliverydate = new ucb::Table(config_deliverydate);
+    } else if (config_deliverydate->approach == "naive") {
+        bitmap_deliverydate = new naive::Table(config_deliverydate);
+    }
+    else {
+        cerr << "Unknown approach." << endl;
+        exit(-1);
+    }
+	// end = std::chrono::high_resolution_clock::now();
+	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+	cout << "[CUBIT]: Bitmap bitmap_deliverydate initialized successfully. "
+			<< "[Cardinality:" << config_deliverydate->g_cardinality
+			<< "] [Method:" << config_deliverydate->approach << "]" << endl;
+	}
+
+
+
+/********************* bitmap_quantity ******************************/
+	{
+	Table_config *config_quantity = new Table_config{};
+	config_quantity->n_workers = g_thread_cnt;
+	config_quantity->DATA_PATH = "";
+	config_quantity->INDEX_PATH = "";
+	config_quantity->n_rows = n_rows;  
+	// config_quantity->g_cardinality = 50; // [0, 49]
+	config_quantity->g_cardinality = 3; // [<1], [1,10000], [>10000]
+	enable_fence_pointer = config_quantity->enable_fence_pointer = true;
+	INDEX_WORDS = 10000;  // Fence length 
+	config_quantity->approach = {"nbub-lk"};
+	config_quantity->nThreads_for_getval = 4;
+	config_quantity->show_memory = true;
+	config_quantity->on_disk = false;
+	config_quantity->showEB = false;
+    config_quantity->decode = false;
+
+	// DBx1000 doesn't use the following parameters;
+	// they are used by nicolas.
+	config_quantity->n_queries = MAX_TXN_PER_PART;
+	config_quantity->n_udis = MAX_TXN_PER_PART * 0.1;
+	config_quantity->verbose = false;
+	config_quantity->time_out = 100;
+	config_quantity->autoCommit = false;
+	config_quantity->n_merge_threshold = 16;
+	config_quantity->db_control = true;
+
+	config_quantity->segmented_btv = false;
+	config_quantity->encoded_word_len = 31;
+	config_quantity->rows_per_seg = 100000;
+	config_quantity->enable_parallel_cnt = false;
+	
+	// start = std::chrono::high_resolution_clock::now();
+	if (config_quantity->approach == "ub") {
+        bitmap_quantity = new ub::Table(config_quantity);
+    } else if (config_quantity->approach == "nbub-lk") {
+        bitmap_quantity = new nbub_lk::NbubLK(config_quantity);
+    } else if (config_quantity->approach == "nbub-lf" || config_quantity->approach =="nbub") {
+        bitmap_quantity = new nbub_lf::NbubLF(config_quantity);
+    } else if (config_quantity->approach == "ucb") {
+        bitmap_quantity = new ucb::Table(config_quantity);
+    } else if (config_quantity->approach == "naive") {
+        bitmap_quantity = new naive::Table(config_quantity);
+    }
+    else {
+        cerr << "Unknown approach." << endl;
+        exit(-1);
+    }
+	// end = std::chrono::high_resolution_clock::now();
+	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();	
+
+	cout << "[CUBIT]: Bitmap bitmap_quantity initialized successfully. "
+			<< "[Cardinality:" << config_quantity->g_cardinality
+			<< "] [Method:" << config_quantity->approach << "]" << endl;
+	}
+
+	// cout << "INDEX bitmap build time:" << time << endl;
+
+	return RCOK;
 }
