@@ -11,6 +11,67 @@
 #include "chbench_const.h"
 #include "output_log.h"
 
+chbench_q1_data::chbench_q1_data(int size) {
+	d_size = size;
+	cnt = (int*) _mm_malloc(sizeof(int) * d_size, 64);
+	memset(cnt, 0, d_size * sizeof(int));
+	sum_amount = (double*) _mm_malloc(sizeof(double) * d_size, 64);
+	
+	avg_amount = (double*) _mm_malloc(sizeof(double) * d_size, 64);
+
+	avg_quantity = (double*) _mm_malloc(sizeof(double) * d_size, 64);
+
+	sum_quantity = (uint64_t*) _mm_malloc(sizeof(uint64_t) * d_size, 64);
+
+	for(int i = 0; i < d_size; i++) {
+		sum_amount[i] = 0;
+		avg_amount[i] = 0;
+		avg_quantity[i] = 0;
+		cnt[i] = 0;
+		sum_quantity[i] = 0;
+	}
+
+}
+
+chbench_q1_data::chbench_q1_data(const chbench_q1_data& obj) {
+	d_size = obj.d_size;
+	cnt = (int*) _mm_malloc(sizeof(int) * d_size, 64);
+	memset(cnt, 0, d_size * sizeof(int));
+	sum_amount = (double*) _mm_malloc(sizeof(double) * d_size, 64);
+
+	avg_amount = (double*) _mm_malloc(sizeof(double) * d_size, 64);
+
+	avg_quantity = (double*) _mm_malloc(sizeof(double) * d_size, 64);
+
+	sum_quantity = (uint64_t*) _mm_malloc(sizeof(uint64_t) * d_size, 64);
+
+	for(int i = 0; i < d_size; i++) {
+		sum_amount[i] = 0;
+		avg_amount[i] = 0;
+		avg_quantity[i] = 0;
+		cnt[i] = 0;
+		sum_quantity[i] = 0;
+	}
+}
+
+chbench_q1_data::~chbench_q1_data() {
+	_mm_free(cnt);
+	_mm_free(sum_amount);
+	_mm_free(sum_quantity);
+	_mm_free(avg_amount);
+	_mm_free(avg_quantity);
+}
+
+
+void chbench_q1_data::operator+=(const chbench_q1_data& tmp) {
+	for(int i = 0; i < d_size; i++) {
+		sum_amount[i] += tmp.sum_amount[i];
+		cnt[i] += tmp.cnt[i];
+		sum_quantity[i] += tmp.sum_quantity[i];
+	}
+	return;
+}
+
 void chbench_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	txn_man::init(h_thd, h_wl, thd_id);
 	_wl = (chbench_wl *) h_wl;
@@ -38,6 +99,14 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 			return run_Q6_btree(tid, m_query); break;
 		case CHBENCH_Q6_BITMAP :
 			return run_Q6_bitmap(tid, m_query); break;
+		case CHBENCH_Q1_SCAN :
+			return run_Q1_scan(tid, m_query); break;
+		case CHBENCH_Q1_BTREE :
+			return run_Q1_btree(tid, m_query); break;
+		case CHBENCH_Q1_BITMAP :
+			return run_Q1_bitmap(tid, m_query); break;
+		case CHBENCH_Q1_BITMAP_PARALLEL :
+			return run_Q1_bitmap_parallel_fetch(tid, m_query); break;
 		default:
 			assert(false);
 	}
@@ -932,7 +1001,7 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 
 	row_t *row_buffer = _wl->t_orderline->row_buffer;
 
-	// selectivity 0.18
+	// selectivity 1.8%
 	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.3;
 	int *ids = new int[n_ids_max];
 
@@ -986,5 +1055,385 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 	assert(rc == RCOK);
 	bitmap_qt->trans_commit(tid);
 	bitmap_dd->trans_commit(tid);
+	return finish(rc);
+}
+
+void chbench_txn_man::q1_add_answer(row_t* row_local, chbench_q1_data &result) {
+	uint32_t current_number;
+	int64_t current_quantity;
+	double current_amount;
+	row_local->get_value(OL_NUMBER, current_number);
+	row_local->get_value(OL_AMOUNT, current_amount);
+	row_local->get_value(OL_QUANTITY, current_quantity);
+	result.cnt[current_number]++;
+	result.sum_amount[current_number] += current_amount;
+	result.sum_quantity[current_number] += (uint64_t)current_quantity;
+	return;
+}
+
+void chbench_txn_man::run_Q1_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, chbench_q1_data &result) {
+
+
+	// define constant condition
+	uint64_t min_delivery_d = query->min_delivery_d;
+
+	row_t* current_row;
+
+	for(uint64_t row_id = start_row; row_id < end_row; row_id++) {
+		current_row = (row_t*) &(_wl->t_orderline->row_buffer[row_id]);
+		assert(current_row != NULL);
+		row_t* row_local = get_row(current_row, SCAN);
+		if(row_local == NULL) {
+			continue;
+		}
+		
+		// extract artributions
+		uint64_t current_delivery_d;
+		row_local->get_value(OL_DELIVERY_D, current_delivery_d);
+
+		// check condition
+		if( current_delivery_d > min_delivery_d) {
+			q1_add_answer(row_local, result);
+		} 
+	}
+	return;
+}
+
+
+RC chbench_txn_man::run_Q1_scan(int tid, chbench_query * query) {
+	/*
+	select  ol_number,
+	 	sum(ol_quantity) as sum_qty,
+	 	sum(ol_amount) as sum_amount,
+	 	avg(ol_quantity) as avg_qty,
+	 	avg(ol_amount) as avg_amount,
+	 	count(*) as count_order
+	from	 orderline
+	where	 ol_delivery_d > '2007-01-02 00:00:00.000000'
+	group by ol_number order by ol_number
+	*/
+
+
+	RC rc = RCOK;
+
+	uint64_t sum_quantity = 0;
+	double sum_amount = 0;
+	
+	// does here need atomic?
+	uint64_t max_orderlines = (uint64_t)_wl->t_orderline->cur_tab_size;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	std::vector<chbench_q1_data> results(CHBENCH_Q6_SCAN_THREADS, 16);
+    uint64_t block_size = max_orderlines / CHBENCH_Q6_SCAN_THREADS;
+	uint64_t block_start = 0;
+	std::vector<std::thread> threads(CHBENCH_Q6_SCAN_THREADS - 1);
+
+	for (int i = 0; i < CHBENCH_Q6_SCAN_THREADS - 1; i++) {
+        threads[i] = std::thread(&chbench_txn_man::run_Q1_scan_singlethread, *this,\
+								block_start, block_start + block_size, query, std::ref(results[i]));
+		block_start = block_start + block_size;
+	}
+	run_Q1_scan_singlethread(block_start, max_orderlines, query, std::ref(results[CHBENCH_Q6_SCAN_THREADS - 1]));
+
+	for (auto &thread : threads) {
+		thread.join();
+    }
+
+	for(int i = 0; i < CHBENCH_Q6_SCAN_THREADS - 1; i++) {
+		results[CHBENCH_Q6_SCAN_THREADS - 1] += results[i];
+	}
+
+	for(int i = 0; i < results[CHBENCH_Q6_SCAN_THREADS - 1].d_size; i++) {
+		chbench_q1_data* tmp = &results[CHBENCH_Q6_SCAN_THREADS - 1];
+		if(tmp->cnt[i] > 0) {
+			tmp->avg_amount[i] = tmp->sum_amount[i] / tmp->cnt[i];
+			tmp->avg_quantity[i] = tmp->sum_quantity[i] / (double)tmp->cnt[i];
+		}
+	}
+	auto end = std::chrono::high_resolution_clock::now();
+	long  long time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+//	if (perf_enabled == true && tid == 0) {
+//		kill_perf_process(perf_pid);
+//		usleep(WAIT_FOR_PERF_U);
+//	}
+
+	string tmp = output_information("SCAN", results[CHBENCH_Q6_SCAN_THREADS - 1], to_string(time_elapsed_us) + "us");
+	// cout << tmp;
+	output_info[tid].push_back(tmp);
+	assert(rc == RCOK);
+	return finish(rc);
+	
+
+	// return RCOK;
+}
+
+RC chbench_txn_man::run_Q1_btree(int tid, chbench_query * query) {
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+
+	RC rc = RCOK;
+	
+	chbench_q1_data ans(16);
+	row_t* current_row;
+
+	long  long index_us = (long  long)0;
+	long long index_read_us = (long long)0;
+	long long leaf_read_us = (long long)0;
+	long long total_us = (long long)0;
+	vector<itemid_t *> item_list{};
+
+	INDEX* index = _wl->i_orderline_d;
+
+	auto start = std::chrono::high_resolution_clock::now();
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+	for(uint64_t date = min_delivery_d + 1 ; date <= 2023; date++) {
+
+			uint64_t& key = date;
+
+			if ( !index->index_exist(key, 0) ){
+					continue;
+				}
+
+			auto start1 = std::chrono::high_resolution_clock::now();
+				itemid_t * item = index_read(index, key, 0);
+				auto end1 = std::chrono::high_resolution_clock::now();
+				index_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
+				auto start2 = std::chrono::high_resolution_clock::now();
+				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
+					item_list.push_back(local_item);
+				}
+				auto end2 = std::chrono::high_resolution_clock::now();
+				leaf_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
+		
+	}
+
+	auto end_f = std::chrono::high_resolution_clock::now();
+	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
+
+	auto tmp_5 = std::chrono::high_resolution_clock::now();
+
+	for (auto const &local_item : item_list)
+	{
+		row_t * r_lt = ((row_t *)local_item->location);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
+		if (r_lt_local == NULL) {
+			// Skip the deleted item
+			// return finish(Abort);
+			continue;
+		}
+		// cout << "address = " << &r_lt_local->data << endl;
+		q1_add_answer(r_lt_local, ans);
+	}
+
+	for(int i = 0; i < ans.d_size; i++) {
+		if(ans.cnt[i] == 0) {
+			continue;
+		}
+		ans.avg_amount[i] = ans.sum_amount[i] / ans.cnt[i];
+		ans.avg_quantity[i] = ans.sum_quantity[i] / (double)ans.cnt[i];
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+	
+	string tmp = output_information("BTREE", ans, to_string(total_us) + "us");
+	// cout << tmp;
+	output_info[tid].push_back(tmp);
+	
+
+	assert(rc == RCOK);
+	return finish(rc);
+}
+
+RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
+	uint64_t min_delivery_d = query->min_delivery_d;
+
+	RC rc = RCOK;
+	
+	chbench_q1_data ans(16);
+	int cnt = 0;
+	long  long index_us = (long  long)0;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	nbub::Nbub *bitmap_dd;
+	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1);
+	bitmap_dd->trans_begin(tid);
+	ibis::bitvector *btv_deliverydate = bitmap_dd->bitmaps[1]->btv;
+	ibis::bitvector & result = *btv_deliverydate;
+
+	row_t *row_buffer = _wl->t_orderline->row_buffer;
+
+	// selectivity 36%
+	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.5;
+	int *ids = new int[n_ids_max];
+
+	// Convert bitvector to ID list
+	for (ibis::bitvector::indexSet is = result.firstIndexSet(); is.nIndices() > 0; ++ is) 
+	{
+		const ibis::bitvector::word_t *ii = is.indices();
+		if (is.isRange()) {
+			for (ibis::bitvector::word_t j = *ii;
+					j < ii[1];
+					++ j) {
+				ids[cnt] = j;
+				++ cnt;
+			}
+		}
+		else {
+			for (unsigned j = 0; j < is.nIndices(); ++ j) {
+				ids[cnt] = ii[j];
+				++ cnt;
+			}
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+	int deletecnt = 0;
+	start = std::chrono::high_resolution_clock::now();
+	// Fetch tuples in ID list
+	for(int k = 0; k < cnt; k++) 
+	{
+		row_t *row_tmp = (row_t *) &row_buffer[ids[k]];
+		row_t *row_local = get_row(row_tmp, SCAN);
+		if (row_local == NULL) {
+			deletecnt++;
+			// return finish(Abort);
+			continue;
+		}
+		q1_add_answer(row_local, ans);
+	}
+
+	for(int i = 0; i < ans.d_size; i++) {
+		if(ans.cnt[i] == 0) {
+			continue;
+		}
+		ans.avg_amount[i] = ans.sum_amount[i] / ans.cnt[i];
+		ans.avg_quantity[i] = ans.sum_quantity[i] / (double)ans.cnt[i];
+	}
+
+	end = std::chrono::high_resolution_clock::now();
+	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	// cout << "tuple time is" << tuple_us << "us" << endl;
+
+	string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
+	output_info[tid].push_back(tmp);
+
+	delete [] ids;
+	assert(rc == RCOK);
+	bitmap_dd->trans_commit(tid);
+	return finish(rc);
+}
+
+void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *bitmap_d, nbub::Nbub *bitmap_number, chbench_q1_data & ans) {
+
+	// selectivity 36% 
+	// max > 36%/10
+	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.05;
+	int *ids = new int[n_ids_max];
+	row_t *row_buffer = _wl->t_orderline->row_buffer;
+	for(int i = 0; i < 2; i++) {
+		int cnt = 0;
+		ibis::bitvector *date = bitmap_d->bitmaps[1]->btv;
+		ibis::bitvector result;
+		result.copy(*bitmap_number->bitmaps[number - 1]->btv);
+		result &= *date;
+
+		// Convert bitvector to ID list
+		for (ibis::bitvector::indexSet is = result.firstIndexSet(); is.nIndices() > 0; ++ is) 
+		{
+			const ibis::bitvector::word_t *ii = is.indices();
+			if (is.isRange()) {
+				for (ibis::bitvector::word_t j = *ii;
+						j < ii[1];
+						++ j) {
+					ids[cnt] = j;
+					++ cnt;
+				}
+			}
+			else {
+				for (unsigned j = 0; j < is.nIndices(); ++ j) {
+					ids[cnt] = ii[j];
+					++ cnt;
+				}
+			}
+		}
+		int deletecnt = 0;
+
+		// auto start = std::chrono::high_resolution_clock::now();
+		// Fetch tuples in ID list
+		for(int k = 0; k < cnt; k++) 
+		{
+			row_t *row_tmp = (row_t *) &row_buffer[ids[k]];
+			row_t *row_local = get_row(row_tmp, SCAN);
+			if (row_local == NULL) {
+				deletecnt++;
+				// return finish(Abort);
+				continue;
+			}
+			q1_add_answer(row_local, ans);
+		}
+		/*
+		auto end = std::chrono::high_resolution_clock::now();
+		if(number == 1) {
+			cout << "fetch tuple time is " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << "us" << endl;
+		}
+		*/
+		
+		if(ans.cnt[number] != 0) {
+			ans.avg_amount[number] = ans.sum_amount[number] / ans.cnt[number];
+			ans.avg_quantity[number] = ans.sum_quantity[number] / (double)ans.cnt[number];
+		}
+		if(number <= 5) {
+			delete [] ids;
+			return;
+		}
+		number = 21 - number;
+	}
+
+	delete [] ids;
+
+}
+
+RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query) {
+	uint64_t min_delivery_d = query->min_delivery_d;
+
+	RC rc = RCOK;
+	
+	chbench_q1_data ans(16);
+	int cnt = 0;
+	nbub::Nbub *bitmap_d, *bitmap_number;
+	bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1);
+	bitmap_number = dynamic_cast<nbub::Nbub *>(_wl->bitmap_ol_number);
+	bitmap_d->trans_begin(tid);
+	bitmap_number->trans_begin(tid);
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	std::vector<std::thread> threads(9);
+	for(int i = 2; i <= 10; i++) {
+		threads[i - 2] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
+		i, bitmap_d, bitmap_number, std::ref(ans));
+	}
+	run_Q1_bitmap_fetch_singlethread(1, bitmap_d, bitmap_number, ans);
+	for (auto &thread : threads) {
+		thread.join();
+    }
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+	string tmp = output_information("CUBIT(Parallel)", ans, to_string(total_us) + "us");
+	output_info[tid].push_back(tmp);
+
+	assert(rc == RCOK);
+	bitmap_d->trans_commit(tid);
+	bitmap_number->trans_commit(tid);
 	return finish(rc);
 }

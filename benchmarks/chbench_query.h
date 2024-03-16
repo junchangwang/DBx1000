@@ -48,6 +48,7 @@ public:
 
 	// for chbench_q6
 	static int q6_id;
+	static int q1_id;
 	uint64_t min_delivery_d;
 	uint64_t max_delivery_d;
 	int64_t min_quantity;
@@ -61,6 +62,7 @@ private:
 	void gen_new_order(uint64_t thd_id);
 	void gen_order_status(uint64_t thd_id);
 	void gen_q6(uint64_t thd_id);
+	void gen_q1(uint64_t thd_id);
 };
 
 #endif

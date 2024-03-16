@@ -45,12 +45,14 @@ public:
 	INDEX *		i_customers;
 	INDEX * 	i_stock;
 	INDEX * 	i_order; // key = (w_id, d_id, o_id)
-	INDEX * 	i_orderline; // key = (w_id, d_id, o_id)
-	INDEX * 	i_orderline_wd; // key = (w_id, d_id). 
+	INDEX * 	i_orderline; // key = (quantity, data)
+	INDEX * 	i_orderline_d; // key = (data). 
 
 	BaseTable *bitmap_c_w_id;
 	BaseTable *bitmap_deliverydate;
 	BaseTable *bitmap_quantity;
+	BaseTable *bitmap_q1;
+	BaseTable *bitmap_ol_number;
 
 	bool ** delivering;
 	uint32_t next_tid;
@@ -78,6 +80,23 @@ private:
 	static void * threadInitWarehouse_sequential(void * This);
 };
 
+
+class chbench_q1_data {
+
+public:
+	chbench_q1_data(int size);
+	chbench_q1_data(const chbench_q1_data& obj);
+	int d_size;
+	uint64_t *sum_quantity;
+	int *cnt;
+	double *sum_amount;
+	double *avg_amount;
+	double *avg_quantity;
+	void operator+=(const chbench_q1_data& tmp);
+	~chbench_q1_data();
+};
+
+
 class chbench_txn_man : public txn_man
 {
 public:
@@ -92,10 +111,18 @@ private:
 	RC run_stock_level(chbench_query * query);
 	RC evaluate_index(chbench_query *query);
 	void run_Q6_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, std::tuple<double, int> &result);
+	void q1_add_answer(row_t* row_local, chbench_q1_data &result);
+	void run_Q1_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, chbench_q1_data &result);
 	RC run_Q6_scan(int tid, chbench_query * query);
 	RC run_Q6_btree(int tid, chbench_query * query);
 	RC run_Q6_bitmap(int tid, chbench_query * query);
+	RC run_Q1_scan(int tid, chbench_query * query);
+	RC run_Q1_btree(int tid, chbench_query * query);
+	RC run_Q1_bitmap(int tid, chbench_query * query);
+	void run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *bitmap_d, nbub::Nbub *bitmap_number, chbench_q1_data & ans);
+	RC run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query);
 };
+
 
 static inline int bitmap_quantity_bin(int64_t quantity) {
 	// [<1], [1,1000], [>1000]
@@ -107,6 +134,7 @@ static inline int bitmap_quantity_bin(int64_t quantity) {
 }
 
 	// [<1999], [1999,2020), [>=2020]
+	//   0          1            2     
 static inline int bitmap_deliverydate_bin(uint64_t date) {
 	if (date < 1999)
 		return 0;
