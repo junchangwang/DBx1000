@@ -176,15 +176,6 @@ RC chbench_txn_man::evaluate_index(chbench_query * query)
 	cout << "HashTable: Loop times: " << tmp << ". Found string times: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
 	cout << "Memory concumption (Bytes): " << index->index_size() << endl;
 
-	start = std::chrono::high_resolution_clock::now();
-	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_c_w_id);
-	tmp = bitmap->evaluate(0, key);
-	tmp = bitmap->bitmaps[key]->btv->count();
-	end = std::chrono::high_resolution_clock::now();
-	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "Bitmap: Loop times: " << tmp << ". Found string times: " << cnt << 
-			". Microseconds: " << time_elapsed_ms << ". Memory concumption (Bytes): " << endl;
-	dynamic_cast<nbub_lk::NbubLK *>(bitmap)->printMemory();
 
 	exit(rc);
 	return rc;
@@ -584,22 +575,22 @@ RC chbench_txn_man::run_new_order(chbench_query * query) {
 				:ol_quantity, :ol_amount, :ol_dist_info);
 		+====================================================*/
 		// XXX district info is not inserted.
-//		row_t * r_ol;
-//		uint64_t row_id;
-//		_wl->t_orderline->get_new_row(r_ol, 0, row_id);
-//		r_ol->set_value(OL_O_ID, &o_id);
-//		r_ol->set_value(OL_D_ID, &d_id);
-//		r_ol->set_value(OL_W_ID, &w_id);
-//		r_ol->set_value(OL_NUMBER, &ol_number);
-//		r_ol->set_value(OL_I_ID, &ol_i_id);
+		// row_t * r_ol;
+		// uint64_t row_id;
+		// _wl->t_orderline->get_new_row_seq(r_ol, 0, row_id);
+		// r_ol->set_value(OL_O_ID, &o_id);
+		// r_ol->set_value(OL_D_ID, &d_id);
+		// r_ol->set_value(OL_W_ID, &w_id);
+		// r_ol->set_value(OL_NUMBER, &ol_number);
+		// r_ol->set_value(OL_I_ID, &ol_i_id);
 #if !CHBENCH_SMALL
-//		int w_tax=1, d_tax=1;
-//		int64_t ol_amount = ol_quantity * i_price * (1 + w_tax + d_tax) * (1 - c_discount);
-//		r_ol->set_value(OL_SUPPLY_W_ID, &ol_supply_w_id);
-//		r_ol->set_value(OL_QUANTITY, &ol_quantity);
-//		r_ol->set_value(OL_AMOUNT, &ol_amount);
+		// int w_tax=1, d_tax=1;
+		// int64_t ol_amount = ol_quantity * i_price * (1 + w_tax + d_tax) * (1 - c_discount);
+		// r_ol->set_value(OL_SUPPLY_W_ID, &ol_supply_w_id);
+		// r_ol->set_value(OL_QUANTITY, &ol_quantity);
+		// r_ol->set_value(OL_AMOUNT, &ol_amount);
 #endif		
-//		insert_row(r_ol, _wl->t_orderline);
+		// insert_row(r_ol, _wl->t_orderline);
 	}
 	assert( rc == RCOK );
 	return finish(rc);
@@ -989,10 +980,10 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	nbub::Nbub *bitmap_dd, *bitmap_qt;
-	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_deliverydate);
+	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
 	bitmap_dd->trans_begin(tid);
 	ibis::bitvector *btv_deliverydate = bitmap_dd->bitmaps[1]->btv;
-	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
+	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
 	bitmap_qt->trans_begin(tid);
 	ibis::bitvector result;
 	result.copy(*bitmap_qt->bitmaps[1]->btv);
@@ -1261,7 +1252,7 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	nbub::Nbub *bitmap_dd;
-	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1);
+	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
 	bitmap_dd->trans_begin(tid);
 	ibis::bitvector *btv_deliverydate = bitmap_dd->bitmaps[1]->btv;
 	ibis::bitvector & result = *btv_deliverydate;
@@ -1409,8 +1400,8 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 	chbench_q1_data ans(16);
 	int cnt = 0;
 	nbub::Nbub *bitmap_d, *bitmap_number;
-	bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1);
-	bitmap_number = dynamic_cast<nbub::Nbub *>(_wl->bitmap_ol_number);
+	bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
+	bitmap_number = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_ol_number);
 	bitmap_d->trans_begin(tid);
 	bitmap_number->trans_begin(tid);
 

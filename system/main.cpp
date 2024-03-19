@@ -20,9 +20,12 @@ void * f(void *);
 
 thread_t ** m_thds;
 
+extern CHBenchQuery query_number;
+
 // defined in parser.cpp
 void parser(int argc, char * argv[]);
 int verify_bitmap(workload * m_wl);
+void merge_start(BaseTable *bitmap, Table_config *config, std::thread *merge_ths);
 
 int main(int argc, char* argv[])
 {
@@ -65,7 +68,10 @@ int main(int argc, char* argv[])
 
 	if (Mode && strcmp(Mode, "build") == 0) {
 		// ((tpch_wl *)m_wl)->build();
-		dynamic_cast<tpch_wl *>(m_wl)->build();
+		if(WORKLOAD == TPCH)
+			dynamic_cast<tpch_wl *>(m_wl)->build();
+		else if(WORKLOAD == CHBench)
+			dynamic_cast<chbench_wl *>(m_wl)->build();
 		return 0;
 	}
 	
@@ -111,21 +117,18 @@ int main(int argc, char* argv[])
 	pthread_barrier_init( &warmup_bar, NULL, g_thread_cnt );
 
 	// Intialize the background merge threads for NBUB.
-#if ((WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true))
+#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true)
 
 	#define WORKERS_PER_MERGE_TH (4)
     int n_merge_ths;
     std::thread *merge_ths;
+	std::thread *merge_ths2;
 	BaseTable *bitmap = NULL;
 	Table_config *config = NULL;
 	
 	if( WORKLOAD == TPCC ) {
 		bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_c_w_id;
-	}
-	if( WORKLOAD == CHBench) {
-		bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_c_w_id;
-	}
-	config = bitmap->config;
+		config = bitmap->config;
 
 	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
 	{
@@ -149,6 +152,25 @@ int main(int argc, char* argv[])
 		}
 		cout << "[CUBIT]: Creating " << n_merge_ths << " merging threads" << endl;
 	}
+	}
+	else {
+		if(query_number == CHBenchQuery::CHBenchQ1) {
+			bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q1_deliverydate;
+			config = bitmap->config;
+			merge_start(bitmap, config, merge_ths);
+			bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q1_ol_number;
+			config = bitmap->config;
+			merge_start(bitmap, config, merge_ths2);
+		}
+		else {
+			bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q6_deliverydate;
+			config = bitmap->config;
+			merge_start(bitmap, config, merge_ths);
+			bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q6_quantity;
+			config = bitmap->config;
+			merge_start(bitmap, config, merge_ths2);
+		}
+	}
 #endif
 
 	// spawn and run txns again.
@@ -166,7 +188,7 @@ int main(int argc, char* argv[])
 		pthread_join(p_thds[i], NULL);
 	int64_t endtime = get_server_clock();
 
-#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBench_EVA_CUBIT == true)
+#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true)
 	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
 	{
 		__atomic_store_n(&run_merge_func, false, MM_CST);
@@ -175,6 +197,12 @@ int main(int argc, char* argv[])
 			merge_ths[i].join();
 		}
 		delete[] merge_ths;
+		#if WORKLOAD == CHBench
+		for (int i = 0; i < n_merge_ths; i++) {
+			merge_ths2[i].join();
+		}
+		delete[] merge_ths2;
+		#endif
 	}
 #endif
 	
@@ -249,4 +277,26 @@ int verify_bitmap(workload * m_wl)
 	rcu_unregister_thread();
 
 	return 0;		
+}
+
+void merge_start(BaseTable *bitmap, Table_config *config, std::thread *merge_ths) {
+	int n_merge_ths;
+	__atomic_store_n(&run_merge_func, true, MM_CST);
+
+	n_merge_ths = config->n_workers / WORKERS_PER_MERGE_TH;
+	merge_ths = new thread[config->n_workers / WORKERS_PER_MERGE_TH + 1];
+	for (int i = 0; i < n_merge_ths; i++) {
+		int begin = i * WORKERS_PER_MERGE_TH;
+		int range = WORKERS_PER_MERGE_TH;
+		cout << "[CUBIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
+		merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config);
+	}
+	if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
+		int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
+		int range = (config->n_workers % WORKERS_PER_MERGE_TH);
+		cout << "[CUBIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
+		merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config);
+		n_merge_ths ++;
+	}
+	cout << "[CUBIT]: Creating " << n_merge_ths << " merging threads" << endl;
 }

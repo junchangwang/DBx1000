@@ -17,11 +17,12 @@
 static int cnt_q6 = 0;
 static int cnt_q1_number1 = 0;
 static uint64_t q1_number1_quantity = 0;
+CHBenchQuery query_number = CHBenchQuery::CHBenchQ1;
 
 RC chbench_wl::init() 
 {
 #if CHBENCH_EVA_CUBIT
-	init_bitmap_c_w_id();
+	init_bitmap();
 #endif
 	workload::init();
 	string path = "./benchmarks/";
@@ -34,59 +35,124 @@ RC chbench_wl::init()
 	init_schema( path.c_str() );
 	cout << "CHBENCH schema initialized" << endl;
 	t_orderline->init_row_buffer(g_cust_per_dist * g_num_wh * 150);
-	init_bitmap();
 	init_table();
 	next_tid = 0;
 
 	return RCOK;
 }
 
-RC chbench_wl::init_bitmap_c_w_id( ) 
-{
-	Table_config *config = new Table_config{};
-	config->n_workers = g_thread_cnt;
-	config->DATA_PATH = "";
-	config->INDEX_PATH = "";
-	config->g_cardinality = g_num_wh * DIST_PER_WARE;
-	enable_fence_pointer = config->enable_fence_pointer = true;
-	INDEX_WORDS = 10000;  // Fence length 
-	config->approach = {"nbub-lk"};
-//	config->approach = {"naive"};
-	config->nThreads_for_getval = 4;
-	config->show_memory = true;
-	config->on_disk = false;
-	config->showEB = false;
-    config->decode = false;
+RC chbench_wl::build()
+{	
+	// Check whether the index has been built before.
+    ifstream doneFlag;
+	string path;
+	if(query_number == CHBenchQuery::CHBenchQ6)
+	path = "bm_chbench_n" + to_string(g_num_wh) + "_q6_done";
+	else path = "bm_chbench_n" + to_string(g_num_wh) + "_q1_done";
+    doneFlag.open(path);
+    if (doneFlag.good()) { 
+        cout << "WARNING: The index for " + path + " has been built before. Skip building." << endl;
+        doneFlag.close();
+        return RCOK;
+    }
 
-	// DBx1000 doesn't use the following parameters;
-	// they are used by nicolas.
-	config->n_rows = 0; 
-	config->n_queries = 900;
-	config->n_udis = 100;
-	config->verbose = false;
-	config->time_out = 100;
+	init();
+
+    int ret;
+	nbub::Nbub *bitmap = nullptr;
+	if(query_number == CHBenchQuery::CHBenchQ6) {
+	// bitmap_q6_deliverydate
+	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q6_deliverydate);
+	for (uint64_t i = 0; i < bitmap_q6_deliverydate->config->g_cardinality; ++i) {
+		string temp = "bm_chbench_n";
+		temp.append(to_string(g_num_wh));
+		temp.append("_q6_deliverydate/");
+		string cmd = "mkdir -p ";
+		cmd.append(temp);
+		ret = system(cmd.c_str());
+                sleep(1);
+		temp.append(to_string(i));
+		temp.append(".bm");
+		bitmap->bitmaps[i]->btv->write(temp.c_str());
+
+		ibis::bitvector * test_btv = new ibis::bitvector();
+		test_btv->read(temp.c_str());
+		test_btv->adjustSize(0, bitmap->g_number_of_rows);
+		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
+	}
+
 	
-	if (config->approach == "ub") {
-        bitmap_c_w_id = new ub::Table(config);
-    } else if (config->approach == "nbub-lk") {
-        bitmap_c_w_id = new nbub_lk::NbubLK(config);
-    } else if (config->approach == "nbub-lf" || config->approach =="nbub") {
-        bitmap_c_w_id = new nbub_lf::NbubLF(config);
-    } else if (config->approach == "ucb") {
-        bitmap_c_w_id = new ucb::Table(config);
-    } else if (config->approach == "naive") {
-        bitmap_c_w_id = new naive::Table(config);
+	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q6_quantity);
+	for (uint64_t i = 0; i < bitmap_q6_quantity->config->g_cardinality; ++i) {
+		string temp = "bm_chbench_n";
+		temp.append(to_string(g_num_wh));
+		temp.append("_q6_quantity/");
+		string cmd = "mkdir -p ";
+		cmd.append(temp);
+		ret = system(cmd.c_str());
+                sleep(1);
+		temp.append(to_string(i));
+		temp.append(".bm");
+		bitmap->bitmaps[i]->btv->write(temp.c_str());
+
+		ibis::bitvector * test_btv = new ibis::bitvector();
+		test_btv->read(temp.c_str());
+		test_btv->adjustSize(0, bitmap->g_number_of_rows);
+		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
+	}
+	}
+	else {
+	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_deliverydate);
+	for (uint64_t i = 0; i < bitmap_q1_deliverydate->config->g_cardinality; ++i) {
+		string temp = "bm_chbench_n";
+		temp.append(to_string(g_num_wh));
+		temp.append("_q1_deliverydate/");
+		string cmd = "mkdir -p ";
+		cmd.append(temp);
+		ret = system(cmd.c_str());
+                sleep(1);
+		temp.append(to_string(i));
+		temp.append(".bm");
+		bitmap->bitmaps[i]->btv->write(temp.c_str());
+
+		ibis::bitvector * test_btv = new ibis::bitvector();
+		test_btv->read(temp.c_str());
+		test_btv->adjustSize(0, bitmap->g_number_of_rows);
+		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
+	}
+
+	
+	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_ol_number);
+	for (uint64_t i = 0; i < bitmap_q1_ol_number->config->g_cardinality; ++i) {
+		string temp = "bm_chbench_n";
+		temp.append(to_string(g_num_wh));
+		temp.append("_q1_ol_number/");
+		string cmd = "mkdir -p ";
+		cmd.append(temp);
+		ret = system(cmd.c_str());
+                sleep(1);
+		temp.append(to_string(i));
+		temp.append(".bm");
+		bitmap->bitmaps[i]->btv->write(temp.c_str());
+
+		ibis::bitvector * test_btv = new ibis::bitvector();
+		test_btv->read(temp.c_str());
+		test_btv->adjustSize(0, bitmap->g_number_of_rows);
+		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
+	}
+	}
+	// create done file
+    fstream done;   
+    done.open(path, ios::out);
+    if (done.is_open()) {
+        done << bitmap->g_number_of_rows;
+        cout << "Succeeded in building bitmap files and " << path << endl;
+        done.close(); 
     }
     else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
-
-	cout << "[CUBIT]: Bitmap bitmap_c_w_id initialized successfully. "
-			<< "[Cardinality:" << config->g_cardinality
-			<< "] [Method:" << config->approach << "]" << endl;
-
-	return RCOK;
+        cout << "Failed in building bitmap files and " << path << endl;
+    } 
+	return RCOK; 	
 }
 
 RC chbench_wl::init_schema(const char * schema_file) {
@@ -378,13 +444,6 @@ void chbench_wl::init_tab_cust(uint64_t did, uint64_t wid) {
 #if CHBENCH_EVA_CUBIT
 		key = distKey(did - 1, wid - 1);
 		index_insert(i_customers, key, row, wh_to_part(wid));
-		if (bitmap_c_w_id->config->approach == "naive" ) {
-			bitmap_c_w_id->append(0, key);
-		}
-		else if (bitmap_c_w_id->config->approach == "nbub-lk") {
-			nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_c_w_id);
-			bitmap->__init_append(0, key*g_cust_per_dist+(cid-1), key);
-		}
 #endif
 	}
 }
@@ -487,25 +546,24 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 			// if (Mode != "cache")
 			if (Mode == NULL || (Mode && strcmp(Mode, "build") == 0))
 			{
-				if (bitmap_deliverydate->config->approach == "naive" ) {
-					bitmap_deliverydate->append(0, row_id);
-				}
-				else if (bitmap_deliverydate->config->approach == "nbub-lk") {
-					nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_deliverydate);
+				nbub::Nbub *bitmap = NULL;
+				if(query_number == CHBenchQuery::CHBenchQ6) {
+					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q6_deliverydate);
 
 					bitmap->__init_append(0, row_id, bitmap_deliverydate_bin(oid < 2101?o_entry:(uint64_t)0));
 
-					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1);
+					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q6_quantity);
+					// bitmap->__init_append(0, row_id2, quantity-1);
+					bitmap->__init_append(0, row_id, bitmap_quantity_bin(ol_quantity));	
+				}
+				else {
+					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_deliverydate);
 
 					bitmap->__init_append(0, row_id, oid < 2101 ?(o_entry > 2007):(uint64_t)0);
 
-					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_ol_number);
+					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_ol_number);
 
 					bitmap->__init_append(0, row_id, static_cast<int>(ol-1));
-
-					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
-					// bitmap->__init_append(0, row_id2, quantity-1);
-					bitmap->__init_append(0, row_id, bitmap_quantity_bin(ol_quantity));
 				}
 			}
 		}
@@ -577,16 +635,40 @@ RC chbench_wl::init_bitmap()
 	// long  long  time = (long  long)0;	
 
 	uint64_t n_rows = 0UL;
-	db_number_of_rows = n_rows;
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		fstream done;
+		string path;
+		if(query_number == CHBenchQuery::CHBenchQ6)
+			path = "bm_chbench_n" + to_string(g_num_wh) + "_q6_done";
+		else path = "bm_chbench_n" + to_string(g_num_wh) + "_q1_done";
+		done.open(path, ios::in);
+		if (done.is_open()) {
+			done >> n_rows;
+			cout << "[cache] Number of rows: " << n_rows << " . Fetched from bitmap cached file: " << path << endl;
+			done.close();
+		}
+		else {
+			cout << "[cache] Failed to open the specified bitmap cached file: " << path << endl;
+			exit(-1);
+		}
 
-/********************* bitmap_deliverydate ******************************/
+	}
+	db_number_of_rows = n_rows;
+if(query_number == CHBenchQuery::CHBenchQ6) {
+/********************* bitmap_deliverydate_q6 ******************************/
 	{
 	Table_config *config_deliverydate = new Table_config{};
 	config_deliverydate->n_workers = g_thread_cnt;
 	config_deliverydate->DATA_PATH = "";
-	config_deliverydate->INDEX_PATH = "";
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		string temp = "bm_chbench_n";
+		temp.append(to_string(g_num_wh));
+		temp.append("_q6_deliverydate");
+		config_deliverydate->INDEX_PATH = temp;
+	} else
+		config_deliverydate->INDEX_PATH = "";
 	config_deliverydate->n_rows = n_rows; 
-	config_deliverydate->g_cardinality = 4; // {<1999, [1999,2007], (2007, 2020), >=2020}
+	config_deliverydate->g_cardinality = 3; // {<1999, [1999,2020), >=2020}
 	enable_fence_pointer = config_deliverydate->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
 	config_deliverydate->approach = {"nbub-lk"};
@@ -613,15 +695,15 @@ RC chbench_wl::init_bitmap()
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_deliverydate->approach == "ub") {
-        bitmap_deliverydate = new ub::Table(config_deliverydate);
+        bitmap_q6_deliverydate = new ub::Table(config_deliverydate);
     } else if (config_deliverydate->approach == "nbub-lk") {
-        bitmap_deliverydate = new nbub_lk::NbubLK(config_deliverydate);
+        bitmap_q6_deliverydate = new nbub_lk::NbubLK(config_deliverydate);
     } else if (config_deliverydate->approach == "nbub-lf" || config_deliverydate->approach =="nbub") {
-        bitmap_deliverydate = new nbub_lf::NbubLF(config_deliverydate);
+        bitmap_q6_deliverydate = new nbub_lf::NbubLF(config_deliverydate);
     } else if (config_deliverydate->approach == "ucb") {
-        bitmap_deliverydate = new ucb::Table(config_deliverydate);
+        bitmap_q6_deliverydate = new ucb::Table(config_deliverydate);
     } else if (config_deliverydate->approach == "naive") {
-        bitmap_deliverydate = new naive::Table(config_deliverydate);
+        bitmap_q6_deliverydate = new naive::Table(config_deliverydate);
     }
     else {
         cerr << "Unknown approach." << endl;
@@ -637,12 +719,18 @@ RC chbench_wl::init_bitmap()
 
 
 
-/********************* bitmap_quantity ******************************/
+/********************* bitmap_quantity_q6 ******************************/
 	{
 	Table_config *config_quantity = new Table_config{};
 	config_quantity->n_workers = g_thread_cnt;
 	config_quantity->DATA_PATH = "";
-	config_quantity->INDEX_PATH = "";
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		string temp = "bm_chbench_n";
+		temp.append(to_string(g_num_wh));
+		temp.append("_q6_quantity");
+		config_quantity->INDEX_PATH = temp;
+	} else
+		config_quantity->INDEX_PATH = "";
 	config_quantity->n_rows = n_rows;  
 	// config_quantity->g_cardinality = 50; // [0, 49]
 	config_quantity->g_cardinality = 3; // [<1], [1,1000], [>1000]
@@ -672,15 +760,15 @@ RC chbench_wl::init_bitmap()
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_quantity->approach == "ub") {
-        bitmap_quantity = new ub::Table(config_quantity);
+        bitmap_q6_quantity = new ub::Table(config_quantity);
     } else if (config_quantity->approach == "nbub-lk") {
-        bitmap_quantity = new nbub_lk::NbubLK(config_quantity);
+        bitmap_q6_quantity = new nbub_lk::NbubLK(config_quantity);
     } else if (config_quantity->approach == "nbub-lf" || config_quantity->approach =="nbub") {
-        bitmap_quantity = new nbub_lf::NbubLF(config_quantity);
+        bitmap_q6_quantity = new nbub_lf::NbubLF(config_quantity);
     } else if (config_quantity->approach == "ucb") {
-        bitmap_quantity = new ucb::Table(config_quantity);
+        bitmap_q6_quantity = new ucb::Table(config_quantity);
     } else if (config_quantity->approach == "naive") {
-        bitmap_quantity = new naive::Table(config_quantity);
+        bitmap_q6_quantity = new naive::Table(config_quantity);
     }
     else {
         cerr << "Unknown approach." << endl;
@@ -694,12 +782,21 @@ RC chbench_wl::init_bitmap()
 			<< "] [Method:" << config_quantity->approach << "]" << endl;
 	}
 
-	/********************* bitmap_q1 ******************************/
+}
+
+if(query_number == CHBenchQuery::CHBenchQ1) {
+	/********************* bitmap_q1_deliverydate ******************************/
 	{
 	Table_config *config_q1 = new Table_config{};
 	config_q1->n_workers = g_thread_cnt;
 	config_q1->DATA_PATH = "";
-	config_q1->INDEX_PATH = "";
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		string temp = "bm_chbench_n";
+		temp.append(to_string(g_num_wh));
+		temp.append("_q1_deliverydate");
+		config_q1->INDEX_PATH = temp;
+	} else
+		config_q1->INDEX_PATH = "";
 	config_q1->n_rows = n_rows;  
 	config_q1->g_cardinality = 2; // [<=2007], [>2007]
 	enable_fence_pointer = config_q1->enable_fence_pointer = true;
@@ -728,15 +825,15 @@ RC chbench_wl::init_bitmap()
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_q1->approach == "ub") {
-        bitmap_q1 = new ub::Table(config_q1);
+        bitmap_q1_deliverydate = new ub::Table(config_q1);
     } else if (config_q1->approach == "nbub-lk") {
-        bitmap_q1 = new nbub_lk::NbubLK(config_q1);
+        bitmap_q1_deliverydate = new nbub_lk::NbubLK(config_q1);
     } else if (config_q1->approach == "nbub-lf" || config_q1->approach =="nbub") {
-        bitmap_q1 = new nbub_lf::NbubLF(config_q1);
+        bitmap_q1_deliverydate = new nbub_lf::NbubLF(config_q1);
     } else if (config_q1->approach == "ucb") {
-        bitmap_q1 = new ucb::Table(config_q1);
+        bitmap_q1_deliverydate = new ucb::Table(config_q1);
     } else if (config_q1->approach == "naive") {
-        bitmap_q1 = new naive::Table(config_q1);
+        bitmap_q1_deliverydate = new naive::Table(config_q1);
     }
     else {
         cerr << "Unknown approach." << endl;
@@ -745,18 +842,24 @@ RC chbench_wl::init_bitmap()
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();	
 
-	cout << "[CUBIT]: Bitmap bitmap_q1 initialized successfully. "
+	cout << "[CUBIT]: Bitmap bitmap_q1_deliverydate initialized successfully. "
 			<< "[Cardinality:" << config_q1->g_cardinality
 			<< "] [Method:" << config_q1->approach << "]" << endl;
 	}
 
 
-	/********************* bitmap_ol_number ******************************/
+	/********************* bitmap_q1_ol_number ******************************/
 	{
 	Table_config *config_ol_number = new Table_config{};
 	config_ol_number->n_workers = g_thread_cnt;
 	config_ol_number->DATA_PATH = "";
-	config_ol_number->INDEX_PATH = "";
+	if (Mode && strcmp(Mode, "cache") == 0) {
+		string temp = "bm_chbench_n";
+		temp.append(to_string(g_num_wh));
+		temp.append("_q1_ol_number");
+		config_ol_number->INDEX_PATH = temp;
+	} else
+		config_ol_number->INDEX_PATH = "";
 	config_ol_number->n_rows = n_rows;  
 	config_ol_number->g_cardinality = 15; // 0-15
 	enable_fence_pointer = config_ol_number->enable_fence_pointer = true;
@@ -785,15 +888,15 @@ RC chbench_wl::init_bitmap()
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_ol_number->approach == "ub") {
-        bitmap_ol_number = new ub::Table(config_ol_number);
+        bitmap_q1_ol_number = new ub::Table(config_ol_number);
     } else if (config_ol_number->approach == "nbub-lk") {
-        bitmap_ol_number = new nbub_lk::NbubLK(config_ol_number);
+        bitmap_q1_ol_number = new nbub_lk::NbubLK(config_ol_number);
     } else if (config_ol_number->approach == "nbub-lf" || config_ol_number->approach =="nbub") {
-        bitmap_ol_number = new nbub_lf::NbubLF(config_ol_number);
+        bitmap_q1_ol_number = new nbub_lf::NbubLF(config_ol_number);
     } else if (config_ol_number->approach == "ucb") {
-        bitmap_ol_number = new ucb::Table(config_ol_number);
+        bitmap_q1_ol_number = new ucb::Table(config_ol_number);
     } else if (config_ol_number->approach == "naive") {
-        bitmap_ol_number = new naive::Table(config_ol_number);
+        bitmap_q1_ol_number = new naive::Table(config_ol_number);
     }
     else {
         cerr << "Unknown approach." << endl;
@@ -802,11 +905,12 @@ RC chbench_wl::init_bitmap()
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();	
 
-	cout << "[CUBIT]: Bitmap bitmap_ol_number initialized successfully. "
+	cout << "[CUBIT]: Bitmap bitmap_q1_ol_number initialized successfully. "
 			<< "[Cardinality:" << config_ol_number->g_cardinality
 			<< "] [Method:" << config_ol_number->approach << "]" << endl;
 	}
 
+}
 	// cout << "INDEX bitmap build time:" << time << endl;
 
 	return RCOK;

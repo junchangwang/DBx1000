@@ -22,9 +22,9 @@ class chbench_query;
 class chbench_wl : public workload {
 public:
 	RC init();
+	RC build();
 	RC init_table();
 	RC init_bitmap(); 
-	RC init_bitmap_c_w_id();
 	RC init_schema(const char * schema_file);
 	RC get_txn_man(txn_man *& txn_manager, thread_t * h_thd);
 	table_t * 		t_warehouse;
@@ -48,11 +48,10 @@ public:
 	INDEX * 	i_orderline; // key = (quantity, data)
 	INDEX * 	i_orderline_d; // key = (data). 
 
-	BaseTable *bitmap_c_w_id;
-	BaseTable *bitmap_deliverydate;
-	BaseTable *bitmap_quantity;
-	BaseTable *bitmap_q1;
-	BaseTable *bitmap_ol_number;
+	BaseTable *bitmap_q6_deliverydate;
+	BaseTable *bitmap_q6_quantity;
+	BaseTable *bitmap_q1_deliverydate;
+	BaseTable *bitmap_q1_ol_number;
 
 	bool ** delivering;
 	uint32_t next_tid;

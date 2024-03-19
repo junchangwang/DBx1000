@@ -169,6 +169,8 @@ enum CHBenchTxnType {CHBENCH_ALL,
 				CHBENCH_Q1_BTREE,
 				CHBENCH_Q1_BITMAP,
 				CHBENCH_Q1_BITMAP_PARALLEL};
+
+enum CHBenchQuery {CHBenchQ1, CHBenchQ6};
 extern CHBenchTxnType 					g_chbench_txn_type;
 #define CHBENCH_EVA_CUBIT				true
 #define CHBENCH_SMALL					false

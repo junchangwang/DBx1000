@@ -9,10 +9,14 @@
 int chbench_query::q6_id = 0;
 int chbench_query::q1_id = 0;
 
+extern CHBenchQuery query_number;
+
 void chbench_query::init(uint64_t thd_id, workload * h_wl) {
 	// this thread is for running q6
 	if(thd_id == g_thread_cnt - 1) {
-		gen_q1(thd_id);
+		if(query_number == CHBenchQuery::CHBenchQ6)
+			gen_q6(thd_id);
+		else gen_q1(thd_id);
 		return;
 	}
 	double x = (double)(rand() % 100) / 100.0;
