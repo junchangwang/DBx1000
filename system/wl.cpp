@@ -12,6 +12,16 @@
 #include "catalog.h"
 #include "mem_alloc.h"
 
+
+#include "fastbit/bitvector.h"
+#include "nicolas/base_table.h"
+#include "nicolas/util.h"
+#include "ub/table.h"
+#include "ucb/table.h"
+#include "naive/table.h"
+#include "nbub/table_lf.h"
+#include "nbub/table_lk.h"
+
 RC workload::init() {
 	sim_done = false;
 	return RCOK;
@@ -153,4 +163,24 @@ void workload::index_insert_with_primary_key(INDEX * index, uint64_t key, uint64
 	m_item->primary_key = primary_key;
 
     assert( index->index_insert(key, m_item, pid) == RCOK );
+}
+
+void workload::bitmap_multiply(string read_dir_name, string write_dir_name, int cardinality, int multiple) {
+	for(int i = 0; i < cardinality; i++) {
+		ibis::bitvector result;
+		ibis::bitvector read_btv;
+		string s = read_dir_name + "/" + to_string(i) + ".bm";
+		read_btv.read(s.c_str());
+		for(int j = 0; j < multiple; j++) {
+			result += read_btv;
+		}
+		s = write_dir_name;
+		string cmd = "mkdir -p ";
+		cmd.append(s);
+		int ret = system(cmd.c_str());
+        sleep(1);
+		s += "/" + to_string(i) + ".bm";
+		result.write(s.c_str());
+	}
+	std::cout << "multiply done" << std::endl;
 }
