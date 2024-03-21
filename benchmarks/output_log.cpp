@@ -10,6 +10,12 @@ string output_information(string method, string ans, string time) {
     time   
     */
    string s;
+    //for extract time
+   string tmp = time.substr(0, time.size()-2);
+   int t = stoi(tmp)/1000;
+   s = to_string(t) + "ms\n";
+   return s;
+
    s = GREEN + method;
    for(int i = method.size(); i < 10; i++) {
     s += " ";
@@ -32,6 +38,14 @@ string output_information(string method, chbench_q1_data &data, string time) {
     */
    string ans;
    string s;
+   
+   // for extract time.
+   string tmp = time.substr(0, time.size()-2);
+   int t = stoi(tmp)/1000;
+   s = to_string(t) + "ms\n";
+   return s;
+
+
    s =method + "    ";
    s +=time + "\n";
    ans += s;

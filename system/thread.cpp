@@ -189,8 +189,16 @@ RC thread_t::run() {
 			stats.clear( get_thd_id() );
 			return FINISH;
 		}
+		
+		if(warmup_finish && get_thd_id() == g_thread_cnt - 1) {
+			if(txn_cnt >= 8) {
+				if( !ATOM_CAS(_wl->sim_done, false, true) )
+					assert( _wl->sim_done);
+			}
+		}
 
 		if (warmup_finish && txn_cnt >= MAX_TXN_PER_PART) {
+			return FINISH;
 			assert(txn_cnt == MAX_TXN_PER_PART);
 	        if( !ATOM_CAS(_wl->sim_done, false, true) )
 				assert( _wl->sim_done);
