@@ -104,7 +104,7 @@ public:
 private:
 	chbench_wl * _wl;
 	RC run_payment(chbench_query * m_query);
-	RC run_new_order(chbench_query * m_query);
+	RC run_new_order(int tid, chbench_query * m_query);
 	RC run_order_status(chbench_query * query);
 	RC run_delivery(chbench_query * query);
 	RC run_stock_level(chbench_query * query);

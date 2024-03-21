@@ -11,6 +11,8 @@
 #include "chbench_const.h"
 #include "output_log.h"
 
+extern 	CHBenchQuery query_number;
+
 chbench_q1_data::chbench_q1_data(int size) {
 	d_size = size;
 	cnt = (int*) _mm_malloc(sizeof(int) * d_size, 64);
@@ -86,7 +88,7 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 		case CHBENCH_PAYMENT :
 			return run_payment(m_query); break;
 		case CHBENCH_NEW_ORDER :
-			return run_new_order(m_query); break;
+			return run_new_order(tid, m_query); break;
 /*		case TPCC_ORDER_STATUS :
 			return run_order_status(m_query); break;
 		case TPCC_DELIVERY :
@@ -388,7 +390,7 @@ RC chbench_txn_man::run_payment(chbench_query * query) {
 	return finish(rc);
 }
 
-RC chbench_txn_man::run_new_order(chbench_query * query) {
+RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 	RC rc = RCOK;
 	uint64_t key;
 	itemid_t * item;
@@ -575,22 +577,50 @@ RC chbench_txn_man::run_new_order(chbench_query * query) {
 				:ol_quantity, :ol_amount, :ol_dist_info);
 		+====================================================*/
 		// XXX district info is not inserted.
-		// row_t * r_ol;
-		// uint64_t row_id;
-		// _wl->t_orderline->get_new_row_seq(r_ol, 0, row_id);
-		// r_ol->set_value(OL_O_ID, &o_id);
-		// r_ol->set_value(OL_D_ID, &d_id);
-		// r_ol->set_value(OL_W_ID, &w_id);
-		// r_ol->set_value(OL_NUMBER, &ol_number);
-		// r_ol->set_value(OL_I_ID, &ol_i_id);
+		/*
+		ol_number++;
+		row_t * r_ol;
+		uint64_t row_id;
+		_wl->t_orderline->get_new_row_seq(r_ol, 0, row_id);
+		r_ol->set_value(OL_O_ID, &o_id);
+		r_ol->set_value(OL_D_ID, &d_id);
+		r_ol->set_value(OL_W_ID, &w_id);
+		r_ol->set_value(OL_NUMBER, &ol_number);
+		r_ol->set_value(OL_I_ID, &ol_i_id);
 #if !CHBENCH_SMALL
-		// int w_tax=1, d_tax=1;
-		// int64_t ol_amount = ol_quantity * i_price * (1 + w_tax + d_tax) * (1 - c_discount);
-		// r_ol->set_value(OL_SUPPLY_W_ID, &ol_supply_w_id);
-		// r_ol->set_value(OL_QUANTITY, &ol_quantity);
-		// r_ol->set_value(OL_AMOUNT, &ol_amount);
+		int w_tax=1, d_tax=1;
+		int64_t ol_amount = ol_quantity * i_price * (1 + w_tax + d_tax) * (1 - c_discount);
+		r_ol->set_value(OL_SUPPLY_W_ID, &ol_supply_w_id);
+		r_ol->set_value(OL_QUANTITY, &ol_quantity);
+		r_ol->set_value(OL_AMOUNT, &ol_amount);
+		r_ol->set_value(OL_DELIVERY_D, &query->o_entry_d);
 #endif		
-		// insert_row(r_ol, _wl->t_orderline);
+		if(query_number == CHBenchQuery::CHBenchQ1) {
+			nbub::Nbub *bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
+			nbub::Nbub *bitmap_ol_num = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_ol_number);
+			bitmap_d->append(tid , 1);
+			bitmap_d->trans_commit(tid);
+			bitmap_ol_num->append(tid, ol_number - 1);
+			bitmap_ol_num->trans_commit(tid);
+		}
+		else {
+			nbub::Nbub *bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
+			nbub::Nbub *bitmap_q = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
+			for(int i = 0; i < 17; i++)
+				bitmap_d->append(tid , 2);
+			bitmap_d->trans_commit(tid);
+			bitmap_d->evaluate(tid , 2);
+			bitmap_d->trans_commit(tid);
+
+			bitmap_q->append(tid, bitmap_quantity_bin(ol_quantity));
+			bitmap_q->trans_commit(tid);
+
+			bitmap_q->evaluate(tid, bitmap_quantity_bin(ol_quantity));
+			bitmap_q->trans_commit(tid);
+		}
+		insert_row(r_ol, _wl->t_orderline);
+		ol_number--;
+		*/
 	}
 	assert( rc == RCOK );
 	return finish(rc);

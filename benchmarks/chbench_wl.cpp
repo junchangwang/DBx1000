@@ -17,7 +17,7 @@
 static int cnt_q6 = 0;
 static int cnt_q1_number1 = 0;
 static uint64_t q1_number1_quantity = 0;
-CHBenchQuery query_number = CHBenchQuery::CHBenchQ1;
+CHBenchQuery query_number = CHBenchQuery::CHBenchQ6;
 
 RC chbench_wl::init() 
 {
@@ -34,7 +34,7 @@ RC chbench_wl::init()
 	cout << "reading schema file: " << path << endl;
 	init_schema( path.c_str() );
 	cout << "CHBENCH schema initialized" << endl;
-	t_orderline->init_row_buffer(g_cust_per_dist * g_num_wh * 150);
+	t_orderline->init_row_buffer(g_cust_per_dist * g_num_wh * 150 + 51200 * g_thread_cnt * 15);
 	init_table();
 	next_tid = 0;
 
@@ -680,7 +680,7 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
-	config_deliverydate->n_queries = MAX_TXN_PER_PART;
+	config_deliverydate->n_queries = MAX_TXN_PER_PART * 5;
 	config_deliverydate->n_udis = MAX_TXN_PER_PART * 0.1;
 	config_deliverydate->verbose = false;
 	config_deliverydate->time_out = 100;
@@ -745,7 +745,7 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
-	config_quantity->n_queries = MAX_TXN_PER_PART;
+	config_quantity->n_queries = MAX_TXN_PER_PART * 5;
 	config_quantity->n_udis = MAX_TXN_PER_PART * 0.1;
 	config_quantity->verbose = false;
 	config_quantity->time_out = 100;
@@ -810,7 +810,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
-	config_q1->n_queries = MAX_TXN_PER_PART;
+	config_q1->n_queries = MAX_TXN_PER_PART * 5;
 	config_q1->n_udis = MAX_TXN_PER_PART * 0.1;
 	config_q1->verbose = false;
 	config_q1->time_out = 100;
@@ -873,7 +873,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
-	config_ol_number->n_queries = MAX_TXN_PER_PART;
+	config_ol_number->n_queries = MAX_TXN_PER_PART * 5;
 	config_ol_number->n_udis = MAX_TXN_PER_PART * 0.1;
 	config_ol_number->verbose = false;
 	config_ol_number->time_out = 100;
