@@ -17,7 +17,7 @@
 static int cnt_q6 = 0;
 static int cnt_q1_number1 = 0;
 static uint64_t q1_number1_quantity = 0;
-CHBenchQuery query_number = CHBenchQuery::CHBenchQ6;
+CHBenchQuery query_number = CHBenchQuery::CHBenchQ1;
 
 RC chbench_wl::init() 
 {

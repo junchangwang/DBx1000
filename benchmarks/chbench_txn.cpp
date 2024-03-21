@@ -1437,8 +1437,8 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	std::vector<std::thread> threads(9);
-	for(int i = 2; i <= 10; i++) {
+	std::vector<std::thread> threads(3);
+	for(int i = 2; i <= 4; i++) {
 		threads[i - 2] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
 		i, bitmap_d, bitmap_number, std::ref(ans));
 	}
@@ -1446,6 +1446,18 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 	for (auto &thread : threads) {
 		thread.join();
     }
+	for(int i = 5; i <= 7; i++) {
+		threads[i - 5] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
+		i, bitmap_d, bitmap_number, std::ref(ans));
+	}
+	run_Q1_bitmap_fetch_singlethread(8, bitmap_d, bitmap_number, ans);
+	for (auto &thread : threads) {
+		thread.join();
+    }
+	threads[0] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
+				9, bitmap_d, bitmap_number, std::ref(ans));
+	run_Q1_bitmap_fetch_singlethread(8, bitmap_d, bitmap_number, ans);
+	threads[0].join();	
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
