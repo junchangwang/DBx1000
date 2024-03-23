@@ -115,6 +115,8 @@ private:
 	RC run_Q6_scan(int tid, chbench_query * query);
 	RC run_Q6_btree(int tid, chbench_query * query);
 	RC run_Q6_bitmap(int tid, chbench_query * query);
+	void run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_btv2, int begin, int end, pair<double, int> &result);
+	RC run_Q6_bitmap_parallel(int tid, chbench_query * query);
 	RC run_Q1_scan(int tid, chbench_query * query);
 	RC run_Q1_btree(int tid, chbench_query * query);
 	RC run_Q1_bitmap(int tid, chbench_query * query);

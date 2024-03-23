@@ -84,6 +84,7 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 #if CHBENCH_EVA_CUBIT && (CHBENCH_EVA_CUBIT == CHBENCH)
 	return evaluate_index(m_query);
 #else
+	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
 	switch (m_query->type) {
 		case CHBENCH_PAYMENT :
 			return run_payment(m_query); break;
@@ -100,6 +101,11 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 		case CHBENCH_Q6_BTREE :
 			return run_Q6_btree(tid, m_query); break;
 		case CHBENCH_Q6_BITMAP :
+			if(bitmap->config->segmented_btv) {
+				bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
+				assert(bitmap->config->segmented_btv);
+				return run_Q6_bitmap_parallel(tid, m_query);
+			}
 			return run_Q6_bitmap(tid, m_query); break;
 		case CHBENCH_Q1_SCAN :
 			return run_Q1_scan(tid, m_query); break;
@@ -1073,6 +1079,128 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
+	assert(rc == RCOK);
+	bitmap_qt->trans_commit(tid);
+	bitmap_dd->trans_commit(tid);
+	return finish(rc);
+}
+
+void chbench_txn_man::run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_btv2, int begin, int end, pair<double, int> &result)
+{
+	// selectivity 1.8%, read by four thread. so, 10% size of table is ok.
+	row_t *row_buffer = _wl->t_orderline->row_buffer;
+	seg_btv1._and_in_thread(&seg_btv2, begin, end);
+	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.1;
+	int *ids = new int[n_ids_max];
+	// Convert bitvector to ID list
+	double &revenue = result.first;
+	revenue = 0;
+	int &cnt = result.second;
+	cnt = 0;
+	auto iter1 = seg_btv1.seg_table.find(begin);
+    auto iter2 = seg_btv1.seg_table.find(end);
+	for(; iter1 != iter2; iter1++) {
+		ibis::bitvector *current_result = iter1->second.btv;
+	for (ibis::bitvector::indexSet is = current_result->firstIndexSet(); is.nIndices() > 0; ++ is) 
+	{
+		const ibis::bitvector::word_t *ii = is.indices();
+		if (is.isRange()) {
+			for (ibis::bitvector::word_t j = *ii;
+					j < ii[1];
+					++ j) {
+				ids[cnt] = j;
+				++ cnt;
+			}
+		}
+		else {
+			for (unsigned j = 0; j < is.nIndices(); ++ j) {
+				ids[cnt] = ii[j];
+				++ cnt;
+			}
+		}
+	}
+	}
+	int deletecnt = 0;
+	// Fetch tuples in ID list
+	for(int k = 0; k < cnt; k++) 
+	{
+		row_t *row_tmp = (row_t *) &row_buffer[ids[k]];
+		row_t *row_local = get_row(row_tmp, SCAN);
+		if (row_local == NULL) {
+			deletecnt++;
+			// return finish(Abort);
+			continue;
+		}
+		cnt -= deletecnt;
+		double current_amount;
+		row_local->get_value(OL_AMOUNT, current_amount);
+		revenue += current_amount; 
+	}
+
+	delete [] ids;
+}
+
+RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query)
+{
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+	uint64_t max_delivery_d = query->max_delivery_d;
+	int64_t min_quantity = query->min_quantity;
+	int64_t max_quantity = query->max_quantity;
+
+	RC rc = RCOK;
+	
+	double revenue = 0;
+	int cnt = 0;
+	long  long time = (long  long)0;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	nbub::Nbub *bitmap_dd, *bitmap_qt;
+	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
+	bitmap_dd->trans_begin(tid);
+	SegBtv *btv_deliverydate = bitmap_dd->bitmaps[1]->seg_btv;
+	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
+	bitmap_qt->trans_begin(tid);
+
+	SegBtv result(*bitmap_qt->bitmaps[1]->seg_btv);
+	result.deepCopy(*bitmap_qt->bitmaps[1]->seg_btv);
+
+	int num_seg = result.seg_table.size();
+    int n_threads = (bitmap_dd->config->nThreads_for_getval > num_seg) ? num_seg : bitmap_dd->config->nThreads_for_getval;
+    int n_seg_per_thread = num_seg / n_threads;
+    int n_left = num_seg % n_threads;
+
+	std::vector<std::thread> threads(n_threads);
+	vector<int> begin(n_threads + 1, 0);
+	vector<pair<double, int>> answer(n_threads);
+
+	for (int i = 1; i <= n_left; i++)
+        begin[i] = begin[i - 1] + n_seg_per_thread + 1;
+    for (int i = n_left + 1; i <= n_threads; i++)
+        begin[i] = begin[i - 1] + n_seg_per_thread;
+
+	for (int i = 0; i < n_threads; i++) {
+        threads[i] = thread(&chbench_txn_man::run_Q6_bitmap_singlethread, *this,std::ref(result), std::ref(*btv_deliverydate),\
+		 					begin[i], begin[i + 1], std::ref(answer[i]));
+    }
+    for (int i = 0; i < n_threads; i++) {
+        threads[i].join();
+    }
+
+	//compute
+	for(int i = 0; i < n_threads; i++) {
+		revenue += answer[i].first;
+		cnt += answer[i].second;
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	time = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+	string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	string tmp = output_information("CUBIT_PARA", ans, to_string(time) + "us");
+	output_info[tid].push_back(tmp);
+
 	assert(rc == RCOK);
 	bitmap_qt->trans_commit(tid);
 	bitmap_dd->trans_commit(tid);
