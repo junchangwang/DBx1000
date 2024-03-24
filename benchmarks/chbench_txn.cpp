@@ -1483,15 +1483,31 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *bitmap_d, nbub::Nbub *bitmap_number, chbench_q1_data & ans) {
 
 	// selectivity 36% 
-	// max > 36%/10
-	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.05;
+	// max > 36%/4
+	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.15;
 	int *ids = new int[n_ids_max];
 	row_t *row_buffer = _wl->t_orderline->row_buffer;
-	for(int i = 0; i < 2; i++) {
+	
+	vector<int> ol_numbers;
+	ol_numbers.push_back(number);
+	ol_numbers.push_back(4 + number);
+	ol_numbers.push_back(11 - number);
+	if(number == 0) {
+		ol_numbers.push_back(12);
+	}
+	else if(number == 1) {
+		ol_numbers.push_back(13);
+	}
+	else if(number == 2) {
+		ol_numbers.push_back(14);
+	}
+	
+	for(int i = 0; i < ol_numbers.size(); i++) {
+		number = ol_numbers[i];
 		int cnt = 0;
 		ibis::bitvector *date = bitmap_d->bitmaps[1]->btv;
 		ibis::bitvector result;
-		result.copy(*bitmap_number->bitmaps[number - 1]->btv);
+		result.copy(*bitmap_number->bitmaps[number]->btv);
 		result &= *date;
 
 		// Convert bitvector to ID list
@@ -1539,11 +1555,6 @@ void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *b
 			ans.avg_amount[number] = ans.sum_amount[number] / ans.cnt[number];
 			ans.avg_quantity[number] = ans.sum_quantity[number] / (double)ans.cnt[number];
 		}
-		if(number <= 5) {
-			delete [] ids;
-			return;
-		}
-		number = 21 - number;
 	}
 
 	delete [] ids;
@@ -1565,27 +1576,14 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	std::vector<std::thread> threads(3);
-	for(int i = 2; i <= 4; i++) {
-		threads[i - 2] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
+	std::vector<std::thread> threads(CHBENCH_Q6_SCAN_THREADS);
+	for(int i = 0; i < 4; i++) {
+		threads[i] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
 		i, bitmap_d, bitmap_number, std::ref(ans));
 	}
-	run_Q1_bitmap_fetch_singlethread(1, bitmap_d, bitmap_number, ans);
 	for (auto &thread : threads) {
 		thread.join();
     }
-	for(int i = 5; i <= 7; i++) {
-		threads[i - 5] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
-		i, bitmap_d, bitmap_number, std::ref(ans));
-	}
-	run_Q1_bitmap_fetch_singlethread(8, bitmap_d, bitmap_number, ans);
-	for (auto &thread : threads) {
-		thread.join();
-    }
-	threads[0] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
-				9, bitmap_d, bitmap_number, std::ref(ans));
-	run_Q1_bitmap_fetch_singlethread(8, bitmap_d, bitmap_number, ans);
-	threads[0].join();	
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
