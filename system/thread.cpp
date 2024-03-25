@@ -14,6 +14,8 @@
 #include "mem_alloc.h"
 #include "test.h"
 
+int olap_numbers = 0;
+
 void thread_t::init(uint64_t thd_id, workload * workload) {
 	_thd_id = thd_id;
 	_wl = workload;
@@ -190,10 +192,15 @@ RC thread_t::run() {
 			return FINISH;
 		}
 		
-		if(warmup_finish && get_thd_id() == g_thread_cnt - 1) {
+		if(warmup_finish && get_thd_id() < CHBENCH_OLAP_NUMBER) {
 			if(txn_cnt >= 8) {
-				if( !ATOM_CAS(_wl->sim_done, false, true) )
+				assert(txn_cnt == 8);
+				int current_olap_done = ATOM_ADD_FETCH(olap_numbers, 1);
+				if(current_olap_done == CHBENCH_OLAP_NUMBER) {
+					if( !ATOM_CAS(_wl->sim_done, false, true) )
 					assert( _wl->sim_done);
+				}
+				else return FINISH;
 			}
 		}
 

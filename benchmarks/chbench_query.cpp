@@ -13,7 +13,7 @@ extern CHBenchQuery query_number;
 
 void chbench_query::init(uint64_t thd_id, workload * h_wl) {
 	// this thread is for running q6
-	if(thd_id == g_thread_cnt - 1) {
+	if(thd_id < CHBENCH_OLAP_NUMBER) {
 		if(query_number == CHBenchQuery::CHBenchQ6)
 			gen_q6(thd_id);
 		else gen_q1(thd_id);
