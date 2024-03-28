@@ -174,7 +174,10 @@ enum CHBenchQuery {CHBenchQ1, CHBenchQ6};
 extern CHBenchTxnType 					g_chbench_txn_type;
 #define CHBENCH_EVA_CUBIT				true
 #define CHBENCH_SMALL					false
-#define CHBENCH_OLAP_NUMBER             4
+#define CHBENCH_OLAP_NUMBER             1
+#define CHBENCH_QUERY_TYPE				CHBenchQ1
+
+
 // ==== [TPCH] ====
 #define TPCH_EVA_CUBIT				true
 #define TPCH_EVA_RF					true

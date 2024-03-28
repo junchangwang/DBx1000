@@ -906,8 +906,9 @@ RC chbench_txn_man::run_Q6_scan(int tid, chbench_query * query) {
 //	}
 
 	string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
-	string tmp = output_information("SCAN", ans, to_string(time_elapsed_us) + "us");
+	// string tmp = output_information("SCAN", ans, to_string(time_elapsed_us) + "us");
 	// cout << tmp;
+	string tmp = "Q6 SCAN-Paral(ms): " + to_string(time_elapsed_us/1000) + "\n";
 	output_info[tid].push_back(tmp);
 	assert(rc == RCOK);
 	return finish(rc);
@@ -988,9 +989,9 @@ RC chbench_txn_man::run_Q6_btree(int tid, chbench_query * query) {
 	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
 	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
-	string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
-	
-	string tmp = output_information("BTREE", ans, to_string(total_us) + "us");
+	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	//  string tmp = output_information("BTREE", ans, to_string(total_us) + "us");
+	string tmp = "Q6 BTree(ms): " + to_string(total_us/1000) + "\n";
 	// cout << tmp;
 	output_info[tid].push_back(tmp);
 	
@@ -1072,10 +1073,11 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 		revenue += current_amount; 
 	}
 	end = std::chrono::high_resolution_clock::now();
-	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
-	string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
-	string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
+	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	// string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
+	string tmp = "Q6 Bitmap (ms): " + to_string(total_us/1000) + "\n";
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
@@ -1197,8 +1199,9 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query)
 	auto end = std::chrono::high_resolution_clock::now();
 	time = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
-	string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
-	string tmp = output_information("CUBIT_PARA", ans, to_string(time) + "us");
+	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	// string tmp = output_information("CUBIT_PARA", ans, to_string(time) + "us");
+	string tmp = "Q6 Bitmap (parallel): " + to_string(time/1000) + "\n";
 	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
@@ -1308,7 +1311,8 @@ RC chbench_txn_man::run_Q1_scan(int tid, chbench_query * query) {
 //		usleep(WAIT_FOR_PERF_U);
 //	}
 
-	string tmp = output_information("SCAN", results[CHBENCH_Q6_SCAN_THREADS - 1], to_string(time_elapsed_us) + "us");
+	// string tmp = output_information("SCAN", results[CHBENCH_Q6_SCAN_THREADS - 1], to_string(time_elapsed_us) + "us");
+	string tmp = "Q1 Scan (parallel): " + to_string(time_elapsed_us/1000) + "\n";
 	// cout << tmp;
 	output_info[tid].push_back(tmp);
 	assert(rc == RCOK);
@@ -1389,8 +1393,7 @@ RC chbench_txn_man::run_Q1_btree(int tid, chbench_query * query) {
 	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 	
-	string tmp = output_information("BTREE", ans, to_string(total_us) + "us");
-	// cout << tmp;
+	string tmp = "Q1 Btree (ms): " + to_string(total_us/1000) + "\n";
 	output_info[tid].push_back(tmp);
 	
 
@@ -1471,7 +1474,8 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 	// cout << "tuple time is" << tuple_us << "us" << endl;
 
-	string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
+	// string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
+	string tmp = "Q1 Bitmap (ms): " + to_string(tuple_us/1000) + "\n";
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
@@ -1588,7 +1592,8 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 	auto end = std::chrono::high_resolution_clock::now();
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
-	string tmp = output_information("CUBIT(Parallel)", ans, to_string(total_us) + "us");
+	// string tmp = output_information("CUBIT(Parallel)", ans, to_string(total_us) + "us");
+	string tmp = "Q1 Bitmap (parallel): " + to_string(total_us/1000) + "\n";
 	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
