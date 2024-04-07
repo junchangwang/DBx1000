@@ -686,9 +686,12 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	config_deliverydate->time_out = 100;
 	config_deliverydate->autoCommit = false;
 	config_deliverydate->n_merge_threshold = 16;
-	config_deliverydate->db_control = true;
+	config_deliverydate->db_control = false;
 
 	config_deliverydate->segmented_btv = false;
+	if(CHBENCH_QUERY_METHOD == BITMAP_PARA_METHOD) {
+		config_deliverydate->segmented_btv = true;
+	}
 	config_deliverydate->encoded_word_len = 31;
 	config_deliverydate->rows_per_seg = 100000;
 	config_deliverydate->enable_parallel_cnt = false;
@@ -751,9 +754,12 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	config_quantity->time_out = 100;
 	config_quantity->autoCommit = false;
 	config_quantity->n_merge_threshold = 16;
-	config_quantity->db_control = true;
+	config_quantity->db_control = false;
 
 	config_quantity->segmented_btv = false;
+	if(CHBENCH_QUERY_METHOD == BITMAP_PARA_METHOD) {
+		config_quantity->segmented_btv = true;
+	}
 	config_quantity->encoded_word_len = 31;
 	config_quantity->rows_per_seg = 100000;
 	config_quantity->enable_parallel_cnt = false;
@@ -816,7 +822,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	config_q1->time_out = 100;
 	config_q1->autoCommit = false;
 	config_q1->n_merge_threshold = 16;
-	config_q1->db_control = true;
+	config_q1->db_control = false;
 
 	config_q1->segmented_btv = false;
 	config_q1->encoded_word_len = 31;
@@ -879,7 +885,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	config_ol_number->time_out = 100;
 	config_ol_number->autoCommit = false;
 	config_ol_number->n_merge_threshold = 16;
-	config_ol_number->db_control = true;
+	config_ol_number->db_control = false;
 
 	config_ol_number->segmented_btv = false;
 	config_ol_number->encoded_word_len = 31;
