@@ -113,6 +113,9 @@ RC thread_t::run() {
 				|| CC_ALG == TIMESTAMP) 
 			m_txn->set_ts(get_next_ts());
 
+		if (CC_ALG == MVRLU)
+			m_txn->set_ts(glob_manager->fetch_ts());
+
 		rc = RCOK;
 #if CC_ALG == HSTORE
 		if (WORKLOAD == TEST) {
@@ -122,7 +125,7 @@ RC thread_t::run() {
 			rc = part_lock_man.lock(m_txn, m_query->part_to_access, m_query->part_num);
 #elif CC_ALG == VLL
 		vll_man.vllMainLoop(m_txn, m_query);
-#elif CC_ALG == MVCC || CC_ALG == HEKATON
+#elif CC_ALG == MVCC || CC_ALG == HEKATON || CC_ALG == MVRLU
 		glob_manager->add_ts(get_thd_id(), m_txn->get_ts());
 #elif CC_ALG == OCC
 		// In the original OCC paper, start_ts only reads the current ts without advancing it.

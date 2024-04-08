@@ -12,6 +12,8 @@
 #include "row_tictoc.h"
 #include "row_silo.h"
 #include "row_vll.h"
+#include "row_hekaton.h"
+#include "row_mvrlu.h"
 #include "mem_alloc.h"
 #include "manager.h"
 
@@ -54,6 +56,8 @@ void row_t::init_manager(row_t * row) {
 	manager = (Row_silo *) _mm_malloc(sizeof(Row_silo), 64);
 #elif CC_ALG == VLL
     manager = (Row_vll *) mem_allocator.alloc(sizeof(Row_vll), _part_id);
+#elif CC_ALG == MVRLU
+	manager = (Row_mvrlu *) _mm_malloc(sizeof(Row_mvrlu), 64);
 #endif
 
 #if CC_ALG != HSTORE
@@ -208,7 +212,7 @@ RC row_t::get_row(access_t type, txn_man * txn, row_t *& row) {
 		row = this;
 	}
 	return rc;
-#elif CC_ALG == TIMESTAMP || CC_ALG == MVCC || CC_ALG == HEKATON 
+#elif CC_ALG == TIMESTAMP || CC_ALG == MVCC || CC_ALG == HEKATON || CC_ALG == MVRLU
 	uint64_t thd_id = txn->get_thd_id();
 	// For TIMESTAMP RD, a new copy of the row will be returned.
 	// for MVCC RD, the version will be returned instead of a copy
@@ -279,7 +283,7 @@ void row_t::return_row(access_t type, txn_man * txn, row_t * row) {
 		this->copy(row);
 	}
 	this->manager->lock_release(txn);
-#elif CC_ALG == TIMESTAMP || CC_ALG == MVCC 
+#elif CC_ALG == TIMESTAMP || CC_ALG == MVCC || CC_ALG == MVRLU
 	// for RD or SCAN or XP, the row should be deleted.
 	// because all WR should be companied by a RD
 	// for MVCC RD, the row is not copied, so no need to free. 

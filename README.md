@@ -29,7 +29,7 @@ DBMS configurations can be changed in the config.h file. Please refer to README 
     THREAD_CNT        : Number of worker threads running in the database.
     WORKLOAD          : Supported workloads include YCSB and TPCC
     CC_ALG            : Concurrency control algorithm. Seven algorithms are supported 
-                        (DL_DETECT, NO_WAIT, HEKATON, SILO, TICTOC) 
+                        (DL_DETECT, NO_WAIT, HEKATON, SILO, TICTOC, MVRLU) 
     MAX_TXN_PER_PART  : Number of transactions to run per thread per partition.
                         
 Configurations can also be specified as command argument at runtime. Run the following command for a full list of program argument. 

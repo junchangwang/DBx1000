@@ -56,6 +56,10 @@ public:
 	void 			set_ts(ts_t timestamp);
 	ts_t 			get_ts();
 
+#if CC_ALG == MVRLU
+	ts_t			committed_ts;
+#endif
+
 	pthread_mutex_t txn_lock;
 	row_t * volatile cur_row;
 #if CC_ALG == HEKATON
@@ -118,5 +122,7 @@ private:
 	RC				validate_silo();
 #elif CC_ALG == HEKATON
 	RC 				validate_hekaton(RC rc);
+#elif CC_ALG == MVRLU
+	RC				validate_mvrlu(RC rc);
 #endif
 };

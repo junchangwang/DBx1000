@@ -1,3 +1,4 @@
+#include <atomic>
 #include "manager.h"
 #include "row.h"
 #include "txn.h"
@@ -26,6 +27,12 @@ void Manager::init() {
 	}
 	for (UInt32 i = 0; i < BUCKET_CNT; i++)
 		pthread_mutex_init( &mutexes[i], NULL );
+}
+
+uint64_t
+Manager::fetch_ts() 
+{
+	return __atomic_load_n(&db_timestamp, __ATOMIC_SEQ_CST);
 }
 
 uint64_t 

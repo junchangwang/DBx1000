@@ -11,6 +11,8 @@ public:
 	void 			init();
 	// returns the next timestamp.
 	ts_t			get_ts(uint64_t thread_id);
+	// read the current timestamp.
+	ts_t 			fetch_ts();
 
 	// For MVCC. To calculate the min active ts in the system
 	void 			add_ts(uint64_t thd_id, ts_t ts);
@@ -26,6 +28,8 @@ public:
 	
 	uint64_t 		get_epoch() { return *_epoch; };
 	void 	 		update_epoch();
+	txn_man ** 		_all_txns;
+
 private:
 	// for SILO
 	volatile uint64_t * _epoch;		
@@ -36,7 +40,6 @@ private:
 	pthread_mutex_t mutexes[BUCKET_CNT];
 	uint64_t 		hash(row_t * row);
 	ts_t volatile * volatile * volatile all_ts;
-	txn_man ** 		_all_txns;
 	// for MVCC 
 	volatile ts_t	_last_min_ts_time;
 	ts_t			_min_ts;

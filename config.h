@@ -39,9 +39,9 @@
 /***********************************************/
 // Concurrency Control
 /***********************************************/
-// WAIT_DIE, NO_WAIT, DL_DETECT, TIMESTAMP, MVCC, HEKATON, HSTORE, OCC, VLL, TICTOC, SILO
+// WAIT_DIE, NO_WAIT, DL_DETECT, TIMESTAMP, MVCC, HEKATON, HSTORE, OCC, VLL, TICTOC, SILO, MVRLU
 // TODO TIMESTAMP does not work at this moment
-#define CC_ALG 						HEKATON
+#define CC_ALG 						MVRLU
 #define ISOLATION_LEVEL 			SNAPSHOT
 #define CORE_CNT					4
 
@@ -249,6 +249,7 @@ extern TestCases					g_test_case;
 #define SILO						9
 #define VLL							10
 #define HEKATON 					11
+#define MVRLU						15
 //Isolation Levels 
 #define SERIALIZABLE				1
 #define SNAPSHOT					2
