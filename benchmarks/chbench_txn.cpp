@@ -583,7 +583,7 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 				:ol_quantity, :ol_amount, :ol_dist_info);
 		+====================================================*/
 		// XXX district info is not inserted.
-		/*
+		
 		ol_number++;
 		row_t * r_ol;
 		uint64_t row_id;
@@ -601,32 +601,49 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 		r_ol->set_value(OL_AMOUNT, &ol_amount);
 		r_ol->set_value(OL_DELIVERY_D, &query->o_entry_d);
 #endif		
-		if(query_number == CHBenchQuery::CHBenchQ1) {
-			nbub::Nbub *bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
-			nbub::Nbub *bitmap_ol_num = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_ol_number);
-			bitmap_d->append(tid , 1);
-			bitmap_d->trans_commit(tid);
-			bitmap_ol_num->append(tid, ol_number - 1);
-			bitmap_ol_num->trans_commit(tid);
-		}
-		else {
-			nbub::Nbub *bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
-			nbub::Nbub *bitmap_q = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
-			for(int i = 0; i < 17; i++)
-				bitmap_d->append(tid , 2);
-			bitmap_d->trans_commit(tid);
-			bitmap_d->evaluate(tid , 2);
-			bitmap_d->trans_commit(tid);
 
-			bitmap_q->append(tid, bitmap_quantity_bin(ol_quantity));
-			bitmap_q->trans_commit(tid);
+		// if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_METHOD || CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD) {
+		// 	if(query_number == CHBenchQuery::CHBenchQ1) {
+		// 	nbub::Nbub *bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
+		// 	nbub::Nbub *bitmap_ol_num = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_ol_number);
+		// 	bitmap_d->append(tid , 1);
+		// 	bitmap_d->trans_commit(tid);
+		// 	bitmap_d->merge_request(tid, 1);
+		// 	bitmap_d->trans_commit(tid);
+			
+		// 	bitmap_ol_num->append(tid, ol_number - 1);
+		// 	bitmap_ol_num->trans_commit(tid);
+		// 	bitmap_ol_num->merge_request(tid, ol_number - 1);
+		// 	bitmap_ol_num->trans_commit(tid);
+		// }
+		// else {
+		// 	nbub::Nbub *bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
+		// 	nbub::Nbub *bitmap_q = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
+		// 	bitmap_d->append(tid , 1);
+		// 	bitmap_d->trans_commit(tid);
+		// 	bitmap_d->evaluate(tid, 1);
+		// 	bitmap_d->trans_commit(tid);
 
-			bitmap_q->evaluate(tid, bitmap_quantity_bin(ol_quantity));
-			bitmap_q->trans_commit(tid);
-		}
+		// 	bitmap_q->append(tid, bitmap_quantity_bin(ol_quantity));
+		// 	bitmap_q->trans_commit(tid);
+		// 	bitmap_q->evaluate(tid, bitmap_quantity_bin(ol_quantity));
+		// 	bitmap_q->trans_commit(tid);
+
+		// }
+		// }
 		insert_row(r_ol, _wl->t_orderline);
+
+		if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BTREE_METHOD) {
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
+				_wl->index_insert(_wl->i_orderline_d, query->o_entry_d, r_ol, 0);
+			}
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
+				uint64_t key = ol_quantity*10000 + query->o_entry_d;
+				_wl->index_insert(_wl->i_orderline, key, r_ol, 0);
+			}
+		}
 		ol_number--;
-		*/
+		
 	}
 	assert( rc == RCOK );
 	return finish(rc);
@@ -1019,13 +1036,16 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 	nbub::Nbub *bitmap_dd, *bitmap_qt;
 	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
 	bitmap_dd->trans_begin(tid);
-	ibis::bitvector *btv_deliverydate = bitmap_dd->bitmaps[1]->btv;
+	ibis::bitvector btv_deliverydate;
+	Bitmap *bitmap = __atomic_load_n(&bitmap_dd->bitmaps[1], MM_ACQUIRE);
+	btv_deliverydate.copy(*bitmap->btv);
 	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
 	bitmap_qt->trans_begin(tid);
 	ibis::bitvector result;
-	result.copy(*bitmap_qt->bitmaps[1]->btv);
+	bitmap = __atomic_load_n(&bitmap_qt->bitmaps[1], MM_ACQUIRE);
+	result.copy(*bitmap->btv);
 
-	result &= *btv_deliverydate;
+	result &= btv_deliverydate;
 
 	row_t *row_buffer = _wl->t_orderline->row_buffer;
 
@@ -1077,7 +1097,8 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 
 	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
 	// string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
-	string tmp = "Q6 Bitmap (ms): " + to_string(total_us/1000) + "\n";
+	// string tmp = "Q6 Bitmap (ms): " + to_string(total_us/1000) + "\n";
+	string tmp = "Q6 Bitmap (ms): " + to_string(cnt) + "\n";
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
@@ -1091,7 +1112,7 @@ void chbench_txn_man::run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_b
 {
 	// selectivity 1.8%, read by four thread. so, 10% size of table is ok.
 	row_t *row_buffer = _wl->t_orderline->row_buffer;
-	seg_btv1._and_in_thread(&seg_btv2, begin, end);
+	seg_btv1._and_in_thread(seg_btv2, begin, end);
 	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.1;
 	int *ids = new int[n_ids_max];
 	// Convert bitvector to ID list
@@ -1161,7 +1182,12 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query)
 	nbub::Nbub *bitmap_dd, *bitmap_qt;
 	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
 	bitmap_dd->trans_begin(tid);
-	SegBtv *btv_deliverydate = bitmap_dd->bitmaps[1]->seg_btv;
+
+	// using pointer will fail, because pointer will change?
+	SegBtv btv_deliverydate(*bitmap_dd->bitmaps[1]->seg_btv);
+	btv_deliverydate.deepCopy(*bitmap_dd->bitmaps[1]->seg_btv);
+	// SegBtv *btv_deliverydate = bitmap_dd->bitmaps[1]->seg_btv;
+	
 	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
 	bitmap_qt->trans_begin(tid);
 
@@ -1183,7 +1209,7 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query)
         begin[i] = begin[i - 1] + n_seg_per_thread;
 
 	for (int i = 0; i < n_threads; i++) {
-        threads[i] = thread(&chbench_txn_man::run_Q6_bitmap_singlethread, *this,std::ref(result), std::ref(*btv_deliverydate),\
+        threads[i] = thread(&chbench_txn_man::run_Q6_bitmap_singlethread, *this,std::ref(result), std::ref(btv_deliverydate),\
 		 					begin[i], begin[i + 1], std::ref(answer[i]));
     }
     for (int i = 0; i < n_threads; i++) {
@@ -1201,7 +1227,8 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query)
 
 	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
 	// string tmp = output_information("CUBIT_PARA", ans, to_string(time) + "us");
-	string tmp = "Q6 Bitmap (parallel): " + to_string(time/1000) + "\n";
+	// string tmp = "Q6 Bitmap (parallel): " + to_string(time/1000) + "\n";
+	string tmp = "Q6 Bitmap (parallel): " + to_string(cnt) + "\n";
 	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
@@ -1313,6 +1340,7 @@ RC chbench_txn_man::run_Q1_scan(int tid, chbench_query * query) {
 
 	// string tmp = output_information("SCAN", results[CHBENCH_Q6_SCAN_THREADS - 1], to_string(time_elapsed_us) + "us");
 	string tmp = "Q1 Scan (parallel): " + to_string(time_elapsed_us/1000) + "\n";
+	// string tmp = "Q1 Scan (parallel): " + to_string(results[CHBENCH_Q6_SCAN_THREADS - 1].cnt[1]) + "\n";
 	// cout << tmp;
 	output_info[tid].push_back(tmp);
 	assert(rc == RCOK);
@@ -1394,6 +1422,7 @@ RC chbench_txn_man::run_Q1_btree(int tid, chbench_query * query) {
 
 	
 	string tmp = "Q1 Btree (ms): " + to_string(total_us/1000) + "\n";
+	// string tmp = "Q1 Btree (ms): " + to_string(ans.cnt[1]) + "\n";
 	output_info[tid].push_back(tmp);
 	
 
@@ -1476,6 +1505,7 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 
 	// string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
 	string tmp = "Q1 Bitmap (ms): " + to_string(tuple_us/1000) + "\n";
+	// string tmp = "Q1 Bitmap (ms): " + to_string(ans.cnt[1]) + "\n";
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
@@ -1509,10 +1539,13 @@ void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *b
 	for(int i = 0; i < ol_numbers.size(); i++) {
 		number = ol_numbers[i];
 		int cnt = 0;
-		ibis::bitvector *date = bitmap_d->bitmaps[1]->btv;
-		ibis::bitvector result;
-		result.copy(*bitmap_number->bitmaps[number]->btv);
-		result &= *date;
+		Bitmap *bitmap =  __atomic_load_n(&bitmap_d->bitmaps[1], MM_ACQUIRE);
+		ibis::bitvector date(*READ_ONCE(bitmap->btv));
+		date.copy(*READ_ONCE(bitmap->btv));
+		bitmap =  __atomic_load_n(&bitmap_number->bitmaps[number], MM_ACQUIRE);
+		ibis::bitvector result(*READ_ONCE(bitmap->btv));
+		result.copy(*READ_ONCE(bitmap->btv));
+		result &= date;
 
 		// Convert bitvector to ID list
 		for (ibis::bitvector::indexSet is = result.firstIndexSet(); is.nIndices() > 0; ++ is) 
@@ -1593,7 +1626,8 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
 	// string tmp = output_information("CUBIT(Parallel)", ans, to_string(total_us) + "us");
-	string tmp = "Q1 Bitmap (parallel): " + to_string(total_us/1000) + "\n";
+	// string tmp = "Q1 Bitmap (parallel): " + to_string(total_us/1000) + "\n";
+	string tmp = "Q1 Bitmap (parallel): " + to_string(ans.cnt[1]) + "\n";
 	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);

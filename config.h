@@ -171,11 +171,13 @@ enum CHBenchTxnType {CHBENCH_ALL,
 				CHBENCH_Q1_BITMAP_PARALLEL};
 
 enum CHBenchQuery {CHBenchQ1, CHBenchQ6};
+enum CHBenchQueryMethod {ALL_METHOD, BTREE_METHOD, BITMAP_METHOD, BITMAP_PARA_METHOD, SCAN_METHOD};
 extern CHBenchTxnType 					g_chbench_txn_type;
 #define CHBENCH_EVA_CUBIT				true
 #define CHBENCH_SMALL					false
 #define CHBENCH_OLAP_NUMBER             1
-#define CHBENCH_QUERY_TYPE				CHBenchQ1
+#define CHBENCH_QUERY_TYPE				CHBenchQ6
+#define CHBENCH_QUERY_METHOD            BITMAP_PARA_METHOD
 
 
 // ==== [TPCH] ====
