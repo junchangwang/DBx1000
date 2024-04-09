@@ -8,7 +8,7 @@ class txn_man;
 // If a request accesses an old version that has been recycled,   
 // simply abort the request.
 
-#if CC_ALG == MVRLU
+#if CC_ALG == PTMVCC
 
 struct WriteHisEntry {
 	bool begin_txn;	
@@ -20,7 +20,7 @@ struct WriteHisEntry {
 
 #define INF UINT64_MAX
 
-class Row_mvrlu {
+class Row_ptmvcc {
 public:
 	void 			init(row_t * row);
 	RC 				access(txn_man * txn, TsType type, row_t * row);

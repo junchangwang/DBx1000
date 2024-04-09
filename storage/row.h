@@ -31,7 +31,7 @@ class Row_occ;
 class Row_tictoc;
 class Row_silo;
 class Row_vll;
-class Row_mvrlu;
+class Row_ptmvcc;
 
 class row_t
 {
@@ -100,8 +100,8 @@ public:
   	Row_silo * manager;
   #elif CC_ALG == VLL
   	Row_vll * manager;
-  #elif CC_ALG == MVRLU
-	Row_mvrlu * manager;
+  #elif CC_ALG == PTMVCC
+	Row_ptmvcc * manager;
   #endif
 	char * data;
 	table_t * table;

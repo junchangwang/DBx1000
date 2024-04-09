@@ -56,7 +56,7 @@ public:
 	void 			set_ts(ts_t timestamp);
 	ts_t 			get_ts();
 
-#if CC_ALG == MVRLU
+#if CC_ALG == PTMVCC
 	ts_t			committed_ts;
 #endif
 
@@ -122,7 +122,7 @@ private:
 	RC				validate_silo();
 #elif CC_ALG == HEKATON
 	RC 				validate_hekaton(RC rc);
-#elif CC_ALG == MVRLU
-	RC				validate_mvrlu(RC rc);
+#elif CC_ALG == PTMVCC
+	RC				validate_ptmvcc(RC rc);
 #endif
 };

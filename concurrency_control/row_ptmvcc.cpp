@@ -1,13 +1,13 @@
 #include "txn.h"
 #include "row.h"
 #include "manager.h"
-#include "row_mvrlu.h"
+#include "row_ptmvcc.h"
 #include "mem_alloc.h"
 #include <mm_malloc.h>
 
-#if CC_ALG == MVRLU
+#if CC_ALG == PTMVCC
 
-void Row_mvrlu::init(row_t * row) {
+void Row_ptmvcc::init(row_t * row) {
 	_his_len = 4;
 
 	_write_history = (WriteHisEntry *) _mm_malloc(sizeof(WriteHisEntry) * _his_len, 64);
@@ -27,7 +27,7 @@ void Row_mvrlu::init(row_t * row) {
 }
 
 void 
-Row_mvrlu::doubleHistory()
+Row_ptmvcc::doubleHistory()
 {
 	WriteHisEntry * temp = (WriteHisEntry *) _mm_malloc(sizeof(WriteHisEntry) * _his_len * 2, 64);
 	uint32_t idx = _his_oldest; 
@@ -47,7 +47,7 @@ Row_mvrlu::doubleHistory()
 	_his_len *= 2;
 }
 
-RC Row_mvrlu::access(txn_man * txn, TsType type, row_t * row) {
+RC Row_ptmvcc::access(txn_man * txn, TsType type, row_t * row) {
 	RC rc = RCOK;
 	ts_t ts = txn->get_ts();
 	while (!ATOM_CAS(blatch, false, true))
@@ -140,7 +140,7 @@ out:
 }
 
 uint32_t 
-Row_mvrlu::reserveRow(txn_man * txn)
+Row_ptmvcc::reserveRow(txn_man * txn)
 {
 	// Garbage Collection
 	uint32_t idx;
@@ -180,7 +180,7 @@ Row_mvrlu::reserveRow(txn_man * txn)
 }
 
 void
-Row_mvrlu::post_process(txn_man * txn, ts_t commit_ts, access_t type, RC rc)
+Row_ptmvcc::post_process(txn_man * txn, ts_t commit_ts, access_t type, RC rc)
 {
 	while (!ATOM_CAS(blatch, false, true))
 		PAUSE

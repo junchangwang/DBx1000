@@ -42,7 +42,7 @@ void txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	_atomic_timestamp = (g_params["atomic_timestamp"] == "true");
 #elif CC_ALG == SILO
 	_cur_tid = 0;
-#elif CC_ALG == MVRLU
+#elif CC_ALG == PTMVCC
 	committed_ts = UINT64_MAX;
 #endif
 }
@@ -78,7 +78,7 @@ void txn_man::cleanup(RC rc) {
 	insert_cnt = 0;
 	return;
 #endif
-#if CC_ALG == MVRLU
+#if CC_ALG == PTMVCC
 	row_cnt = 0;
 	wr_cnt = 0;
 	insert_cnt = 0;
@@ -253,13 +253,13 @@ RC txn_man::finish(RC rc) {
 	// update_btree/bw-tree/art()
 	rc = validate_hekaton(rc);
 	cleanup(rc);
-#elif CC_ALG == MVRLU
+#elif CC_ALG == PTMVCC
 	// FIXME: The following instruction is not atomic.
 	//        I.e., Incrementing db_timestamp and assigning the value to commit_ts are two steps.
 	//        This can be solved by associating the thread id with db_timestamp and updating it
 	//        by using double-word CAS. Consequently, other threads can help assigning the value to commit_ts.
 	committed_ts = glob_manager->get_ts(h_thd->_thd_id);
-	rc = validate_mvrlu(rc);
+	rc = validate_ptmvcc(rc);
 	cleanup(rc);
 #else 
 	cleanup(rc);
