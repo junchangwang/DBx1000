@@ -20,6 +20,7 @@
 #include <time.h> 
 #include <sys/time.h>
 #include <math.h>
+#include <shared_mutex>
 
 #include "pthread.h"
 #include "config.h"
@@ -127,6 +128,10 @@ extern uint64_t CURRENTDATE;
 extern uint64_t SF;
 extern uint64_t curr_SF;
 extern vector<vector<string> > output_info;
+
+//CHBENCH
+extern shared_mutex bitmap_mutex;
+
 /* Thread */
 typedef uint64_t txnid_t;
 

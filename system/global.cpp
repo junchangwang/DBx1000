@@ -81,3 +81,6 @@ UInt32 g_cust_per_dist = 3000;
 UInt32 g_max_items = 100000;
 UInt32 g_cust_per_dist = 3000;
 #endif
+
+// CHBENCH
+shared_mutex bitmap_mutex;
