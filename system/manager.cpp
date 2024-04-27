@@ -92,7 +92,7 @@ void Manager::add_ts(uint64_t thd_id, ts_t ts) {
 }
 
 void Manager::set_txn_man(txn_man * txn) {
-	int thd_id = txn->get_thd_id();
+	uint64_t thd_id = txn->get_thd_id();
 	_all_txns[thd_id] = txn;
 }
 

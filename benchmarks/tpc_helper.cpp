@@ -18,6 +18,10 @@ uint64_t orderPrimaryKey(uint64_t w_id, uint64_t d_id, uint64_t o_id) {
 	return orderlineKey(w_id, d_id, o_id); 
 }
 
+uint64_t chbenchQ6Key(uint64_t quantity, uint64_t date) {
+  return quantity * 100000000 + date;
+}
+
 uint64_t custNPKey(char * c_last, uint64_t c_d_id, uint64_t c_w_id) {
 	uint64_t key = 0;
 	char offset = 'A';

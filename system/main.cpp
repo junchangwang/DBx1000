@@ -14,7 +14,10 @@
 #include "occ.h"
 #include "vll.h"
 
+#include "perf.h"
 #include "nicolas/util.h"
+
+#define WORKERS_PER_MERGE_TH (4)
 
 void * f(void *);
 
@@ -119,7 +122,6 @@ int main(int argc, char* argv[])
 	// Intialize the background merge threads for NBUB.
 #if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true)
 
-	#define WORKERS_PER_MERGE_TH (4)
     int n_merge_ths;
     std::thread *merge_ths;
 	std::thread *merge_ths2;
@@ -173,6 +175,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 
+	// gen_perf_process((char *)"SCAN");
 	// spawn and run txns again.
 	int64_t starttime = get_server_clock();
 	for (uint32_t i = 0; i < thd_cnt - 1; i++) {
