@@ -1,4 +1,5 @@
 #include "chbench.h"
+#include "manager.h"
 #include "chbench_query.h"
 #include "tpc_helper.h"
 #include "query.h"
@@ -8,10 +9,15 @@
 #include "row.h"
 #include "index_hash.h"
 #include "index_btree.h"
+#include "index_bwtree.h"
+#include "index_art.h"
 #include "chbench_const.h"
 #include "output_log.h"
+#include "Date.h"
 
 extern 	CHBenchQuery query_number;
+int new_order_numbers;
+int ol_num_numbers[15];
 
 chbench_q1_data::chbench_q1_data(int size) {
 	d_size = size;
@@ -74,6 +80,15 @@ void chbench_q1_data::operator+=(const chbench_q1_data& tmp) {
 	return;
 }
 
+void chbench_q1_data::operator=(const chbench_q1_data& tmp) {
+	for(int i = 0; i < d_size; i++) {
+		sum_amount[i] = tmp.sum_amount[i];
+		cnt[i] = tmp.cnt[i];
+		sum_quantity[i] = tmp.sum_quantity[i];
+	}
+	return;
+}
+
 void chbench_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	txn_man::init(h_thd, h_wl, thd_id);
 	_wl = (chbench_wl *) h_wl;
@@ -87,7 +102,7 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
 	switch (m_query->type) {
 		case CHBENCH_PAYMENT :
-			return run_payment(m_query); break;
+			return run_payment(tid, m_query); break;
 		case CHBENCH_NEW_ORDER :
 			return run_new_order(tid, m_query); break;
 /*		case TPCC_ORDER_STATUS :
@@ -101,12 +116,16 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 		case CHBENCH_Q6_BTREE :
 			return run_Q6_btree(tid, m_query); break;
 		case CHBENCH_Q6_BITMAP :
-			if(bitmap->config->segmented_btv) {
-				bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
-				assert(bitmap->config->segmented_btv);
+			if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD) {
+/*				bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
+				assert(bitmap->config->segmented_btv);*/
 				return run_Q6_bitmap_parallel(tid, m_query);
 			}
 			return run_Q6_bitmap(tid, m_query); break;
+		case CHBENCH_Q6_BWTREE :
+			return run_Q6_bwtree(tid, m_query); break;
+		case CHBENCH_Q6_ART :
+			return run_Q6_art(tid, m_query); break;
 		case CHBENCH_Q1_SCAN :
 			return run_Q1_scan(tid, m_query); break;
 		case CHBENCH_Q1_BTREE :
@@ -115,6 +134,10 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 			return run_Q1_bitmap(tid, m_query); break;
 		case CHBENCH_Q1_BITMAP_PARALLEL :
 			return run_Q1_bitmap_parallel_fetch(tid, m_query); break;
+		case CHBENCH_Q1_BWTREE :
+			return run_Q1_bwtree(tid, m_query); break;
+		case CHBENCH_Q1_ART :
+			return run_Q1_art(tid, m_query); break;
 		default:
 			assert(false);
 	}
@@ -190,7 +213,7 @@ RC chbench_txn_man::evaluate_index(chbench_query * query)
 }
 
 
-RC chbench_txn_man::run_payment(chbench_query * query) {
+RC chbench_txn_man::run_payment(int tid, chbench_query * query) {
 	RC rc = RCOK;
 	uint64_t key;
 	itemid_t * item;
@@ -392,6 +415,12 @@ RC chbench_txn_man::run_payment(chbench_query * query) {
 #endif
 //	insert_row(r_hist, _wl->t_history);
 
+	if( CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_METHOD || CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD ) {
+		lock_guard<shared_mutex> guard(bitmap_mutex);
+		assert( rc == RCOK );
+		return finish(rc, 1);
+	}
+
 	assert( rc == RCOK );
 	return finish(rc);
 }
@@ -460,7 +489,8 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 	//double d_tax;
 	int64_t o_id;
 	//d_tax = *(double *) r_dist_local->get_value(D_TAX);
-	o_id = *(int64_t *) r_dist_local->get_value(D_NEXT_O_ID);
+	// o_id = *(int64_t *) r_dist_local->get_value(D_NEXT_O_ID);
+	r_dist_local->get_value(D_NEXT_O_ID, o_id);
 	o_id ++;
 	r_dist_local->set_value(D_NEXT_O_ID, o_id);
 
@@ -490,6 +520,30 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 //	r_no->set_value(NO_D_ID, d_id);
 //	r_no->set_value(NO_W_ID, w_id);
 //	insert_row(r_no, _wl->t_neworder);
+	nbub::Nbub *bitmap_d = nullptr;
+	nbub::Nbub *bitmap_ol_num = nullptr;
+	nbub::Nbub *bitmap_q = nullptr;
+	uint64_t inserted_max_row_id;
+
+	if( CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_METHOD || CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD ) {
+		if( query_number == CHBenchQuery::CHBenchQ1 ) {
+			bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
+			bitmap_ol_num = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_ol_number);
+		}
+		else if( query_number == CHBenchQuery::CHBenchQ6 ){
+			bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
+			bitmap_q = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
+		}
+		else {
+			assert(0);
+		}
+	}
+
+	// for recording inserted rows
+	vector<uint64_t> inserted_rows_id;
+	vector<uint64_t> inserted_rows_quantity;
+	vector<row_t *> inserted_rows;
+
 	for (UInt32 ol_number = 0; ol_number < ol_cnt; ol_number++) {
 
 		uint64_t ol_i_id = query->items[ol_number].ol_i_id;
@@ -588,6 +642,7 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 		row_t * r_ol;
 		uint64_t row_id;
 		_wl->t_orderline->get_new_row_seq(r_ol, 0, row_id);
+		inserted_max_row_id = row_id;
 		r_ol->set_value(OL_O_ID, &o_id);
 		r_ol->set_value(OL_D_ID, &d_id);
 		r_ol->set_value(OL_W_ID, &w_id);
@@ -602,49 +657,178 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 		r_ol->set_value(OL_DELIVERY_D, &query->o_entry_d);
 #endif		
 
-		// if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_METHOD || CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD) {
-		// 	if(query_number == CHBenchQuery::CHBenchQ1) {
-		// 	nbub::Nbub *bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
-		// 	nbub::Nbub *bitmap_ol_num = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_ol_number);
-		// 	bitmap_d->append(tid , 1);
-		// 	bitmap_d->trans_commit(tid);
-		// 	bitmap_d->merge_request(tid, 1);
-		// 	bitmap_d->trans_commit(tid);
-			
-		// 	bitmap_ol_num->append(tid, ol_number - 1);
-		// 	bitmap_ol_num->trans_commit(tid);
-		// 	bitmap_ol_num->merge_request(tid, ol_number - 1);
-		// 	bitmap_ol_num->trans_commit(tid);
-		// }
-		// else {
-		// 	nbub::Nbub *bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
-		// 	nbub::Nbub *bitmap_q = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
-		// 	bitmap_d->append(tid , 1);
-		// 	bitmap_d->trans_commit(tid);
-		// 	bitmap_d->evaluate(tid, 1);
-		// 	bitmap_d->trans_commit(tid);
-
-		// 	bitmap_q->append(tid, bitmap_quantity_bin(ol_quantity));
-		// 	bitmap_q->trans_commit(tid);
-		// 	bitmap_q->evaluate(tid, bitmap_quantity_bin(ol_quantity));
-		// 	bitmap_q->trans_commit(tid);
-
-		// }
-		// }
+		ol_number--;
 		insert_row(r_ol, _wl->t_orderline);
-
-		if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BTREE_METHOD) {
-			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
-				_wl->index_insert(_wl->i_orderline_d, query->o_entry_d, r_ol, 0);
+		if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_METHOD || CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD) {
+			inserted_rows_id.push_back(row_id);
+			if(query_number == CHBenchQuery::CHBenchQ1) {
 			}
-			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
-				uint64_t key = ol_quantity*10000 + query->o_entry_d;
-				_wl->index_insert(_wl->i_orderline, key, r_ol, 0);
+			else if (query_number == CHBenchQuery::CHBenchQ6) {
+				inserted_rows_quantity.push_back(ol_quantity);
+			}
+			else {
+				assert(0);
 			}
 		}
-		ol_number--;
+
+		if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BWTREE_METHOD || CHBENCH_QUERY_METHOD == CHBenchQueryMethod::ART_METHOD || \
+			CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BTREE_METHOD) {
+			inserted_rows.push_back(r_ol);
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
+				;
+			}
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
+				inserted_rows_quantity.push_back(ol_quantity);
+			}
+		}
 		
 	}
+	
+	if( CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_METHOD || CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD ) {
+		
+		lock_guard<shared_mutex> guard(bitmap_mutex);
+
+		// transaction begin
+		bitmap_d->trans_begin(tid, get_ts());
+
+		// append
+		for(int i = 0; i < inserted_rows_id.size(); i++) {
+			if( query_number == CHBenchQuery::CHBenchQ1 ) {
+				bitmap_d->append(tid, 1, inserted_rows_id[i]);
+			}
+			else if( query_number == CHBenchQuery::CHBenchQ6 ) {
+				bitmap_d->append(tid, bitmap_deliverydate_bin(query->o_entry_d), inserted_rows_id[i]);
+			}
+		}
+		if(new_order_numbers % 5 == 4) {
+			if( query_number == CHBenchQuery::CHBenchQ1 ) {
+				bitmap_d->evaluate(tid, 1);
+			}
+			else if( query_number == CHBenchQuery::CHBenchQ6 ) {
+				bitmap_d->evaluate(tid, bitmap_deliverydate_bin(query->o_entry_d));
+			}
+		}
+		
+		// transaction commit
+		bitmap_d->trans_commit(tid, glob_manager->fetch_ts() + 1, inserted_max_row_id);
+
+		// transaction begin
+		if( query_number == CHBenchQuery::CHBenchQ1 ) {
+			if( CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD ) {
+				bitmap_ol_num->trans_begin(tid, get_ts());
+			}
+		}
+		else if( query_number == CHBenchQuery::CHBenchQ6 ){
+			bitmap_q->trans_begin(tid, get_ts());
+		}
+		else {
+			assert(0);
+		}
+
+		// append
+		for(int i = 0; i < inserted_rows_id.size(); i++) {
+			if( query_number == CHBenchQuery::CHBenchQ1 ) {
+				if( CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD ) {
+					bitmap_ol_num->append(tid, i, inserted_rows_id[i]);
+					ol_num_numbers[i]++;
+				}
+			}
+			else if( query_number == CHBenchQuery::CHBenchQ6 ) {
+				assert(i < inserted_rows_quantity.size());
+				bitmap_q->append(tid, 1, inserted_rows_id[i]);
+			}
+			else {
+				assert(0);
+			}
+		}
+
+		//transaction commit
+		if( query_number == CHBenchQuery::CHBenchQ1 ) {
+			if( CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD ) {
+				int max_ol = 0;
+				int ol_evaluate_val = -1;
+				for(int i = 0; i < 15; i++) {
+					if(ol_num_numbers[i] > max_ol) {
+						max_ol = ol_num_numbers[i];
+						ol_evaluate_val = i;
+					}
+				}
+				assert(ol_evaluate_val != -1);
+				if(max_ol > bitmap_ol_num->config->n_merge_threshold) {
+					bitmap_ol_num->evaluate(tid, ol_evaluate_val);
+					ol_num_numbers[ol_evaluate_val] = 1;
+				}
+				bitmap_ol_num->trans_commit(tid, glob_manager->fetch_ts() + 1, inserted_max_row_id);				
+			}
+		}
+		else if( query_number == CHBenchQuery::CHBenchQ6 ){
+			if(new_order_numbers % 5 == 4) {
+				bitmap_q->evaluate(tid, 1);
+			}
+			bitmap_q->trans_commit(tid, glob_manager->fetch_ts() + 1, inserted_max_row_id);
+		}
+		else {
+			assert(0);
+		}
+		new_order_numbers++;
+
+		//ts++
+		// glob_manager->get_ts(tid);
+
+		return finish(rc, 1);
+	}
+
+	if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BTREE_METHOD) {
+		for(int i = 0; i < inserted_rows.size(); i++) {
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
+				_wl->index_insert((INDEX *)_wl->i_orderline_d, query->o_entry_d, inserted_rows[i], 0);
+			}
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
+				uint64_t key = chbenchQ6Key(inserted_rows_quantity[i], query->o_entry_d);
+				_wl->index_insert((INDEX *)_wl->i_orderline, key, inserted_rows[i], 0);
+			}
+		}
+	}
+
+	if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BWTREE_METHOD) {
+		if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
+			_wl->i_Q1_bwtree->AssignGCID(tid);
+		}
+		if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
+			_wl->i_Q6_bwtree->AssignGCID(tid);
+		}
+		for(int i = 0; i < inserted_rows.size(); i++) {
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
+				_wl->index_insert((INDEX *)_wl->i_Q1_bwtree, query->o_entry_d, inserted_rows[i], 0);
+			}
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
+				uint64_t key = chbenchQ6Key(inserted_rows_quantity[i], query->o_entry_d);
+				_wl->index_insert((INDEX *)_wl->i_Q6_bwtree, key, inserted_rows[i], 0);
+			}
+		}
+		if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
+			_wl->i_Q1_bwtree->UnregisterThread(tid);
+		}
+		if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
+			_wl->i_Q6_bwtree->UnregisterThread(tid);
+		}
+	}
+
+	if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::ART_METHOD) {
+		for(int i = 0; i < inserted_rows.size(); i++) {
+			uint64_t primary_key = orderlineKey(w_id, d_id, o_id) * 100 + i + 1;
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
+				unique_lock<shared_mutex> w_lock(_wl->i_Q1_art->rw_lock);
+				_wl->index_insert_with_primary_key((INDEX *)_wl->i_Q1_art, query->o_entry_d, primary_key,inserted_rows[i], 0);
+			}
+			if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
+				uint64_t key = chbenchQ6Key(inserted_rows_quantity[i], query->o_entry_d);
+				unique_lock<shared_mutex> w_lock(_wl->i_Q6_art->rw_lock);
+				_wl->index_insert_with_primary_key((INDEX *)_wl->i_Q6_art, key, primary_key,inserted_rows[i], 0);
+			}
+		}
+	}
+
 	assert( rc == RCOK );
 	return finish(rc);
 }
@@ -835,14 +1019,17 @@ chbench_txn_man::run_stock_level(chbench_query * query) {
 	return RCOK;
 }
 
-void chbench_txn_man::run_Q6_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, std::tuple<double, int> &result) {
+void chbench_txn_man::run_Q6_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, std::tuple<double, int> &result, int wid) {
 
+	set_affinity(wid);
 
 	// define constant condition
 	uint64_t min_delivery_d = query->min_delivery_d;
 	uint64_t max_delivery_d = query->max_delivery_d;
 	int64_t min_quantity = query->min_quantity;
 	int64_t max_quantity = query->max_quantity;
+	double current_amount_t = 0;
+	int current_amount_cnt = 0;
 
 	row_t* current_row;
 
@@ -865,10 +1052,14 @@ void chbench_txn_man::run_Q6_scan_singlethread(uint64_t start_row, uint64_t end_
 			current_quantity >= min_quantity && current_quantity <= max_quantity ) {
 			double current_amount;
 			row_local->get_value(OL_AMOUNT, current_amount);
-			std::get<0>(result) += current_amount;
-			std::get<1>(result) ++;
+			current_amount_t += current_amount;
+			current_amount_cnt ++;
 		} 
 	}
+
+	std::get<0>(result) = current_amount_t;
+	std::get<1>(result) = current_amount_cnt;
+
 	return;
 }
 
@@ -900,10 +1091,10 @@ RC chbench_txn_man::run_Q6_scan(int tid, chbench_query * query) {
 
 	for (int i = 0; i < CHBENCH_Q6_SCAN_THREADS - 1; i++) {
         threads[i] = std::thread(&chbench_txn_man::run_Q6_scan_singlethread, *this,\
-								block_start, block_start + block_size, query, std::ref(results[i]));
+								block_start, block_start + block_size, query, std::ref(results[i]), tid*CHBENCH_Q6_SCAN_THREADS+i);
 		block_start = block_start + block_size;
 	}
-	run_Q6_scan_singlethread(block_start, max_orderlines, query, std::ref(results[CHBENCH_Q6_SCAN_THREADS - 1]));
+	run_Q6_scan_singlethread(block_start, max_orderlines, query, std::ref(results[CHBENCH_Q6_SCAN_THREADS - 1]), tid*CHBENCH_Q6_SCAN_THREADS+CHBENCH_Q6_SCAN_THREADS - 1);
 
 	for (auto &thread : threads) {
 		thread.join();
@@ -949,9 +1140,6 @@ RC chbench_txn_man::run_Q6_btree(int tid, chbench_query * query) {
 	int cnt = 0;
 	row_t* current_row;
 
-	long  long index_us = (long  long)0;
-	long long index_read_us = (long long)0;
-	long long leaf_read_us = (long long)0;
 	long long total_us = (long long)0;
 	vector<itemid_t *> item_list{};
 
@@ -959,32 +1147,55 @@ RC chbench_txn_man::run_Q6_btree(int tid, chbench_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 	shared_lock<shared_mutex> r_lock(index->rw_lock);
-	for(uint64_t date = min_delivery_d ; date < max_delivery_d; date++) {
-		for(int64_t quantity = min_quantity; quantity <= max_quantity; quantity++) {
 
-			uint64_t key = quantity * 10000 + date;
+	Date r_date(max_delivery_d / 10000, (max_delivery_d % 10000) / 100, max_delivery_d % 100);
+	Date l_date(min_delivery_d / 10000, (min_delivery_d % 10000) / 100, min_delivery_d % 100);
 
-			if ( !index->index_exist(key, 0) ){
+	uint64_t curr_key = 0;
+	uint64_t quantity = min_quantity;	
+
+	while(quantity <= max_quantity) {
+
+		for(Date date = l_date; date < r_date; date++) {
+
+			uint64_t int_date = date.DateToUint64();
+
+			uint64_t key = chbenchQ6Key(quantity, int_date);
+
+			if ( !index->index_exist(key, 0) ) {
 					continue;
-				}
+			}
+			itemid_t * item = index_read(index, key, 0);
+			while(item) {
+				uint64_t curr_qunantity = key / 100000000;
+				uint64_t curr_date = key % 100000000;
+				if(curr_date >= min_delivery_d && curr_date < max_delivery_d && curr_qunantity >= min_quantity && curr_qunantity <= max_quantity) {
 
-			auto start1 = std::chrono::high_resolution_clock::now();
-				itemid_t * item = index_read(index, key, 0);
-				auto end1 = std::chrono::high_resolution_clock::now();
-				index_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
-				auto start2 = std::chrono::high_resolution_clock::now();
+				}
+				else {
+					if(curr_qunantity != quantity) {
+						if(curr_date >= max_delivery_d) {
+							quantity = curr_qunantity;
+						}
+						else {
+							quantity = curr_qunantity - 1;
+						}
+					}
+					break;
+				}
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					item_list.push_back(local_item);
 				}
-				auto end2 = std::chrono::high_resolution_clock::now();
-				leaf_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
+				index->index_next(get_thd_id(), item, key);
+			}
+			break;
 		}
+		quantity++;
 	}
 
-	auto end_f = std::chrono::high_resolution_clock::now();
-	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
-
-	auto tmp_5 = std::chrono::high_resolution_clock::now();
+	auto index_end = std::chrono::high_resolution_clock::now();
+	auto index_us = std::chrono::duration_cast<std::chrono::microseconds>(index_end - start).count();
+	r_lock.unlock();
 
 	for (auto const &local_item : item_list)
 	{
@@ -1003,12 +1214,12 @@ RC chbench_txn_man::run_Q6_btree(int tid, chbench_query * query) {
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
-	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
 	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
-	//  string tmp = output_information("BTREE", ans, to_string(total_us) + "us");
-	string tmp = "Q6 BTree(ms): " + to_string(total_us/1000) + "\n";
+	// string tmp = output_information("BTREE", ans, to_string(total_us) + "us");
+	string tmp = "Q6 BTree(ms): " + to_string(total_us/1000) + " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(cnt) + "\n";
+	// string tmp = "Q6 BTree(nums): " + to_string(cnt) + "\n";
 	// cout << tmp;
 	output_info[tid].push_back(tmp);
 	
@@ -1029,28 +1240,20 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 	
 	double revenue = 0;
 	int cnt = 0;
-	long  long index_us = (long  long)0;
 
 	auto start = std::chrono::high_resolution_clock::now();
 
 	nbub::Nbub *bitmap_dd, *bitmap_qt;
 	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
-	bitmap_dd->trans_begin(tid);
-	ibis::bitvector btv_deliverydate;
-	Bitmap *bitmap = __atomic_load_n(&bitmap_dd->bitmaps[1], MM_ACQUIRE);
-	btv_deliverydate.copy(*bitmap->btv);
 	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
-	bitmap_qt->trans_begin(tid);
 	ibis::bitvector result;
-	bitmap = __atomic_load_n(&bitmap_qt->bitmaps[1], MM_ACQUIRE);
-	result.copy(*bitmap->btv);
-
-	result &= btv_deliverydate;
+	
+	get_bitvector_result(result, bitmap_dd, bitmap_qt, 1, 1);
 
 	row_t *row_buffer = _wl->t_orderline->row_buffer;
 
 	// selectivity 1.8%
-	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.3;
+	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.05;
 	int *ids = new int[n_ids_max];
 
 	// Convert bitvector to ID list
@@ -1073,11 +1276,10 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 		}
 	}
 
-	auto end = std::chrono::high_resolution_clock::now();
-	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	auto index_end = std::chrono::high_resolution_clock::now();
+	auto index_us = std::chrono::duration_cast<std::chrono::microseconds>(index_end-start).count();
 
 	int deletecnt = 0;
-	start = std::chrono::high_resolution_clock::now();
 	// Fetch tuples in ID list
 	for(int k = 0; k < cnt; k++) 
 	{
@@ -1092,20 +1294,19 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 		row_local->get_value(OL_AMOUNT, current_amount);
 		revenue += current_amount; 
 	}
-	end = std::chrono::high_resolution_clock::now();
+	
+	auto end = std::chrono::high_resolution_clock::now();
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
 	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
 	// string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
-	// string tmp = "Q6 Bitmap (ms): " + to_string(total_us/1000) + "\n";
-	string tmp = "Q6 Bitmap (ms): " + to_string(cnt) + "\n";
+	string tmp = "Q6 Bitmap (ms): " + to_string(total_us/1000)+ " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(cnt) + "\n";
+	// string tmp = "Q6 Bitmap (nums): " + to_string(cnt) + "\n";
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
 	assert(rc == RCOK);
-	bitmap_qt->trans_commit(tid);
-	bitmap_dd->trans_commit(tid);
-	return finish(rc);
+	return finish(rc, 0);
 }
 
 void chbench_txn_man::run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_btv2, int begin, int end, pair<double, int> &result)
@@ -1163,6 +1364,124 @@ void chbench_txn_man::run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_b
 	delete [] ids;
 }
 
+void chbench_txn_man::bitmap_singlethread_fetch(int begin, int end, pair<double, int> &result, row_t *row_buffer, int *ids, int wid)
+{
+	set_affinity(wid);
+
+	// Fetch tuples in ID list
+	double current_amount_t = 0;
+	int delete_cnt = 0;
+	result.first = 0;
+	result.second = 0;
+	for(int k = begin; k < end; k++) 
+	{
+		row_t *row_tmp = (row_t *) &row_buffer[ids[k]];
+		row_t *row_local = get_row(row_tmp, SCAN);
+		if (row_local == NULL) {
+			delete_cnt++;
+			// return finish(Abort);
+			continue;
+		}
+		double current_amount;
+		row_local->get_value(OL_AMOUNT, current_amount);
+		current_amount_t += current_amount; 
+	}
+	
+	result.first = current_amount_t;
+	result.second = delete_cnt;
+}
+
+RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query) {
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+	uint64_t max_delivery_d = query->max_delivery_d;
+	int64_t min_quantity = query->min_quantity;
+	int64_t max_quantity = query->max_quantity;
+
+	RC rc = RCOK;
+	
+	double revenue = 0;
+	int cnt = 0;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	nbub::Nbub *bitmap_dd, *bitmap_qt;
+
+	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
+	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
+
+	ibis::bitvector result;
+	get_bitvector_result(result, bitmap_dd, bitmap_qt, 1, 1);
+	
+	row_t *row_buffer = _wl->t_orderline->row_buffer;
+
+	// selectivity 1.8%
+	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.3;
+	int *ids = new int[n_ids_max];
+
+	// Convert bitvector to ID list
+	for (ibis::bitvector::indexSet is = result.firstIndexSet(); is.nIndices() > 0; ++ is) 
+	{
+		const ibis::bitvector::word_t *ii = is.indices();
+		if (is.isRange()) {
+			for (ibis::bitvector::word_t j = *ii;
+					j < ii[1];
+					++ j) {
+				ids[cnt] = j;
+				++ cnt;
+			}
+		}
+		else {
+			for (unsigned j = 0; j < is.nIndices(); ++ j) {
+				ids[cnt] = ii[j];
+				++ cnt;
+			}
+		}
+	}
+
+	// parallel fetch
+	int n_threads = bitmap_dd->config->nThreads_for_getval;
+	assert(bitmap_dd->config->nThreads_for_getval == CHBENCH_Q6_SCAN_THREADS);
+	int n_cnt_per_thread = cnt / n_threads;
+	int n_left = cnt % n_threads;
+
+	std::vector<std::thread> threads(n_threads);
+	vector<int> begin(n_threads + 1, 0);
+	vector<pair<double, int>> answer(n_threads);
+
+	for (int i = 1; i <= n_left; i++)
+        begin[i] = begin[i - 1] + n_cnt_per_thread + 1;
+    for (int i = n_left + 1; i <= n_threads; i++)
+        begin[i] = begin[i - 1] + n_cnt_per_thread;
+
+	for (int i = 0; i < n_threads; i++) {
+        threads[i] = thread(&chbench_txn_man::bitmap_singlethread_fetch, *this, begin[i], begin[i + 1], \
+							std::ref(answer[i]), row_buffer, ids, tid*CHBENCH_Q6_SCAN_THREADS + i);
+    }
+    for (int i = 0; i < n_threads; i++) {
+        threads[i].join();
+    }
+
+	for(int i = 0; i < answer.size(); i++) {
+		revenue += answer[i].first;
+		cnt -= answer[i].second;
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	// string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
+	string tmp = "Q6 Bitmap-Parallel(ms): " + to_string(total_us/1000) + " nums: " + to_string(cnt) + "\n";
+	// string tmp = "Q6 Bitmap (nums): " + to_string(cnt) + "\n";
+	output_info[tid].push_back(tmp);
+
+	delete [] ids;
+	assert(rc == RCOK);
+	return finish(rc, 0);
+}
+
+/*
 RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query)
 {
 
@@ -1181,15 +1500,7 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query)
 
 	nbub::Nbub *bitmap_dd, *bitmap_qt;
 	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_deliverydate);
-	bitmap_dd->trans_begin(tid);
-
-	// using pointer will fail, because pointer will change?
-	SegBtv btv_deliverydate(*bitmap_dd->bitmaps[1]->seg_btv);
-	btv_deliverydate.deepCopy(*bitmap_dd->bitmaps[1]->seg_btv);
-	// SegBtv *btv_deliverydate = bitmap_dd->bitmaps[1]->seg_btv;
-	
 	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q6_quantity);
-	bitmap_qt->trans_begin(tid);
 
 	SegBtv result(*bitmap_qt->bitmaps[1]->seg_btv);
 	result.deepCopy(*bitmap_qt->bitmaps[1]->seg_btv);
@@ -1232,10 +1543,212 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query)
 	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
-	bitmap_qt->trans_commit(tid);
-	bitmap_dd->trans_commit(tid);
 	return finish(rc);
 }
+*/
+
+RC chbench_txn_man::run_Q6_bwtree(int tid, chbench_query * query)
+{
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+	uint64_t max_delivery_d = query->max_delivery_d;
+	int64_t min_quantity = query->min_quantity;
+	int64_t max_quantity = query->max_quantity;
+
+	RC rc = RCOK;
+	
+	double revenue = 0;
+	int cnt = 0;
+	row_t* current_row;
+
+	long long total_us = (long long)0;
+	vector<itemid_t *> item_list{};
+
+	index_bwtree *index = _wl->i_Q6_bwtree;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	index->AssignGCID(tid);
+	Date r_date(max_delivery_d / 10000, (max_delivery_d % 10000) / 100, max_delivery_d % 100);
+	Date l_date(min_delivery_d / 10000, (min_delivery_d % 10000) / 100, min_delivery_d % 100);
+	for(; l_date < r_date; l_date++) {
+		uint64_t int_date = l_date.DateToUint64();
+		for(int64_t quantity = min_quantity; quantity <= max_quantity; quantity++) {
+			uint64_t key = chbenchQ6Key(quantity, int_date);
+			if ( !index->index_exist(key, 0) ){
+					continue;
+				}
+				auto start1 = std::chrono::high_resolution_clock::now();
+				vector<itemid_t *> items = index_read(index, key, 0);
+				for (auto item : items) {
+					item_list.push_back(item);
+				}
+		}
+	}
+	index->UnregisterThread(tid);
+
+	for (auto const &local_item : item_list)
+	{
+		row_t * r_lt = ((row_t *)local_item->location);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
+		if (r_lt_local == NULL) {
+			// Skip the deleted item
+			// return finish(Abort);
+			continue;
+		}
+		cnt ++;
+		// cout << "address = " << &r_lt_local->data << endl;
+		double current_amount;
+		r_lt_local->get_value(OL_AMOUNT, current_amount);
+		revenue += current_amount;
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	//  string tmp = output_information("BTREE", ans, to_string(total_us) + "us");
+	string tmp = "Q6 BWTree(ms): " + to_string(total_us/1000) + "\n";
+	// string tmp = "Q6 BWTree(nums): " + to_string(cnt) + "\n";
+	// cout << tmp;
+	output_info[tid].push_back(tmp);
+	
+	assert(rc == RCOK);
+	return finish(rc);
+}
+
+RC chbench_txn_man::run_Q6_art(int tid, chbench_query * query) {
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+	uint64_t max_delivery_d = query->max_delivery_d;
+	int64_t min_quantity = query->min_quantity;
+	int64_t max_quantity = query->max_quantity;
+
+	RC rc = RCOK;
+	
+	double revenue = 0;
+	int cnt = 0;
+	row_t* current_row;
+
+	long long total_us = (long long)0;
+	size_t item_list_size = _wl->t_orderline->cur_tab_size * 0.05;
+	size_t item_list_used = 0;
+	itemid_t **item_list = new itemid_t*[item_list_size];
+
+	index_art *index = _wl->i_Q6_art;
+
+	auto start = std::chrono::high_resolution_clock::now();
+	
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+	Date r_date(max_delivery_d / 10000, (max_delivery_d % 10000) / 100, max_delivery_d % 100);
+	Date l_date(min_delivery_d / 10000, (min_delivery_d % 10000) / 100, min_delivery_d % 100);
+
+	for(int64_t quantity = min_quantity; quantity <= max_quantity; quantity++) {
+		uint64_t startKey = chbenchQ6Key(quantity, l_date.DateToUint64());
+		uint64_t endKey = chbenchQ6Key(quantity, r_date.DateToUint64() - 1);
+		size_t itemsfound;
+		index->lookup_range(startKey, endKey, 0, item_list + item_list_used, item_list_size - item_list_used, itemsfound);
+		int i = item_list_used;
+		item_list_used += itemsfound;
+		itemsfound = item_list_used;
+		for(; i < itemsfound; i++) {
+			itemid_t *local_item = item_list[i];
+			local_item = local_item->next;
+			while(local_item) {
+				item_list[item_list_used++] = local_item;
+				local_item = local_item->next;
+			}		
+		}
+	}
+
+	auto index_end = std::chrono::high_resolution_clock::now();
+	auto index_us = std::chrono::duration_cast<std::chrono::microseconds>(index_end - start).count();
+	r_lock.unlock();
+
+	for (size_t i = 0; i < item_list_used; i++)
+	{
+		itemid_t *local_item = item_list[i];
+		row_t * r_lt = ((row_t *)local_item->location);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
+		if (r_lt_local == NULL) {
+			// Skip the deleted item
+			// return finish(Abort);
+			continue;
+		}
+		cnt ++;
+		// cout << "address = " << &r_lt_local->data << endl;
+		double current_amount;
+		r_lt_local->get_value(OL_AMOUNT, current_amount);
+		revenue += current_amount;
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+	// string ans = "revenue is : " + to_string(revenue) + "  . Number of items: " +to_string(cnt);
+	// string tmp = output_information("ART", ans, to_string(total_us) + "us");
+	string tmp = "Q6 ART(ms): " + to_string(total_us/1000) + " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(cnt) + "\n";
+	// string tmp = "Q6 ART(nums): " + to_string(cnt) + "\n";
+	// cout << tmp;
+	output_info[tid].push_back(tmp);
+	
+	delete item_list;
+	assert(rc == RCOK);
+	return finish(rc);
+}
+
+void chbench_txn_man::get_bitvector_result(ibis::bitvector &result, nbub::Nbub *nbub1, nbub::Nbub *nbub2, int nbub1_pos, int nbub2_pos)
+{
+	Bitmap *bitmap1 = nbub1->bitmaps[nbub1_pos];
+	Bitmap *bitmap2;
+	if(nbub2)
+		bitmap2 = nbub2->bitmaps[nbub2_pos];
+	while(bitmap1->l_commit_ts > get_ts()) {
+		bitmap1 = bitmap1->next;
+	}
+	if(nbub2) {
+		while(bitmap2->l_commit_ts > get_ts()) {
+			bitmap2 = bitmap2->next;
+		}
+		assert(bitmap1);
+		assert(bitmap2);		
+	}
+	else {
+		assert(bitmap1);
+	}
+
+	result.copy(*bitmap1->btv);
+	TransDesc *trans = bitmap1->l_start_trans;
+	trans = trans->next;
+	while(trans && trans->l_commit_ts < get_ts()) {
+		for(auto rub : trans->rubs) {
+			if(rub.second.pos.begin()->first == nbub1_pos) {
+				result.setBit(rub.second.row_id, 1, nbub1->config);
+			}
+		}
+		trans = trans->next;
+	}
+
+	if(!nbub2) {
+		return;
+	}
+
+	ibis::bitvector tmp;
+	tmp.copy(*bitmap2->btv);
+	trans = bitmap2->l_start_trans;
+	trans = trans->next;
+	while(trans && trans->l_commit_ts < get_ts()) {
+		for(auto rub : trans->rubs) {
+			if(rub.second.pos.begin()->first == nbub2_pos) {
+				tmp.setBit(rub.second.row_id, 1, nbub2->config);
+			}
+		}
+		trans = trans->next;
+	}
+
+	result &= tmp;
+}
+
 
 void chbench_txn_man::q1_add_answer(row_t* row_local, chbench_q1_data &result) {
 	uint32_t current_number;
@@ -1250,13 +1763,15 @@ void chbench_txn_man::q1_add_answer(row_t* row_local, chbench_q1_data &result) {
 	return;
 }
 
-void chbench_txn_man::run_Q1_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, chbench_q1_data &result) {
-
+void chbench_txn_man::run_Q1_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, chbench_q1_data &result, int wid) {
+	
+	set_affinity(wid);
 
 	// define constant condition
 	uint64_t min_delivery_d = query->min_delivery_d;
 
 	row_t* current_row;
+	chbench_q1_data current_data(result.d_size);
 
 	for(uint64_t row_id = start_row; row_id < end_row; row_id++) {
 		current_row = (row_t*) &(_wl->t_orderline->row_buffer[row_id]);
@@ -1271,10 +1786,11 @@ void chbench_txn_man::run_Q1_scan_singlethread(uint64_t start_row, uint64_t end_
 		row_local->get_value(OL_DELIVERY_D, current_delivery_d);
 
 		// check condition
-		if( current_delivery_d > min_delivery_d) {
-			q1_add_answer(row_local, result);
+		if( current_delivery_d >= min_delivery_d) {
+			q1_add_answer(row_local, current_data);
 		} 
 	}
+	result = current_data;
 	return;
 }
 
@@ -1310,10 +1826,10 @@ RC chbench_txn_man::run_Q1_scan(int tid, chbench_query * query) {
 
 	for (int i = 0; i < CHBENCH_Q6_SCAN_THREADS - 1; i++) {
         threads[i] = std::thread(&chbench_txn_man::run_Q1_scan_singlethread, *this,\
-								block_start, block_start + block_size, query, std::ref(results[i]));
+								block_start, block_start + block_size, query, std::ref(results[i]), tid*CHBENCH_Q6_SCAN_THREADS+i);
 		block_start = block_start + block_size;
 	}
-	run_Q1_scan_singlethread(block_start, max_orderlines, query, std::ref(results[CHBENCH_Q6_SCAN_THREADS - 1]));
+	run_Q1_scan_singlethread(block_start, max_orderlines, query, std::ref(results[CHBENCH_Q6_SCAN_THREADS - 1]), tid*CHBENCH_Q6_SCAN_THREADS+CHBENCH_Q6_SCAN_THREADS - 1);
 
 	for (auto &thread : threads) {
 		thread.join();
@@ -1339,7 +1855,7 @@ RC chbench_txn_man::run_Q1_scan(int tid, chbench_query * query) {
 //	}
 
 	// string tmp = output_information("SCAN", results[CHBENCH_Q6_SCAN_THREADS - 1], to_string(time_elapsed_us) + "us");
-	string tmp = "Q1 Scan (parallel): " + to_string(time_elapsed_us/1000) + "\n";
+	string tmp = "Q1 Scan (parallel)(ms): " + to_string(time_elapsed_us/1000) + "\n";
 	// string tmp = "Q1 Scan (parallel): " + to_string(results[CHBENCH_Q6_SCAN_THREADS - 1].cnt[1]) + "\n";
 	// cout << tmp;
 	output_info[tid].push_back(tmp);
@@ -1359,9 +1875,6 @@ RC chbench_txn_man::run_Q1_btree(int tid, chbench_query * query) {
 	chbench_q1_data ans(16);
 	row_t* current_row;
 
-	long  long index_us = (long  long)0;
-	long long index_read_us = (long long)0;
-	long long leaf_read_us = (long long)0;
 	long long total_us = (long long)0;
 	vector<itemid_t *> item_list{};
 
@@ -1369,32 +1882,28 @@ RC chbench_txn_man::run_Q1_btree(int tid, chbench_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 	shared_lock<shared_mutex> r_lock(index->rw_lock);
-	for(uint64_t date = min_delivery_d + 1 ; date <= 2023; date++) {
+    time_t curtime;
+    time(&curtime);
+	tm *nowtime = localtime(&curtime);
+	Date curr_date(nowtime->tm_year + 1900, nowtime->tm_mon + 1, nowtime->tm_mday);
 
-			uint64_t& key = date;
-
+	for(Date date = Date(2007, 1, 2) ; date <= curr_date; date++) {
+			uint64_t key = date.DateToUint64();
 			if ( !index->index_exist(key, 0) ){
 					continue;
-				}
-
-			auto start1 = std::chrono::high_resolution_clock::now();
-				itemid_t * item = index_read(index, key, 0);
-				auto end1 = std::chrono::high_resolution_clock::now();
-				index_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end1 - start1).count();
-				auto start2 = std::chrono::high_resolution_clock::now();
+				}		
+			itemid_t * item = index_read(index, key, 0);
+			while(item) {
 				for (itemid_t * local_item = item; local_item != NULL; local_item = local_item->next) {
 					item_list.push_back(local_item);
 				}
-				auto end2 = std::chrono::high_resolution_clock::now();
-				leaf_read_us += std::chrono::duration_cast<std::chrono::microseconds>(end2 - start2).count();
-		
+				index->index_next(get_thd_id(), item, key);
+			}
+			break;	
 	}
 
-	auto end_f = std::chrono::high_resolution_clock::now();
-	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end_f-start).count();
-
-	auto tmp_5 = std::chrono::high_resolution_clock::now();
-
+	auto index_end = std::chrono::high_resolution_clock::now();
+	auto index_us = std::chrono::duration_cast<std::chrono::microseconds>(index_end - start).count();;
 	for (auto const &local_item : item_list)
 	{
 		row_t * r_lt = ((row_t *)local_item->location);
@@ -1417,12 +1926,11 @@ RC chbench_txn_man::run_Q1_btree(int tid, chbench_query * query) {
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
-	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-tmp_5).count();
 	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 	
-	string tmp = "Q1 Btree (ms): " + to_string(total_us/1000) + "\n";
-	// string tmp = "Q1 Btree (ms): " + to_string(ans.cnt[1]) + "\n";
+	string tmp = "Q1 Btree (ms): " + to_string(total_us/1000) + " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(ans.cnt[1]) + "\n";
+	// string tmp = "Q1 Btree (nums): " + to_string(ans.cnt[1]) + "\n";
 	output_info[tid].push_back(tmp);
 	
 
@@ -1437,15 +1945,20 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 	
 	chbench_q1_data ans(16);
 	int cnt = 0;
-	long  long index_us = (long  long)0;
 
 	auto start = std::chrono::high_resolution_clock::now();
 
 	nbub::Nbub *bitmap_dd;
 	bitmap_dd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
-	bitmap_dd->trans_begin(tid);
-	ibis::bitvector *btv_deliverydate = bitmap_dd->bitmaps[1]->btv;
-	ibis::bitvector & result = *btv_deliverydate;
+	// bitmap_dd->trans_begin(tid);
+	// ibis::bitvector *btv_deliverydate = bitmap_dd->bitmaps[1]->btv;
+	// ibis::bitvector & result = *btv_deliverydate;
+
+	ibis::bitvector result;
+	{
+		// lock_guard<shared_mutex> guard(bitmap_mutex);
+		get_bitvector_result(result, bitmap_dd, nullptr, 1, 0);
+	}
 
 	row_t *row_buffer = _wl->t_orderline->row_buffer;
 
@@ -1473,11 +1986,10 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 		}
 	}
 
-	auto end = std::chrono::high_resolution_clock::now();
-	index_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	auto index_end = std::chrono::high_resolution_clock::now();
+	auto index_us = std::chrono::duration_cast<std::chrono::microseconds>(index_end-start).count();
 
 	int deletecnt = 0;
-	start = std::chrono::high_resolution_clock::now();
 	// Fetch tuples in ID list
 	for(int k = 0; k < cnt; k++) 
 	{
@@ -1499,29 +2011,29 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 		ans.avg_quantity[i] = ans.sum_quantity[i] / (double)ans.cnt[i];
 	}
 
-	end = std::chrono::high_resolution_clock::now();
-	long long tuple_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	// cout << "tuple time is" << tuple_us << "us" << endl;
+	auto end = std::chrono::high_resolution_clock::now();
+	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
 	// string tmp = output_information("CUBIT", ans, to_string(index_us+tuple_us) + "us");
-	string tmp = "Q1 Bitmap (ms): " + to_string(tuple_us/1000) + "\n";
-	// string tmp = "Q1 Bitmap (ms): " + to_string(ans.cnt[1]) + "\n";
+	string tmp = "Q1 Bitmap (ms): " + to_string(total_us/1000) + " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(ans.cnt[1]) + "\n";
+	// string tmp = "Q1 Bitmap (nums): " + to_string(ans.cnt[1]) + "\n";
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
 	assert(rc == RCOK);
-	bitmap_dd->trans_commit(tid);
 	return finish(rc);
 }
 
-void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *bitmap_d, nbub::Nbub *bitmap_number, chbench_q1_data & ans) {
+void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *bitmap_d, nbub::Nbub *bitmap_number, chbench_q1_data & ans, int wid) {
 
+	set_affinity(wid);
 	// selectivity 36% 
 	// max > 36%/4
 	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.15;
 	int *ids = new int[n_ids_max];
 	row_t *row_buffer = _wl->t_orderline->row_buffer;
 	
+	// work for per thread
 	vector<int> ol_numbers;
 	ol_numbers.push_back(number);
 	ol_numbers.push_back(4 + number);
@@ -1539,13 +2051,8 @@ void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *b
 	for(int i = 0; i < ol_numbers.size(); i++) {
 		number = ol_numbers[i];
 		int cnt = 0;
-		Bitmap *bitmap =  __atomic_load_n(&bitmap_d->bitmaps[1], MM_ACQUIRE);
-		ibis::bitvector date(*READ_ONCE(bitmap->btv));
-		date.copy(*READ_ONCE(bitmap->btv));
-		bitmap =  __atomic_load_n(&bitmap_number->bitmaps[number], MM_ACQUIRE);
-		ibis::bitvector result(*READ_ONCE(bitmap->btv));
-		result.copy(*READ_ONCE(bitmap->btv));
-		result &= date;
+		ibis::bitvector result;
+		get_bitvector_result(result, bitmap_d, bitmap_number, 1, number);
 
 		// Convert bitvector to ID list
 		for (ibis::bitvector::indexSet is = result.firstIndexSet(); is.nIndices() > 0; ++ is) 
@@ -1608,15 +2115,13 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 	nbub::Nbub *bitmap_d, *bitmap_number;
 	bitmap_d = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_deliverydate);
 	bitmap_number = dynamic_cast<nbub::Nbub *>(_wl->bitmap_q1_ol_number);
-	bitmap_d->trans_begin(tid);
-	bitmap_number->trans_begin(tid);
 
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<std::thread> threads(CHBENCH_Q6_SCAN_THREADS);
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < CHBENCH_Q6_SCAN_THREADS; i++) {
 		threads[i] = std::thread(&chbench_txn_man::run_Q1_bitmap_fetch_singlethread, *this, \
-		i, bitmap_d, bitmap_number, std::ref(ans));
+		i, bitmap_d, bitmap_number, std::ref(ans), tid*CHBENCH_Q6_SCAN_THREADS + i);
 	}
 	for (auto &thread : threads) {
 		thread.join();
@@ -1626,12 +2131,169 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
 	// string tmp = output_information("CUBIT(Parallel)", ans, to_string(total_us) + "us");
-	// string tmp = "Q1 Bitmap (parallel): " + to_string(total_us/1000) + "\n";
-	string tmp = "Q1 Bitmap (parallel): " + to_string(ans.cnt[1]) + "\n";
+	string tmp = "Q1 Bitmap (parallel)(ms): " + to_string(total_us/1000) + " nums: " + to_string(ans.cnt[1]) + "\n";
+	// string tmp = "Q1 Bitmap (parallel): " + to_string(ans.cnt[1]) + "\n";
 	output_info[tid].push_back(tmp);
 
 	assert(rc == RCOK);
-	bitmap_d->trans_commit(tid);
-	bitmap_number->trans_commit(tid);
+	return finish(rc);
+}
+
+RC chbench_txn_man::run_Q1_bwtree(int tid, chbench_query * query)
+{
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+
+	RC rc = RCOK;
+	
+	chbench_q1_data ans(16);
+	row_t* current_row;
+
+	long long total_us = (long long)0;
+	vector<itemid_t *> item_list{};
+
+	index_bwtree* index = _wl->i_Q1_bwtree;
+
+	auto start = std::chrono::high_resolution_clock::now();
+	index->AssignGCID(tid);
+    time_t curtime;
+    time(&curtime);
+	tm *nowtime = localtime(&curtime);
+	Date curr_date(nowtime->tm_year + 1900, nowtime->tm_mon + 1, nowtime->tm_mday);
+	for(Date date = Date(2007, 1, 2) ; date <= curr_date; date++) {
+
+			uint64_t key = date.DateToUint64();
+
+			if ( !index->index_exist(key, 0) ){
+					continue;
+				}
+
+			auto start1 = std::chrono::high_resolution_clock::now();
+				vector<itemid_t *> items = index_read(index, key, 0);
+				for (auto item : items) {
+					item_list.push_back(item);
+				}
+		
+	}
+
+	for (auto const &local_item : item_list)
+	{
+		row_t * r_lt = ((row_t *)local_item->location);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
+		if (r_lt_local == NULL) {
+			// Skip the deleted item
+			// return finish(Abort);
+			continue;
+		}
+		// cout << "address = " << &r_lt_local->data << endl;
+		q1_add_answer(r_lt_local, ans);
+	}
+
+	for(int i = 0; i < ans.d_size; i++) {
+		if(ans.cnt[i] == 0) {
+			continue;
+		}
+		ans.avg_amount[i] = ans.sum_amount[i] / ans.cnt[i];
+		ans.avg_quantity[i] = ans.sum_quantity[i] / (double)ans.cnt[i];
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+	
+	string tmp = "Q1 BWtree (ms): " + to_string(total_us/1000) + "\n";
+	// string tmp = "Q1 BWtree (nums): " + to_string(ans.cnt[1]) + "\n";
+	output_info[tid].push_back(tmp);
+	
+	index->UnregisterThread(tid);
+
+	assert(rc == RCOK);
+	return finish(rc);
+}
+
+RC chbench_txn_man::run_Q1_art(int tid, chbench_query * query) {
+
+	uint64_t min_delivery_d = query->min_delivery_d;
+
+	RC rc = RCOK;
+
+	chbench_q1_data ans(16);
+	row_t* current_row;
+
+	long long total_us = (long long)0;
+
+	size_t item_list_size = _wl->t_orderline->cur_tab_size * 0.5;
+	itemid_t **item_list = new itemid_t*[item_list_size];
+
+	index_art *index = _wl->i_Q1_art;
+
+	shared_lock<shared_mutex> r_lock(index->rw_lock);
+	auto start = std::chrono::high_resolution_clock::now();
+	
+    time_t curtime;
+    time(&curtime);
+	tm *nowtime = localtime(&curtime);
+	Date curr_date(nowtime->tm_year + 1900, nowtime->tm_mon + 1, nowtime->tm_mday);
+	Date l_date = Date(2007, 1, 2);
+
+	size_t itemsfound = 0;
+	index->lookup_range(l_date.DateToUint64(), curr_date.DateToUint64() + 10, 0, item_list, item_list_size, itemsfound);
+	
+	size_t item_list_used = itemsfound;
+	for (size_t i = 0; i < itemsfound; i++)
+	{	
+		itemid_t *local_item = item_list[i];
+		local_item = local_item->next;
+		while(local_item) {
+			item_list[item_list_used++] = local_item;
+			local_item = local_item->next;
+		}
+	}
+
+	if(index->index_exist(curr_date.DateToUint64(), 0)) {
+		itemid_t *local_item = index_read((INDEX *)index, curr_date.DateToUint64(), 0);
+		while(local_item) {
+			item_list[item_list_used++] = local_item;
+			local_item = local_item->next;
+		}
+	}
+
+	r_lock.unlock();
+	auto index_end = std::chrono::high_resolution_clock::now();
+	auto index_us = std::chrono::duration_cast<std::chrono::microseconds>(index_end - start).count();
+
+	for (size_t i = 0; i < item_list_used; i++)
+	{	
+		itemid_t *local_item = item_list[i];
+		row_t * r_lt = ((row_t *)local_item->location);
+		row_t * r_lt_local = get_row(r_lt, SCAN);
+		if (r_lt_local == NULL) {
+			// Skip the deleted item
+			// return finish(Abort);
+			continue;
+		}
+		// cout << "address = " << &r_lt_local->data << endl;
+		uint64_t tmp_date = 0;
+		r_lt_local->get_value(OL_DELIVERY_D, tmp_date);
+		q1_add_answer(r_lt_local, ans);
+	}
+
+	for(int i = 0; i < ans.d_size; i++) {
+		if(ans.cnt[i] == 0) {
+			continue;
+		}
+		ans.avg_amount[i] = ans.sum_amount[i] / ans.cnt[i];
+		ans.avg_quantity[i] = ans.sum_quantity[i] / (double)ans.cnt[i];
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
+	string tmp = "Q1 ART (ms): " + to_string(total_us/1000) + " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(ans.cnt[1]) + "\n";
+	// string tmp = "Q1 ART (nums): " + to_string(ans.cnt[1]) + "\n";
+	output_info[tid].push_back(tmp);
+	
+
+	assert(rc == RCOK);
 	return finish(rc);
 }

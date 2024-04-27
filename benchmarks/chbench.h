@@ -52,6 +52,10 @@ public:
 	BaseTable *bitmap_q6_quantity;
 	BaseTable *bitmap_q1_deliverydate;
 	BaseTable *bitmap_q1_ol_number;
+    index_bwtree *  i_Q6_bwtree;
+	index_art *     i_Q6_art;
+    index_bwtree *  i_Q1_bwtree;
+	index_art *     i_Q1_art;
 
 	bool ** delivering;
 	uint32_t next_tid;
@@ -64,6 +68,7 @@ private:
 	void init_tab_cust(uint64_t d_id, uint64_t w_id);
 	void init_tab_hist(uint64_t c_id, uint64_t d_id, uint64_t w_id);
 	void init_tab_order(uint64_t d_id, uint64_t w_id);
+	void tree_insert(INDEX *tree_q1, INDEX *tree_q6, uint64_t key_q1, uint64_t key_q6, row_t *row, uint64_t primary_key);
 	
 	void init_permutation(uint64_t * perm_c_id, uint64_t wid);
 
@@ -92,6 +97,7 @@ public:
 	double *avg_amount;
 	double *avg_quantity;
 	void operator+=(const chbench_q1_data& tmp);
+	void operator=(const chbench_q1_data& tmp);
 	~chbench_q1_data();
 };
 
@@ -103,25 +109,31 @@ public:
 	RC run_txn(int tid, base_query * query);
 private:
 	chbench_wl * _wl;
-	RC run_payment(chbench_query * m_query);
+	RC run_payment(int tid, chbench_query * m_query);
 	RC run_new_order(int tid, chbench_query * m_query);
 	RC run_order_status(chbench_query * query);
 	RC run_delivery(chbench_query * query);
 	RC run_stock_level(chbench_query * query);
 	RC evaluate_index(chbench_query *query);
-	void run_Q6_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, std::tuple<double, int> &result);
+	void run_Q6_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, std::tuple<double, int> &result, int wid);
 	void q1_add_answer(row_t* row_local, chbench_q1_data &result);
-	void run_Q1_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, chbench_q1_data &result);
+	void run_Q1_scan_singlethread(uint64_t start_row, uint64_t end_row, chbench_query * query, chbench_q1_data &result, int wid);
 	RC run_Q6_scan(int tid, chbench_query * query);
 	RC run_Q6_btree(int tid, chbench_query * query);
+	RC run_Q6_bwtree(int tid, chbench_query * query);
+	RC run_Q6_art(int tid, chbench_query * query);
 	RC run_Q6_bitmap(int tid, chbench_query * query);
+	void bitmap_singlethread_fetch(int begin, int end, pair<double, int> &result, row_t *row_buffer, int *ids, int wid);
 	void run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_btv2, int begin, int end, pair<double, int> &result);
 	RC run_Q6_bitmap_parallel(int tid, chbench_query * query);
+	void get_bitvector_result(ibis::bitvector &result, nbub::Nbub *nbub1, nbub::Nbub *nbub2, int nbub1_pos, int nbub2_pos);
 	RC run_Q1_scan(int tid, chbench_query * query);
 	RC run_Q1_btree(int tid, chbench_query * query);
 	RC run_Q1_bitmap(int tid, chbench_query * query);
-	void run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *bitmap_d, nbub::Nbub *bitmap_number, chbench_q1_data & ans);
+	void run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *bitmap_d, nbub::Nbub *bitmap_number, chbench_q1_data & ans, int wid);
 	RC run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query);
+	RC run_Q1_bwtree(int tid, chbench_query * query);
+	RC run_Q1_art(int tid, chbench_query * query);
 };
 
 
@@ -133,13 +145,13 @@ static inline int bitmap_quantity_bin(int64_t quantity) {
 		return 2;
 	else return 1;
 }
-
-	// [<1999], [1999,2020), [>=2020]
-	//   0          1            2     
+  
+  
 static inline int bitmap_deliverydate_bin(uint64_t date) {
-	if (date < 1999)
+	// [<19990101], [19990101,20200101), [>=20200101] 
+	if (date < 19990101)
 		return 0;
-	else if (date >= 2020)
+	else if (date >= 20200101)
 		return 2;
 	else return 1;
 }

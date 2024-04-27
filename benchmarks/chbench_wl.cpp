@@ -6,18 +6,22 @@
 #include "table.h"
 #include "index_hash.h"
 #include "index_btree.h"
+#include "index_bwtree.h"
+#include "index_art.h"
 #include "tpc_helper.h"
 #include "row.h"
 #include "query.h"
 #include "txn.h"
 #include "mem_alloc.h"
 #include "chbench_const.h"
+#include "Date.h"
 
 // record the num of rows that meet q6 condition
 static int cnt_q6 = 0;
 static int cnt_q1_number1 = 0;
 static uint64_t q1_number1_quantity = 0;
 CHBenchQuery query_number = CHBENCH_QUERY_TYPE;
+mt19937_64 rng[100];
 
 RC chbench_wl::init() 
 {
@@ -176,6 +180,26 @@ RC chbench_wl::init_schema(const char * schema_file) {
 	i_stock = indexes["STOCK_IDX"];
 	i_orderline = indexes["ORDERLINE_IDX"];
 	i_orderline_d = indexes["ORDERLINE_IDX_D"];
+
+	string tname("ORDER-LINE");
+	int part_cnt = (CENTRAL_INDEX)? 1 : g_part_cnt;
+
+	i_Q6_bwtree = (index_bwtree *) _mm_malloc(sizeof(index_bwtree), 64);
+    new(i_Q6_bwtree) index_bwtree();
+    i_Q6_bwtree->init(part_cnt, tables[tname]);
+
+	i_Q1_bwtree = (index_bwtree *) _mm_malloc(sizeof(index_bwtree), 64);
+    new(i_Q1_bwtree) index_bwtree();
+    i_Q1_bwtree->init(part_cnt, tables[tname]);
+
+    i_Q6_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
+    new(i_Q6_art) index_art();
+    i_Q6_art->init(part_cnt, tables[tname]);
+
+    i_Q1_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
+    new(i_Q1_art) index_art();
+    i_Q1_art->init(part_cnt, tables[tname]);
+
 	return RCOK;
 }
 
@@ -196,6 +220,10 @@ RC chbench_wl::init_table() {
 /**********************************/
 	tpc_buffer = new drand48_data * [g_num_wh];
 	pthread_t * p_thds = new pthread_t[g_num_wh - 1];
+	
+	i_Q6_bwtree->UpdateThreadLocal(g_num_wh > g_thread_cnt ? g_num_wh : g_thread_cnt);
+	i_Q1_bwtree->UpdateThreadLocal(g_num_wh > g_thread_cnt ? g_num_wh : g_thread_cnt);
+	
 	for (uint32_t i = 0; i < g_num_wh - 1; i++) 
 		pthread_create(&p_thds[i], NULL, threadInitWarehouse, this);
 	threadInitWarehouse(this);
@@ -304,7 +332,7 @@ void chbench_wl::init_tab_dist(uint64_t wid) {
     	double w_ytd=30000.00;
 		row->set_value(D_TAX, tax);
 		row->set_value(D_YTD, w_ytd);
-		row->set_value(D_NEXT_O_ID, 3001);
+		row->set_value(D_NEXT_O_ID, static_cast<int64_t>(3001));
 		
 		index_insert(i_district, distKey(did, wid), row, wh_to_part(wid));
 	}
@@ -483,7 +511,12 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 		row->set_value(O_C_ID, cid);
 		row->set_value(O_D_ID, did);
 		row->set_value(O_W_ID, wid);
-		uint64_t o_entry = URand(1983, 2023, wid-1);
+
+		Date l(1983, 1, 1);
+		Date r(2023, 12, 31);
+		Date o_entry_date = r.URandDate(l, rng[wid - 1]);
+		uint64_t o_entry = o_entry_date.DateToUint64();
+		assert(o_entry_date >= l && o_entry_date <= r);
 		row->set_value(O_ENTRY_D, o_entry);
 		if (oid < 2101)
 			row->set_value(O_CARRIER_ID, URand(1, 10, wid-1));
@@ -513,26 +546,46 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 			if (oid < 2101) {
 				row->set_value(OL_DELIVERY_D, o_entry);
 				row->set_value(OL_AMOUNT, (double)0);
-				key = ol_quantity*10000 + o_entry;
-				if(ol == 1 && o_entry > 2007) {
+				key = chbenchQ6Key(ol_quantity, o_entry);
+				if(ol == 1 && o_entry >= 20070102) {
 					ATOM_ADD(cnt_q1_number1, 1);
 					ATOM_ADD(q1_number1_quantity, ol_quantity);
 				}
 			} else {
 				row->set_value(OL_DELIVERY_D, (uint64_t)0);
 				row->set_value(OL_AMOUNT, (double)URand(1, 999999, wid-1)/100);
-				key = ol_quantity*10000;
+				key = chbenchQ6Key(ol_quantity, 0);
 			}
 			row->set_value(OL_QUANTITY, ol_quantity);
 			char ol_dist_info[24];
 	        MakeAlphaString(24, 24, ol_dist_info, wid-1);
 			row->set_value(OL_DIST_INFO, ol_dist_info);
-			index_insert(i_orderline, key, row, 0);
+
+			// index insert
 			if(oid < 2101) {
-				index_insert(i_orderline_d, o_entry, row, 0);
-			}
-			else {
-				index_insert(i_orderline_d, (uint64_t)0, row, 0);
+				uint64_t primary_key = orderlineKey(wid, did, oid) * 100;
+				switch(CHBENCH_QUERY_METHOD) {
+					case CHBenchQueryMethod::SCAN_METHOD :
+						break;
+					case CHBenchQueryMethod::BITMAP_METHOD :
+						break;
+					case CHBenchQueryMethod::BITMAP_PARA_METHOD :
+						break;
+					case CHBenchQueryMethod::BTREE_METHOD :
+						tree_insert((INDEX*)i_orderline_d, (INDEX*)i_orderline, o_entry, key, row, 0);
+						break;
+					case CHBenchQueryMethod::BWTREE_METHOD :
+						i_Q6_bwtree->AssignGCID(wid - 1);
+						i_Q1_bwtree->AssignGCID(wid - 1);
+						tree_insert((INDEX*)i_Q1_bwtree, (INDEX*)i_Q6_bwtree, o_entry, key, row, 0);
+						i_Q6_bwtree->UnregisterThread(wid - 1);
+						i_Q1_bwtree->UnregisterThread(wid - 1);
+						break;
+					case CHBenchQueryMethod::ART_METHOD :
+						primary_key += ol;
+						tree_insert((INDEX*)i_Q1_art, (INDEX*)i_Q6_art, o_entry, key, row, primary_key);
+						break;
+				}
 			}
 				
 
@@ -610,6 +663,7 @@ void * chbench_wl::threadInitWarehouse(void * This) {
 	uint32_t tid = ATOM_FETCH_ADD(wl->next_tid, 1);
 	uint32_t wid = tid + 1;
 	tpc_buffer[tid] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
+	rng[tid].seed(tid);
 	assert((uint64_t)tid < g_num_wh);
 	srand48_r(wid, tpc_buffer[tid]);
 	// cout << *tpc_buffer[tid]->__x << "_" << wid << endl;
@@ -686,12 +740,12 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	config_deliverydate->time_out = 100;
 	config_deliverydate->autoCommit = false;
 	config_deliverydate->n_merge_threshold = 16;
-	config_deliverydate->db_control = false;
+	config_deliverydate->db_control = true;
 
 	config_deliverydate->segmented_btv = false;
-	if(CHBENCH_QUERY_METHOD == BITMAP_PARA_METHOD) {
-		config_deliverydate->segmented_btv = true;
-	}
+	// if(CHBENCH_QUERY_METHOD == BITMAP_PARA_METHOD) {
+	// 	config_deliverydate->segmented_btv = true;
+	// }
 	config_deliverydate->encoded_word_len = 31;
 	config_deliverydate->rows_per_seg = 100000;
 	config_deliverydate->enable_parallel_cnt = false;
@@ -754,12 +808,12 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	config_quantity->time_out = 100;
 	config_quantity->autoCommit = false;
 	config_quantity->n_merge_threshold = 16;
-	config_quantity->db_control = false;
+	config_quantity->db_control = true;
 
 	config_quantity->segmented_btv = false;
-	if(CHBENCH_QUERY_METHOD == BITMAP_PARA_METHOD) {
-		config_quantity->segmented_btv = true;
-	}
+	// if(CHBENCH_QUERY_METHOD == BITMAP_PARA_METHOD) {
+	// 	config_quantity->segmented_btv = true;
+	// }
 	config_quantity->encoded_word_len = 31;
 	config_quantity->rows_per_seg = 100000;
 	config_quantity->enable_parallel_cnt = false;
@@ -822,7 +876,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	config_q1->time_out = 100;
 	config_q1->autoCommit = false;
 	config_q1->n_merge_threshold = 16;
-	config_q1->db_control = false;
+	config_q1->db_control = true;
 
 	config_q1->segmented_btv = false;
 	config_q1->encoded_word_len = 31;
@@ -885,7 +939,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	config_ol_number->time_out = 100;
 	config_ol_number->autoCommit = false;
 	config_ol_number->n_merge_threshold = 16;
-	config_ol_number->db_control = false;
+	config_ol_number->db_control = true;
 
 	config_ol_number->segmented_btv = false;
 	config_ol_number->encoded_word_len = 31;
@@ -920,4 +974,38 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	// cout << "INDEX bitmap build time:" << time << endl;
 
 	return RCOK;
+}
+
+void chbench_wl::tree_insert(INDEX *tree_q1, INDEX *tree_q6, uint64_t key_q1, uint64_t key_q6, row_t *row, uint64_t primary_key) {
+	if(query_number == CHBenchQuery::CHBenchQ6) { 
+		switch(CHBENCH_QUERY_METHOD) {
+			case CHBenchQueryMethod::ART_METHOD :
+				index_insert_with_primary_key((INDEX *)tree_q6, key_q6, primary_key, row, 0);
+				break;
+			case CHBenchQueryMethod::BWTREE_METHOD :
+				;
+			case CHBenchQueryMethod::BTREE_METHOD :
+				index_insert((INDEX*)tree_q6, key_q6, row, 0);;
+				break;
+			default :
+				assert(0);
+		}
+	}
+	else if(query_number == CHBenchQuery::CHBenchQ1) {
+		switch(CHBENCH_QUERY_METHOD) {
+			case CHBenchQueryMethod::ART_METHOD :
+				index_insert_with_primary_key((INDEX *)tree_q1, key_q1, primary_key, row, 0);
+				break;
+			case CHBenchQueryMethod::BWTREE_METHOD :
+				;
+			case CHBenchQueryMethod::BTREE_METHOD :
+				index_insert((INDEX*)tree_q1, key_q1, row, 0);;
+				break;
+			default :
+				assert(0);
+		}
+	}
+	else {
+		assert(0);
+	} 
 }
