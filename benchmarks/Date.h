@@ -211,8 +211,9 @@ public:
         time_t rand_ts =distribution(rng);
 
         // timestamp to date
-        tm *rand_time = localtime(&rand_ts);
-        Date ret(rand_time->tm_year + 1900, rand_time->tm_mon + 1, rand_time->tm_mday);
+        tm rand_time;
+        localtime_r(&rand_ts, &rand_time);
+        Date ret(rand_time.tm_year + 1900, rand_time.tm_mon + 1, rand_time.tm_mday);
         assert(l <= *this);
         return ret;
     }
