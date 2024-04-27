@@ -64,7 +64,7 @@ public:
     void UnregisterThread(int thread_id) {
         roots[0]->UnregisterThread((size_t)thread_id);
     }
-
+    std::shared_mutex rw_lock;
 private:
     BwTreeType **roots;
     uint64_t part_cnt;

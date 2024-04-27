@@ -36,6 +36,8 @@ public:
 	
 	RC index_read(idx_key_t key, itemid_t * &item, int part_id=-1, int thd_id=0);
 
+    bool lookup_range(idx_key_t start, idx_key_t end, int part_id, itemid_t **result, std::size_t resultSize, std::size_t &resultfound); 
+
     RC index_remove(idx_key_t key);
 
     int index_size();
