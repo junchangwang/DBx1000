@@ -229,46 +229,6 @@ txn_man::index_read(index_bwtree * index, idx_key_t key,  int part_id) {
 	return items;
 }
 
-RC txn_man::finish(RC rc) {
-#if CC_ALG == HSTORE
-	return RCOK;
-#endif
-	uint64_t starttime = get_sys_clock();
-#if CC_ALG == OCC
-	if (rc == RCOK)
-		rc = occ_man.validate(this);
-	else 
-		cleanup(rc);
-#elif CC_ALG == TICTOC
-	if (rc == RCOK)
-		rc = validate_tictoc();
-	else 
-		cleanup(rc);
-#elif CC_ALG == SILO
-	if (rc == RCOK)
-		rc = validate_silo();
-	else 
-		cleanup(rc);
-#elif CC_ALG == HEKATON
-	// update_btree/bw-tree/art()
-	rc = validate_hekaton(rc);
-	cleanup(rc);
-#elif CC_ALG == PTMVCC
-	// FIXME: The following instruction is not atomic.
-	//        I.e., Incrementing db_timestamp and assigning the value to commit_ts are two steps.
-	//        This can be solved by associating the thread id with db_timestamp and updating it
-	//        by using double-word CAS. Consequently, other threads can help assigning the value to commit_ts.
-	committed_ts = glob_manager->get_ts(h_thd->_thd_id);
-	rc = validate_ptmvcc(rc);
-	cleanup(rc);
-#else 
-	cleanup(rc);
-#endif
-	uint64_t timespan = get_sys_clock() - starttime;
-	INC_TMP_STATS(get_thd_id(), time_man,  timespan);
-	INC_STATS(get_thd_id(), time_cleanup,  timespan);
-	return rc;
-}
 
 RC txn_man::finish(RC rc, int ts_inc) {
 #if CC_ALG == HSTORE

@@ -76,9 +76,6 @@ RC Row_ptmvcc::access(txn_man * txn, TsType type, row_t * row) {
 				uint32_t tid = _write_history[_his_latest].end;
 				for (UInt32 i = 0; i < g_thread_cnt; i++) { 
 					txn_man * txn_tmp = glob_manager->_all_txns[i];
-					if(!txn_tmp) {
-						cout << glob_manager->_all_txns[i] << endl;
-					}
 					if (txn_tmp->get_txn_id() == tid)
 					{
 						if (txn_tmp->committed_ts <= txn->get_ts()) {
