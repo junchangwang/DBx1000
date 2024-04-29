@@ -229,7 +229,8 @@ txn_man::index_read(index_bwtree * index, idx_key_t key,  int part_id) {
 	return items;
 }
 
-RC txn_man::finish(RC rc) {
+
+RC txn_man::finish(RC rc, int ts_inc) {
 #if CC_ALG == HSTORE
 	return RCOK;
 #endif
@@ -258,7 +259,13 @@ RC txn_man::finish(RC rc) {
 	//        I.e., Incrementing db_timestamp and assigning the value to commit_ts are two steps.
 	//        This can be solved by associating the thread id with db_timestamp and updating it
 	//        by using double-word CAS. Consequently, other threads can help assigning the value to commit_ts.
-	committed_ts = glob_manager->get_ts(h_thd->_thd_id);
+	if(ts_inc) {
+		committed_ts = glob_manager->get_ts(h_thd->_thd_id) + 1;
+	}
+	else {
+		committed_ts = get_ts();
+	}
+	// committed_ts = glob_manager->get_ts(h_thd->_thd_id);
 	rc = validate_ptmvcc(rc);
 	cleanup(rc);
 #else 

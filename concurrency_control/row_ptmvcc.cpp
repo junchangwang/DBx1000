@@ -75,10 +75,10 @@ RC Row_ptmvcc::access(txn_man * txn, TsType type, row_t * row) {
 				// if (global_txns[_write_history[_next_his].begin_txn].committed_ts <= txn->get_ts())
 				uint32_t tid = _write_history[_his_latest].end;
 				for (UInt32 i = 0; i < g_thread_cnt; i++) { 
-					txn_man * txn_t = glob_manager->_all_txns[i];
-					if (txn_t->get_txn_id() == tid)
+					txn_man * txn_tmp = glob_manager->_all_txns[i];
+					if (txn_tmp->get_txn_id() == tid)
 					{
-						if (txn_t->committed_ts <= txn->get_ts()) {
+						if (txn_tmp->committed_ts <= txn->get_ts()) {
 							txn->cur_row = _write_history[_his_next].row;
 							break;
 						}
@@ -94,7 +94,7 @@ RC Row_ptmvcc::access(txn_man * txn, TsType type, row_t * row) {
 			while (true) {
 				i = (i == 0)? _his_len - 1 : i - 1;
 				if (_write_history[i].begin < ts) {
-					assert(_write_history[i].end > ts);
+					assert(_write_history[i].end >= ts);
 					txn->cur_row = _write_history[i].row;
 					find = true;
 					break;

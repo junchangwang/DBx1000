@@ -6,6 +6,7 @@
 #include "helper.h"
 #include "tpch.h"
 #include "tpch_const.h"
+#include "chbench_const.h"
 
 void loadKey(TID tid, Key &key) {
     key.setKeyLen(sizeof(tid));
@@ -24,11 +25,43 @@ void loadKey(TID tid, Key &key) {
     reinterpret_cast<uint64_t *>(&key[0])[0] = __builtin_bswap64(computed_key);
 }
 
+void loadKey_chbenchq6(TID tid, Key &key) {
+    key.setKeyLen(sizeof(tid));
+    itemid_t * item = reinterpret_cast<itemid_t *>(tid);
+    row_t * row = (row_t *)item->location;
+    uint64_t quantity;
+    row->get_value(OL_QUANTITY, quantity);
+    uint64_t date;
+    row->get_value(OL_DELIVERY_D, date);
+    uint64_t computed_key = quantity*100000000 + date;
+    reinterpret_cast<uint64_t *>(&key[0])[0] = __builtin_bswap64(computed_key);
+}
+
+void loadKey_chbenchq1(TID tid, Key &key) {
+    key.setKeyLen(sizeof(tid));
+    itemid_t * item = reinterpret_cast<itemid_t *>(tid);
+    row_t * row = (row_t *)item->location;
+    uint64_t date;
+    row->get_value(OL_DELIVERY_D, date);
+    uint64_t computed_key =date;
+    reinterpret_cast<uint64_t *>(&key[0])[0] = __builtin_bswap64(computed_key);
+}
+
 RC index_art::init(uint64_t part_cnt) {
     this->part_cnt = part_cnt;
     roots = (ART_OLC::Tree **) malloc(part_cnt * sizeof(ART_OLC::Tree));
     for (uint32_t i = 0; i < part_cnt; i++) {
-        roots[i] = new ART_OLC::Tree{loadKey};
+        if(WORKLOAD == TPCH)
+            roots[i] = new ART_OLC::Tree{loadKey};
+        if(WORKLOAD == CHBench) {
+            if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ1) {
+                roots[i] = new ART_OLC::Tree{loadKey_chbenchq1};
+            }
+            if(CHBENCH_QUERY_TYPE == CHBenchQuery::CHBenchQ6) {
+                roots[i] = new ART_OLC::Tree{loadKey_chbenchq6};
+            }
+        }
+        assert(roots[i]);
     }
     return RCOK;
 }
@@ -129,3 +162,17 @@ RC index_art::index_remove(idx_key_t key) {
     return RCOK;
 }
 
+bool index_art::lookup_range(idx_key_t start, idx_key_t end, int part_id, itemid_t **result, std::size_t resultSize, std::size_t &resultfound)
+{
+    ART_OLC::Tree * root = find_root(part_id);
+    assert(root != NULL);
+    ART::ThreadInfo thread_info = root->getThreadInfo();
+    Key startKey, endKey;
+    startKey.setInt(start);
+    endKey.setInt(end);
+    Key tmp;
+
+    // resultSize is not enough
+    assert(root->lookupRange(startKey, endKey, tmp, reinterpret_cast<TID *>(result), resultSize, resultfound, thread_info) == 0);
+    return true;
+}

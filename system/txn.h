@@ -72,7 +72,7 @@ public:
 	bool volatile 	ts_ready; 
 	// [HSTORE]
 	int volatile 	ready_part;
-	RC 				finish(RC rc);
+	RC 				finish(RC rc, int ts_inc = 0);
 	void 			cleanup(RC rc);
 #if CC_ALG == TICTOC
 	ts_t 			get_max_wts() 	{ return _max_wts; }

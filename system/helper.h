@@ -211,7 +211,7 @@ private:
 };
 
 inline void set_affinity(uint64_t thd_id) {
-	return;
+	//return;
 	/*
 	// TOOD. the following mapping only works for swarm
 	// which has 4-socket, 10 physical core per socket, 
@@ -225,4 +225,12 @@ inline void set_affinity(uint64_t thd_id) {
 	CPU_SET(processor_id, &mask);
 	sched_setaffinity(0, sizeof(cpu_set_t), &mask);
 	*/
+
+	uint64_t a = thd_id % 12;
+	uint64_t processor_id = a;
+	cout << "Current thread " << thd_id << " runs on core " << a << endl;
+	cpu_set_t  mask;
+	CPU_ZERO(&mask);
+	CPU_SET(processor_id, &mask);
+	sched_setaffinity(0, sizeof(cpu_set_t), &mask);
 }

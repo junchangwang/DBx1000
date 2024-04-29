@@ -5,6 +5,8 @@
 #include "mem_alloc.h"
 #include "wl.h"
 #include "table.h"
+#include "Date.h"
+#include <ctime>
 
 int chbench_query::q6_id = 0;
 int chbench_query::q1_id = 0;
@@ -82,7 +84,14 @@ void chbench_query::gen_new_order(uint64_t thd_id) {
 	c_id = NURand(1023, 1, g_cust_per_dist, w_id-1);
 	rbk = URand(1, 100, w_id-1);
 	ol_cnt = URand(5, 15, w_id-1);
-	o_entry_d = 2013;
+
+	// get time
+    time_t curtime;
+    time(&curtime);
+	tm *nowtime = localtime(&curtime);
+	Date o_entry_date(nowtime->tm_year + 1900, nowtime->tm_mon + 1, nowtime->tm_mday);
+	o_entry_d = o_entry_date.DateToUint64();
+	
 	items = (Item_no_chbench *) _mm_malloc(sizeof(Item_no_chbench) * ol_cnt, 64);
 	remote = false;
 	part_to_access[0] = wh_to_part(w_id);
@@ -148,8 +157,8 @@ chbench_query::gen_order_status(uint64_t thd_id) {
 
 
 void chbench_query::gen_q6(uint64_t thd_id) {
-	min_delivery_d = 1999;
-	max_delivery_d = 2020;
+	min_delivery_d = 19990101;
+	max_delivery_d = 20200101;
 	min_quantity = 1;
 	max_quantity = 1000;
 	switch (q6_id%3)
@@ -182,6 +191,12 @@ void chbench_query::gen_q6(uint64_t thd_id) {
 	case CHBenchQueryMethod::BITMAP_PARA_METHOD :
 		type = CHBENCH_Q6_BITMAP;
 		break;
+	case CHBenchQueryMethod::BWTREE_METHOD :
+		type = CHBENCH_Q6_BWTREE;
+		break;
+	case CHBenchQueryMethod::ART_METHOD :
+		type = CHBENCH_Q6_ART;
+		break;
 	case CHBenchQueryMethod::ALL_METHOD :
 		break;
 	default:
@@ -193,7 +208,7 @@ void chbench_query::gen_q6(uint64_t thd_id) {
 }
 
 void chbench_query::gen_q1(uint64_t thd_id) {
-	min_delivery_d = 2007;
+	min_delivery_d = 20070102;
 	switch (q1_id%4)
 	{
 	case 0 :
@@ -226,6 +241,12 @@ void chbench_query::gen_q1(uint64_t thd_id) {
 		break;
 	case CHBenchQueryMethod::BITMAP_PARA_METHOD :
 		type = CHBENCH_Q1_BITMAP_PARALLEL;
+		break;
+	case CHBenchQueryMethod::BWTREE_METHOD :
+		type = CHBENCH_Q1_BWTREE;
+		break;
+	case CHBenchQueryMethod::ART_METHOD :
+		type = CHBENCH_Q1_ART;
 		break;
 	case CHBenchQueryMethod::ALL_METHOD :
 		break;

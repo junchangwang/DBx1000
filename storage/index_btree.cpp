@@ -176,6 +176,30 @@ RC index_btree::index_next(uint64_t thd_id, itemid_t * &item, bool samekey) {
 	return RCOK;
 }
 
+RC index_btree::index_next(uint64_t thd_id, itemid_t * &item, idx_key_t &key, bool samekey) {
+	int idx = *cur_idx_per_thd[thd_id];
+	bt_node * leaf = *cur_leaf_per_thd[thd_id];
+	idx_key_t cur_key = leaf->keys[idx] ;
+	
+	*cur_idx_per_thd[thd_id] += 1;
+	if (*cur_idx_per_thd[thd_id] >= leaf->num_keys) {
+		leaf = leaf->next;
+		*cur_leaf_per_thd[thd_id] = leaf;
+		*cur_idx_per_thd[thd_id] = 0;
+	}
+	if (leaf == NULL)
+		item = NULL;
+	else {
+		assert( leaf->is_leaf );
+		if ( samekey && leaf->keys[ *cur_idx_per_thd[thd_id] ] != cur_key)
+			item = NULL;
+		else
+			key = leaf->keys[ *cur_idx_per_thd[thd_id] ];
+			item = (itemid_t *) leaf->pointers[ *cur_idx_per_thd[thd_id] ];
+	}
+	return RCOK;
+}
+
 RC index_btree::index_read(idx_key_t key, itemid_t *& item) {
 	assert(false);
 	return RCOK;

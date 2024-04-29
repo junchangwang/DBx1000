@@ -37,6 +37,7 @@ public:
 	RC	 		index_read(idx_key_t key, itemid_t * &item, int part_id = -1);
 	RC	 		index_read(idx_key_t key, itemid_t * &item);
 	RC 			index_next(uint64_t thd_id, itemid_t * &item, bool samekey = false);
+	RC 			index_next(uint64_t thd_id, itemid_t * &item, idx_key_t &key, bool samekey = false);
 	int 		index_size();
 	RC 			index_remove(idx_key_t key);
 

@@ -45,7 +45,7 @@ RC thread_t::run() {
 	stats.init(get_thd_id());
 	pthread_barrier_wait( &warmup_bar );
 
-	set_affinity(get_thd_id());
+	// set_affinity(get_thd_id());
 
 	myrand rdm;
 	rdm.init(get_thd_id());
@@ -54,6 +54,7 @@ RC thread_t::run() {
 	rc = _wl->get_txn_man(m_txn, this);
 	assert (rc == RCOK);
 	glob_manager->set_txn_man(m_txn);
+	sleep(2);
 
 	base_query * m_query = NULL;
 	uint64_t thd_txn_id = 0;
