@@ -14,6 +14,7 @@
 #include "nbub/table_lk.h"
 
 #define CHBENCH_Q6_SCAN_THREADS 4
+#define CHBENCH_Q1_MIN_DELIVERY_DATE 20070102
 
 class table_t;
 class INDEX;

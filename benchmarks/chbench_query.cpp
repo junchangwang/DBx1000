@@ -208,7 +208,7 @@ void chbench_query::gen_q6(uint64_t thd_id) {
 }
 
 void chbench_query::gen_q1(uint64_t thd_id) {
-	min_delivery_d = 20070102;
+	min_delivery_d = CHBENCH_Q1_MIN_DELIVERY_DATE;
 	switch (q1_id%4)
 	{
 	case 0 :

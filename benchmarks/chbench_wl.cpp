@@ -612,7 +612,7 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 				else {
 					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_deliverydate);
 
-					bitmap->__init_append(0, row_id, oid < 2101 ?(o_entry > 2007):(uint64_t)0);
+					bitmap->__init_append(0, row_id, oid < 2101 ?(o_entry >= CHBENCH_Q1_MIN_DELIVERY_DATE ):(uint64_t)0);
 
 					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_ol_number);
 
