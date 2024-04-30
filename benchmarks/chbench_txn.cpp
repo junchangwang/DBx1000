@@ -15,6 +15,8 @@
 #include "output_log.h"
 #include "Date.h"
 
+using namespace nbub;
+
 extern 	CHBenchQuery query_number;
 int new_order_numbers;
 int ol_num_numbers[15];
