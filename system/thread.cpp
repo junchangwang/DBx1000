@@ -195,7 +195,7 @@ RC thread_t::run() {
 			stats.clear( get_thd_id() );
 			return FINISH;
 		}
-		
+#if WORKLOAD == CHBench
 		if(warmup_finish && get_thd_id() < CHBENCH_OLAP_NUMBER) {
 			if(txn_cnt >= 8) {
 				assert(txn_cnt == 8);
@@ -207,6 +207,7 @@ RC thread_t::run() {
 				else return FINISH;
 			}
 		}
+#endif
 
 		if (warmup_finish && txn_cnt >= MAX_TXN_PER_PART) {
 			return FINISH;

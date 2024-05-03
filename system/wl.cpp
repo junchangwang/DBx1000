@@ -76,7 +76,7 @@ RC workload::init_schema(string schema_file) {
 			table_t * cur_tab = (table_t *) _mm_malloc(sizeof(table_t), CL_SIZE);
 			cur_tab->init(schema);
 			tables[tname] = cur_tab;
-        } else if (!line.compare(0, 6, "INDEX=")) {
+		} else if (!line.compare(0, 6, "INDEX=")) {
 			string iname;
 			iname = &line[6];
 			getline(fin, line);
@@ -88,9 +88,9 @@ RC workload::init_schema(string schema_file) {
 				pos = line.find(",");
 				if (pos == string::npos)
 					pos = line.length();
-	    		token = line.substr(0, pos);
+				token = line.substr(0, pos);
 				items.push_back(token);
-		    	line.erase(0, pos + 1);
+				line.erase(0, pos + 1);
 			}
 			
 			string tname(items[0]);
@@ -139,9 +139,10 @@ void workload::index_insert(INDEX * index, uint64_t key, row_t * row, int64_t pa
 	m_item->type = DT_row;
 	m_item->location = row;
 	m_item->valid = true;
-
+#if WORKLOAD == CHBench
 	unique_lock<shared_mutex> w_lock(index->rw_lock);
-    assert( index->index_insert(key, m_item, pid) == RCOK );
+#endif
+	assert( index->index_insert(key, m_item, pid) == RCOK );
 }
 
 void workload::index_insert_with_primary_key(string index_name, uint64_t key, uint64_t primary_key, row_t * row) {
