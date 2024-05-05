@@ -136,12 +136,28 @@ Query_thd::init(workload * h_wl, int thread_id) {
 		queries[qid].date = date;
 		queries[qid].discount = discount;
 		queries[qid].quantity = quantity;
+		queries[qid].rf_txn_num = 0;
 #endif
 	}
 }
 
 base_query * 
 Query_thd::get_next_query() {
+#if WORKLOAD == TPCH
+	if(q_idx > 0) {
+		tpch_query * h_query = &queries[q_idx - 1];
+		if(h_query->type == TPCH_RF1 || h_query->type == TPCH_RF2) {
+			if(h_query->rf_txn_num == RF_TXN_NUM) {
+				base_query * rf_query = &queries[q_idx++];
+				return rf_query;
+			}
+			else{
+				base_query * rf_query = &queries[q_idx - 1];
+				return rf_query;
+			}
+		}
+	}
+#endif
 	base_query * query = &queries[q_idx++];
 	return query;
 }

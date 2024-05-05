@@ -18,7 +18,7 @@
 // # of transactions to run for warmup
 #define WARMUP						0
 // YCSB, TPCC, TPCH, or CHBench
-#define WORKLOAD 					CHBench
+#define WORKLOAD 					TPCH
 // print the transaction latency distribution
 #define PRT_LAT_DISTR				false
 #define STATS_ENABLE				true
@@ -41,7 +41,7 @@
 /***********************************************/
 // WAIT_DIE, NO_WAIT, DL_DETECT, TIMESTAMP, MVCC, HEKATON, HSTORE, OCC, VLL, TICTOC, SILO, PTMVCC
 // TODO TIMESTAMP does not work at this moment
-#define CC_ALG 						PTMVCC
+#define CC_ALG 						HEKATON
 #define ISOLATION_LEVEL 			SNAPSHOT
 #define CORE_CNT					4
 
@@ -112,7 +112,7 @@
 // max number of rows touched per transaction
 #define MAX_ROW_PER_TXN				64
 #define QUERY_INTVL 				1UL
-#define MAX_TXN_PER_PART 			102400
+#define MAX_TXN_PER_PART 			5000
 #define FIRST_PART_LOCAL 			true
 #define MAX_TUPLE_SIZE				1024 // in bytes
 // ==== [YCSB] ====
@@ -187,6 +187,7 @@ extern CHBenchTxnType 					g_chbench_txn_type;
 // ==== [TPCH] ====
 #define TPCH_EVA_CUBIT				true
 #define TPCH_EVA_RF					true
+#define RF_TXN_NUM					1500
 
 enum TPCHTxnType {TPCH_ALL,
 				TPCH_Q6_SCAN,

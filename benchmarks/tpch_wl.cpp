@@ -29,6 +29,7 @@ RC tpch_wl::init()
 	t_lineitem->init_row_buffer(g_max_lineitems);
 	init_table();
 	next_tid = 0;
+	rf_tid = -1;
 	return RCOK; 
 }
 

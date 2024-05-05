@@ -48,6 +48,8 @@ public:
 	
 	bool ** delivering;
 	uint32_t next_tid;
+	volatile bool 	rf_blatch;
+	uint32_t rf_tid;
 private:
 	uint64_t num_wh;
 	void init_tab_orderAndLineitem();

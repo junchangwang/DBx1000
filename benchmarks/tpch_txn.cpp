@@ -94,11 +94,37 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 			break;
 
 		case TPCH_RF1 :
+			if(!ATOM_CAS(_wl->rf_blatch, false, true)) {
+				if(_wl->rf_tid != tid) {
+					m_query->rf_txn_num = RF_TXN_NUM;
+					return finish(RCOK);
+				}
+			}
+			else {
+				_wl->rf_tid = tid;
+			}
 			rc = run_RF1(tid); 
+			if(++m_query->rf_txn_num == RF_TXN_NUM) {
+				_wl->rf_tid = -1;
+				_wl->rf_blatch = false;
+			}
 			break;
 
 		case TPCH_RF2 :
+			if(!ATOM_CAS(_wl->rf_blatch, false, true)) {
+				if(_wl->rf_tid != tid) {
+					m_query->rf_txn_num = RF_TXN_NUM;
+					return finish(RCOK);
+				}
+			}
+			else {
+				_wl->rf_tid = tid;
+			}
 			rc = run_RF2(tid);
+			if(++m_query->rf_txn_num == RF_TXN_NUM) {
+				_wl->rf_tid = -1;
+				_wl->rf_blatch = false;
+			}
 			break;			
 
 		default:
@@ -811,14 +837,9 @@ RC tpch_txn_man::run_RF1(int tid)
 
 	// **********************Lineitems*****************************************
 
-	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
-	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
-	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
-
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_begin(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_begin(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_begin(tid);
-
+	std::vector<row_t *> insert_row;
+	std::vector<uint64_t> insert_lcnt, insert_shipdate, insert_discount;
+	std::vector<double> insert_quantity;
 	uint64_t lines = URand(1, 7, 0);
 	g_nor_in_lineitems += lines;
 	for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
@@ -865,6 +886,29 @@ RC tpch_txn_man::run_RF1(int tid)
 
 		ins_revenue += (double)(quantity * p_retailprice) * ((double)discount / 100);
 
+		insert_row.push_back(row2);
+		insert_lcnt.push_back(lcnt);
+		insert_discount.push_back(discount);
+		insert_quantity.push_back(quantity);
+		insert_shipdate.push_back(shipdate);
+	}
+
+
+	// Index insert
+	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
+	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
+	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
+
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_begin(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_begin(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_begin(tid);
+
+	for(int i = 0; i < insert_row.size(); i++) {
+		uint64_t lcnt = insert_lcnt[i];
+		row_t * row2 = insert_row[i];
+		uint64_t shipdate = insert_shipdate[i];
+		uint64_t discount = insert_discount[i];
+		double quantity = insert_quantity[i];
 		// Index (scan)
 		uint64_t key = tpch_lineitemKey(row_id1, lcnt);
 		_wl->index_insert(_wl->i_lineitem, key, row2, 0);
@@ -922,14 +966,11 @@ RC tpch_txn_man::run_RF2(int tid)
 
 	/****** Process Table LINEITEM ******/
 
+	std::vector<row_t *> delete_row;
+	std::vector<uint64_t> delete_lcnt, delete_shipdate;
+	std::vector<double> delete_quantity, delete_discount;
 	INDEX *index2 = _wl->i_lineitem;
-	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
-	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
-	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
-
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_begin(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_begin(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_begin(tid);
+	shared_lock<shared_mutex> r_lock1(_wl->i_lineitem->rw_lock);
 
 	for (uint64_t lcnt = (uint64_t)1; lcnt <= (uint64_t)7; ++lcnt)
 	{
@@ -941,16 +982,11 @@ RC tpch_txn_man::run_RF2(int tid)
 		if (!item2)
 			continue;
 		row_t * row2 = ((row_t *)item2->location);
-		// Delete the row
 		row_t * row2_local = get_row(row2, DEL);
 		if (row2_local == NULL) {
 			return finish(Abort);
 		}	
-		// Delete from the index
-		_wl->i_lineitem->index_remove(key2);
-		del_cnt ++;	
 
-		// Delete from Q6_hashtable
 		uint64_t l_shipdate;
 		row2_local->get_value(L_SHIPDATE, l_shipdate);
 		double l_discount;
@@ -958,21 +994,49 @@ RC tpch_txn_man::run_RF2(int tid)
 		double l_quantity;
 		row2_local->get_value(L_QUANTITY, l_quantity);
 
-		uint64_t Q6_key = tpch_lineitemKey_index(l_shipdate, (int)(l_discount*100), l_quantity);
-		rc = _wl->i_Q6_hashtable->index_remove(Q6_key);
+		double l_extendedprice;
+		row2_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
+		del_revenue += l_extendedprice * l_discount;
 
+		delete_row.push_back(row2);
+		delete_lcnt.push_back(lcnt);
+		delete_discount.push_back(l_discount);
+		delete_shipdate.push_back(l_shipdate);
+		delete_quantity.push_back(l_quantity);
+	}
+	r_lock1.unlock();
+
+	// Index insert
+	unique_lock<shared_mutex> w_lock1(_wl->i_lineitem->rw_lock);
+	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
+	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
+
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_begin(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_begin(tid);
+	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_begin(tid);
+
+	for(int i = 0; i < delete_lcnt.size(); i++) {
+		row_t * row2 = delete_row[i];
+		uint64_t lcnt = delete_lcnt[i];
+		uint64_t l_shipdate = delete_shipdate[i];
+		double l_quantity = delete_quantity[i];
+		double l_discount = delete_discount[i];
+		uint64_t key2 = tpch_lineitemKey(key1, lcnt);
+		uint64_t Q6_key = tpch_lineitemKey_index(l_shipdate, (int)(l_discount*100), l_quantity);
+
+		// Delete from the index
+		_wl->i_lineitem->index_remove(key2);
+		// Delete from Hash
+		rc = _wl->i_Q6_hashtable->index_remove(Q6_key);
 		// Delete from BTree
 		rc = _wl->i_Q6_btree->index_remove(Q6_key);
-
 		// Bitmap
 		uint64_t row_id = row2 - _wl->t_lineitem->row_buffer;
 		_wl->bitmap_discount->remove(tid, row_id);
 		_wl->bitmap_quantity->remove(tid, row_id);
 		_wl->bitmap_shipdate->remove(tid, row_id);
 
-		double l_extendedprice;
-		row2_local->get_value(L_EXTENDEDPRICE, l_extendedprice);
-		del_revenue += l_extendedprice * l_discount;
+		del_cnt ++;	
 	}
 
 	cout << "******** RF2 completes successfully ********" << endl

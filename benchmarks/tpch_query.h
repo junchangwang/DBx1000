@@ -11,6 +11,7 @@ class tpch_query : public base_query {
 public:
 	void init(uint64_t thd_id, workload * h_wl);
 	TPCHTxnType type;
+	uint32_t rf_txn_num;
 
 	/**********************************************/	
 	// txn input for Q6

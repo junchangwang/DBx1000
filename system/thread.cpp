@@ -13,6 +13,7 @@
 #include "tpch_query.h"
 #include "mem_alloc.h"
 #include "test.h"
+#include "tpch.h"
 
 int olap_numbers = 0;
 
@@ -210,6 +211,13 @@ RC thread_t::run() {
 #endif
 
 		if (warmup_finish && txn_cnt >= MAX_TXN_PER_PART) {
+		#if WORKLOAD == TPCH
+			tpch_query * h_query = (tpch_query *)m_query;
+			if( h_query->rf_txn_num > 0 && h_query->rf_txn_num < RF_TXN_NUM ) {
+				((tpch_wl *)_wl)->rf_tid = -1;
+				((tpch_wl *)_wl)->rf_blatch = false;
+			}
+		#endif	
 			return FINISH;
 			assert(txn_cnt == MAX_TXN_PER_PART);
 	        if( !ATOM_CAS(_wl->sim_done, false, true) )
@@ -218,6 +226,7 @@ RC thread_t::run() {
 	    if (_wl->sim_done) {
    		    return FINISH;
    		}
+		cout <<"txns : " << txn_cnt << endl;
 	}
 	assert(false);
 }
