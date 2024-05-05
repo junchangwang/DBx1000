@@ -35,18 +35,18 @@ RC tpch_wl::init()
 RC tpch_wl::build()
 {	
 	// Check whether the index has been built before.
-    ifstream doneFlag;
+	ifstream doneFlag;
 	string path = "bm_" + to_string(curr_SF) + "_done";
-    doneFlag.open(path);
-    if (doneFlag.good()) { 
-        cout << "WARNING: The index for " + path + " has been built before. Skip building." << endl;
-        doneFlag.close();
-        return RCOK;
-    }
+	doneFlag.open(path);
+	if (doneFlag.good()) { 
+		cout << "WARNING: The index for " + path + " has been built before. Skip building." << endl;
+		doneFlag.close();
+		return RCOK;
+	}
 
 	init();
 
-        int ret;
+	int ret;
 	// bitmap_shipdate
 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
 	for (uint64_t i = 0; i < bitmap_shipdate->config->g_cardinality; ++i) {
@@ -56,7 +56,7 @@ RC tpch_wl::build()
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
 		ret = system(cmd.c_str());
-                sleep(1);
+		sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -67,7 +67,6 @@ RC tpch_wl::build()
 		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
 	}
 
-
 	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
 	for (uint64_t i = 0; i < bitmap_discount->config->g_cardinality; ++i) {
 		string temp = "bm_";
@@ -76,7 +75,7 @@ RC tpch_wl::build()
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
 		ret = system(cmd.c_str());
-                sleep(1);
+		sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -95,7 +94,7 @@ RC tpch_wl::build()
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
 		ret = system(cmd.c_str());
-                sleep(1);
+		sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -106,23 +105,23 @@ RC tpch_wl::build()
 		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
 	}
 	// create done file
-    fstream done;   
-    done.open(path, ios::out);
-    if (done.is_open()) {
-        done << bitmap->g_number_of_rows;
-        cout << "Succeeded in building bitmap files and " << path << endl;
-        done.close(); 
-    }
-    else {
-        cout << "Failed in building bitmap files and " << path << endl;
-    } 
+	fstream done;   
+	done.open(path, ios::out);
+	if (done.is_open()) {
+		done << bitmap->g_number_of_rows;
+		cout << "Succeeded in building bitmap files and " << path << endl;
+		done.close(); 
+	}
+	else {
+		cout << "Failed in building bitmap files and " << path << endl;
+	} 
 	return RCOK; 	
 }
 
 RC tpch_wl::init_schema(const char * schema_file) {
 	workload::init_schema(schema_file);
 	t_lineitem = tables["LINEITEM"];
-    t_orders = tables["ORDERS"];
+	t_orders = tables["ORDERS"];
 
 	i_lineitem = indexes["LINEITEM_IDX"];
 	i_orders = indexes["ORDERS_IDX"];
@@ -147,13 +146,13 @@ RC tpch_wl::init_schema(const char * schema_file) {
 	new(i_Q6_btree) index_btree();
 	i_Q6_btree->init(part_cnt, tables[tname]);
 
-    i_Q6_bwtree = (index_bwtree *) _mm_malloc(sizeof(index_bwtree), 64);
-    new(i_Q6_bwtree) index_bwtree();
-    i_Q6_bwtree->init(part_cnt, tables[tname]);
+	i_Q6_bwtree = (index_bwtree *) _mm_malloc(sizeof(index_bwtree), 64);
+	new(i_Q6_bwtree) index_bwtree();
+	i_Q6_bwtree->init(part_cnt, tables[tname]);
 
-    i_Q6_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
-    new(i_Q6_art) index_art();
-    i_Q6_art->init(part_cnt, tables[tname]);
+	i_Q6_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
+	new(i_Q6_art) index_art();
+	i_Q6_art->init(part_cnt, tables[tname]);
 
 	return RCOK;
 }
@@ -175,35 +174,35 @@ RC tpch_wl::init_table() {
 }
 RC tpch_wl::printMemory() {
 	// each bitmap Menory
-    uint64_t bitmap = 0, updateable_bitmap = 0, fence_pointers = 0;
+	uint64_t bitmap = 0, updateable_bitmap = 0, fence_pointers = 0;
 
 	auto Bitmap = dynamic_cast<nbub::Nbub *>(bitmap_discount);
-    for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
+	for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
 		Bitmap->bitmaps[i]->btv->compress();
-        bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-        fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
-    }
+		bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
+		fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
+	}
 
 	Bitmap = dynamic_cast<nbub::Nbub *>(bitmap_quantity);
-    for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
-        Bitmap->bitmaps[i]->btv->compress();
-        bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-        fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
-    }
+	for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
+		Bitmap->bitmaps[i]->btv->compress();
+		bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
+		fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
+	}
 
 	Bitmap = dynamic_cast<nbub::Nbub *>(bitmap_shipdate);
-    for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
-        Bitmap->bitmaps[i]->btv->compress();
-        bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-        fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
-    }
+	for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
+		Bitmap->bitmaps[i]->btv->compress();
+		bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
+		fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
+	}
 
 	cout << "*************************Print Memory concumption: *******" << endl;	
 
 	cout << "HashMemory (MB): " <<  i_Q6_hashtable->index_size()/1000000 << endl;
 	cout << "BtreeMemory (MB): " << i_Q6_btree->index_size()/1000000 << endl;
-    cout << "BwtreeMemory (MB): " << i_Q6_bwtree->index_size()/1000000 << endl;
-    cout << "ARTMemory (MB): " << i_Q6_art->index_size()/1000000 << endl;
+	cout << "BwtreeMemory (MB): " << i_Q6_bwtree->index_size()/1000000 << endl;
+	cout << "ARTMemory (MB): " << i_Q6_art->index_size()/1000000 << endl;
 	cout << "CUBITMemory (MB): " << bitmap/1000000 << endl;
 
 	cout << "*************************Print Memory concumption end *******" << endl;	
@@ -225,8 +224,8 @@ void tpch_wl::init_tab_orderAndLineitem() {
 	long  long  i_lineitem_time = (long  long)0;
 	long  long  i_Q6_hashtable_time = (long  long)0;
 	long  long  i_Q6_btree_time = (long  long)0;
-    long  long  i_Q6_bwtree_time = (long  long)0;
-    long  long  i_Q6_art_time = (long  long)0;
+	long  long  i_Q6_bwtree_time = (long  long)0;
+	long  long  i_Q6_art_time = (long  long)0;
 	long  long  i_bitmap_time = (long  long)0;
 	long  long  orders_allocate = (long  long)0;
 	long  long  orders_set_value = (long  long)0;
@@ -272,14 +271,15 @@ void tpch_wl::init_tab_orderAndLineitem() {
 		index_insert(i_orders, i, row, 0);
 		auto end = std::chrono::high_resolution_clock::now();
 		i_order_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
 		// **********************Lineitems*****************************************
 
 		uint64_t lines = URand(1, 7, 0);
 		// uint64_t lines = 1;
 		g_nor_in_lineitems += lines;
 
-        i_Q6_bwtree->UpdateThreadLocal(g_thread_cnt);
-        i_Q6_bwtree->AssignGCID(0);
+		i_Q6_bwtree->UpdateThreadLocal(g_thread_cnt);
+		i_Q6_bwtree->AssignGCID(0);
 		for (uint64_t lcnt = 1; lcnt <= lines; lcnt++) {
 			row_t * row2;
 			uint64_t row_id2 = 0;
@@ -362,15 +362,15 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			end = std::chrono::high_resolution_clock::now();
 			i_Q6_btree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
-            start = std::chrono::high_resolution_clock::now();
-            index_insert((INDEX *)i_Q6_bwtree, Q6_key, row2, 0);
-            end = std::chrono::high_resolution_clock::now();
-            i_Q6_bwtree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+			start = std::chrono::high_resolution_clock::now();
+			index_insert((INDEX *)i_Q6_bwtree, Q6_key, row2, 0);
+			end = std::chrono::high_resolution_clock::now();
+			i_Q6_bwtree_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
-            start = std::chrono::high_resolution_clock::now();
-            index_insert_with_primary_key((INDEX *)i_Q6_art, Q6_key, key, row2, 0);
-            end = std::chrono::high_resolution_clock::now();
-            i_Q6_art_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+			start = std::chrono::high_resolution_clock::now();
+			index_insert_with_primary_key((INDEX *)i_Q6_art, Q6_key, key, row2, 0);
+			end = std::chrono::high_resolution_clock::now();
+			i_Q6_art_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 			auto ts_7 = std::chrono::high_resolution_clock::now();
 
@@ -396,7 +396,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 			i_bitmap_time += std::chrono::duration_cast<std::chrono::microseconds>(ts_8 - ts_7).count();
 		}
 	}
-    i_Q6_bwtree->UnregisterThread(0);
+	i_Q6_bwtree->UnregisterThread(0);
 
 	auto end_g = std::chrono::high_resolution_clock::now();
 	cout << "*************************INDEX build time: *******" << endl
@@ -415,8 +415,6 @@ void tpch_wl::init_tab_orderAndLineitem() {
 		<< "sum = " << i_order_time + i_Q6_hashtable_time + i_lineitem_time + i_Q6_btree_time + i_Q6_bwtree_time + i_Q6_art_time + i_bitmap_time + orders_allocate 
 						+ orders_set_value + lineitem_allocate + lineitem_set_value << endl
 		<<"*************************INDEX build time end*******" << endl;
-
-
 }
 
 void tpch_wl::init_test() {
@@ -695,20 +693,20 @@ RC tpch_wl::init_bitmap()
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_shipdate->approach == "ub") {
-        bitmap_shipdate = new ub::Table(config_shipdate);
-    } else if (config_shipdate->approach == "nbub-lk") {
-        bitmap_shipdate = new nbub_lk::NbubLK(config_shipdate);
-    } else if (config_shipdate->approach == "nbub-lf" || config_shipdate->approach =="nbub") {
-        bitmap_shipdate = new nbub_lf::NbubLF(config_shipdate);
-    } else if (config_shipdate->approach == "ucb") {
-        bitmap_shipdate = new ucb::Table(config_shipdate);
-    } else if (config_shipdate->approach == "naive") {
-        bitmap_shipdate = new naive::Table(config_shipdate);
-    }
-    else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
+		bitmap_shipdate = new ub::Table(config_shipdate);
+	} else if (config_shipdate->approach == "nbub-lk") {
+		bitmap_shipdate = new nbub_lk::NbubLK(config_shipdate);
+	} else if (config_shipdate->approach == "nbub-lf" || config_shipdate->approach =="nbub") {
+		bitmap_shipdate = new nbub_lf::NbubLF(config_shipdate);
+	} else if (config_shipdate->approach == "ucb") {
+		bitmap_shipdate = new ucb::Table(config_shipdate);
+	} else if (config_shipdate->approach == "naive") {
+		bitmap_shipdate = new naive::Table(config_shipdate);
+	}
+	else {
+		cerr << "Unknown approach." << endl;
+		exit(-1);
+	}
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
@@ -757,20 +755,20 @@ RC tpch_wl::init_bitmap()
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_discount->approach == "ub") {
-        bitmap_discount = new ub::Table(config_discount);
-    } else if (config_discount->approach == "nbub-lk") {
-        bitmap_discount = new nbub_lk::NbubLK(config_discount);
-    } else if (config_discount->approach == "nbub-lf" || config_discount->approach =="nbub") {
-        bitmap_discount = new nbub_lf::NbubLF(config_discount);
-    } else if (config_discount->approach == "ucb") {
-        bitmap_discount = new ucb::Table(config_discount);
-    } else if (config_discount->approach == "naive") {
-        bitmap_discount = new naive::Table(config_discount);
-    }
+		bitmap_discount = new ub::Table(config_discount);
+	} else if (config_discount->approach == "nbub-lk") {
+		bitmap_discount = new nbub_lk::NbubLK(config_discount);
+	} else if (config_discount->approach == "nbub-lf" || config_discount->approach =="nbub") {
+		bitmap_discount = new nbub_lf::NbubLF(config_discount);
+	} else if (config_discount->approach == "ucb") {
+		bitmap_discount = new ucb::Table(config_discount);
+	} else if (config_discount->approach == "naive") {
+		bitmap_discount = new naive::Table(config_discount);
+	}
     else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
+		cerr << "Unknown approach." << endl;
+		exit(-1);
+	}
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
@@ -820,20 +818,20 @@ RC tpch_wl::init_bitmap()
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_quantity->approach == "ub") {
-        bitmap_quantity = new ub::Table(config_quantity);
-    } else if (config_quantity->approach == "nbub-lk") {
-        bitmap_quantity = new nbub_lk::NbubLK(config_quantity);
-    } else if (config_quantity->approach == "nbub-lf" || config_quantity->approach =="nbub") {
-        bitmap_quantity = new nbub_lf::NbubLF(config_quantity);
-    } else if (config_quantity->approach == "ucb") {
-        bitmap_quantity = new ucb::Table(config_quantity);
-    } else if (config_quantity->approach == "naive") {
-        bitmap_quantity = new naive::Table(config_quantity);
-    }
-    else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
+		bitmap_quantity = new ub::Table(config_quantity);
+	} else if (config_quantity->approach == "nbub-lk") {
+		bitmap_quantity = new nbub_lk::NbubLK(config_quantity);
+	} else if (config_quantity->approach == "nbub-lf" || config_quantity->approach =="nbub") {
+		bitmap_quantity = new nbub_lf::NbubLF(config_quantity);
+	} else if (config_quantity->approach == "ucb") {
+		bitmap_quantity = new ucb::Table(config_quantity);
+	} else if (config_quantity->approach == "naive") {
+		bitmap_quantity = new naive::Table(config_quantity);
+	}
+	else {
+		cerr << "Unknown approach." << endl;
+		exit(-1);
+	}
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();	
 

@@ -178,9 +178,9 @@ RC tpch_txn_man::run_Q6_scan(int tid, tpch_query * query) {
 
 
 	// for (uint64_t row_id = 0; row_id < max_items; row_id ++) {
-    //             // We rely on hardware cache prefeching and adjacent prefeching, which is smart enough to handle this.
-    //             // The only concern is that when a large number of workers run Q6_scan concurrently,
-    //             // they compete for the cache, especially the LLC.
+    // We rely on hardware cache prefeching and adjacent prefeching, which is smart enough to handle this.
+    // The only concern is that when a large number of workers run Q6_scan concurrently,
+    // they compete for the cache, especially the LLC.
 	// 	row_t * r_lt = (row_t *) &_wl->t_lineitem->row_buffer[row_id];
 	// 	assert(r_lt != NULL);
 	// 	row_t * r_lt_local = get_row(r_lt, SCAN);
@@ -774,7 +774,6 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 RC tpch_txn_man::run_RF1(int tid) 
 {
 	// for (uint64_t i = (uint64_t)(g_num_orders + 1); i < (uint64_t)(SF * 1500 + g_num_orders + 1); ++i) {
-	// RF1 is generated one hundredth.
 
 	RC rc = RCOK;
 	row_t * row;
