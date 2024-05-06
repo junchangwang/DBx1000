@@ -468,11 +468,11 @@ RC tpch_txn_man::run_Q6_bwtree(int tid, tpch_query *query, index_bwtree *index) 
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	// int perf_pid;
-	// if (perf_enabled == true && tid == 0) {
-	// 	perf_pid = gen_perf_process((char *)"BWTREE");
-	// 	usleep(WAIT_FOR_PERF_U);
-	// }
+	int perf_pid;
+	if (perf_enabled == true && tid == 0) {
+		perf_pid = gen_perf_process((char *)"BWTREE");
+		usleep(WAIT_FOR_PERF_U);
+	}
 
 	index->AssignGCID(tid);
 	for (uint64_t i = date; i <= (uint64_t)(date + 364); i++) {
