@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 		bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_s_quantity;
 		config = bitmap->config;
 
-	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
+	if ((config->approach == "cubit-lf") || (config->approach == "cubit-lk")) 
 	{
 		merge_ths = new thread[config->n_workers / WORKERS_PER_MERGE_TH + 1];
 
@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
 	double time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
 // #if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true)
-// 	if ((config->approach == "nbub-lf") || (config->approach == "nbub-lk")) 
+// 	if ((config->approach == "cubit-lf") || (config->approach == "cubit-lk")) 
 // 	{
 // 		__atomic_store_n(&run_merge_func, false, MM_CST);
 
@@ -245,10 +245,10 @@ void * f(void * id) {
 // 		assert(bitmap->bitmaps[old_val]->getBit(ROW_ID, bitmap->config) == 0);
 // 		assert(bitmap->bitmaps[to_val]->getBit(ROW_ID, bitmap->config) == 1);
 // 	} 
-// 	else if (wl->bitmap_c_w_id->config->approach == "nbub-lk") {
+// 	else if (wl->bitmap_c_w_id->config->approach == "cubit-lk") {
 // 		RUB last_rub = RUB{0, TYPE_INV, {}};
 // 		int ROW_ID = 6;
-// 		nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub*>(wl->bitmap_c_w_id);
+// 		cubit::Cubit *bitmap = dynamic_cast<cubit::Cubit*>(wl->bitmap_c_w_id);
 // 		assert(bitmap->get_value_rcu(ROW_ID-1, db_timestamp, last_rub) == 
 // 					bitmap->get_value_rcu(0, db_timestamp, last_rub));
 // 		int old_val = bitmap->get_value_rcu(ROW_ID, db_timestamp, last_rub);

@@ -10,8 +10,8 @@
 #include "ub/table.h"
 #include "ucb/table.h"
 #include "naive/table.h"
-#include "nbub/table_lf.h"
-#include "nbub/table_lk.h"
+#include "cubit/table_lf.h"
+#include "cubit/table_lk.h"
 
 #define CHBENCH_Q6_SCAN_THREADS 4
 #define CHBENCH_Q1_MIN_DELIVERY_DATE 20070102
@@ -127,11 +127,11 @@ private:
 	void bitmap_singlethread_fetch(int begin, int end, pair<double, int> &result, row_t *row_buffer, int *ids, int wid);
 	void run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_btv2, int begin, int end, pair<double, int> &result);
 	RC run_Q6_bitmap_parallel(int tid, chbench_query * query);
-	void get_bitvector_result(ibis::bitvector &result, nbub::Nbub *nbub1, nbub::Nbub *nbub2, int nbub1_pos, int nbub2_pos);
+	void get_bitvector_result(ibis::bitvector &result, cubit::Cubit *cubit1, cubit::Cubit *cubit2, int cubit1_pos, int cubit2_pos);
 	RC run_Q1_scan(int tid, chbench_query * query);
 	RC run_Q1_btree(int tid, chbench_query * query);
 	RC run_Q1_bitmap(int tid, chbench_query * query);
-	void run_Q1_bitmap_fetch_singlethread(int number, nbub::Nbub *bitmap_d, nbub::Nbub *bitmap_number, chbench_q1_data & ans, int wid);
+	void run_Q1_bitmap_fetch_singlethread(int number, cubit::Cubit *bitmap_d, cubit::Cubit *bitmap_number, chbench_q1_data & ans, int wid);
 	RC run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query);
 	RC run_Q1_bwtree(int tid, chbench_query * query);
 	RC run_Q1_art(int tid, chbench_query * query);

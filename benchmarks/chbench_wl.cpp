@@ -63,10 +63,10 @@ RC chbench_wl::build()
 	init();
 
     int ret;
-	nbub::Nbub *bitmap = nullptr;
+	cubit::Cubit *bitmap = nullptr;
 	if(query_number == CHBenchQuery::CHBenchQ6) {
 	// bitmap_q6_deliverydate
-	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q6_deliverydate);
+	bitmap = dynamic_cast<cubit::Cubit *>(bitmap_q6_deliverydate);
 	for (uint64_t i = 0; i < bitmap_q6_deliverydate->config->g_cardinality; ++i) {
 		string temp = "bm_chbench_n";
 		temp.append(to_string(g_num_wh));
@@ -86,7 +86,7 @@ RC chbench_wl::build()
 	}
 
 	
-	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q6_quantity);
+	bitmap = dynamic_cast<cubit::Cubit *>(bitmap_q6_quantity);
 	for (uint64_t i = 0; i < bitmap_q6_quantity->config->g_cardinality; ++i) {
 		string temp = "bm_chbench_n";
 		temp.append(to_string(g_num_wh));
@@ -106,7 +106,7 @@ RC chbench_wl::build()
 	}
 	}
 	else {
-	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_deliverydate);
+	bitmap = dynamic_cast<cubit::Cubit *>(bitmap_q1_deliverydate);
 	for (uint64_t i = 0; i < bitmap_q1_deliverydate->config->g_cardinality; ++i) {
 		string temp = "bm_chbench_n";
 		temp.append(to_string(g_num_wh));
@@ -126,7 +126,7 @@ RC chbench_wl::build()
 	}
 
 	
-	bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_ol_number);
+	bitmap = dynamic_cast<cubit::Cubit *>(bitmap_q1_ol_number);
 	for (uint64_t i = 0; i < bitmap_q1_ol_number->config->g_cardinality; ++i) {
 		string temp = "bm_chbench_n";
 		temp.append(to_string(g_num_wh));
@@ -599,22 +599,22 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 			// if (Mode != "cache")
 			if (Mode == NULL || (Mode && strcmp(Mode, "build") == 0))
 			{
-				nbub::Nbub *bitmap = NULL;
+				cubit::Cubit *bitmap = NULL;
 				if(query_number == CHBenchQuery::CHBenchQ6) {
-					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q6_deliverydate);
+					bitmap = dynamic_cast<cubit::Cubit *>(bitmap_q6_deliverydate);
 
 					bitmap->__init_append(0, row_id, bitmap_deliverydate_bin(oid < 2101?o_entry:(uint64_t)0));
 
-					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q6_quantity);
+					bitmap = dynamic_cast<cubit::Cubit *>(bitmap_q6_quantity);
 					// bitmap->__init_append(0, row_id2, quantity-1);
 					bitmap->__init_append(0, row_id, bitmap_quantity_bin(ol_quantity));	
 				}
 				else {
-					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_deliverydate);
+					bitmap = dynamic_cast<cubit::Cubit *>(bitmap_q1_deliverydate);
 
 					bitmap->__init_append(0, row_id, oid < 2101 ?(o_entry >= CHBENCH_Q1_MIN_DELIVERY_DATE ):(uint64_t)0);
 
-					bitmap = dynamic_cast<nbub::Nbub *>(bitmap_q1_ol_number);
+					bitmap = dynamic_cast<cubit::Cubit *>(bitmap_q1_ol_number);
 
 					bitmap->__init_append(0, row_id, static_cast<int>(ol-1));
 				}
@@ -725,7 +725,7 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	config_deliverydate->g_cardinality = 3; // {<1999, [1999,2020), >=2020}
 	enable_fence_pointer = config_deliverydate->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
-	config_deliverydate->approach = {"nbub-lk"};
+	config_deliverydate->approach = {"cubit-lk"};
 	config_deliverydate->nThreads_for_getval = 4;
 	config_deliverydate->show_memory = true;
 	config_deliverydate->on_disk = false;
@@ -753,10 +753,10 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_deliverydate->approach == "ub") {
         bitmap_q6_deliverydate = new ub::Table(config_deliverydate);
-    } else if (config_deliverydate->approach == "nbub-lk") {
-        bitmap_q6_deliverydate = new nbub_lk::NbubLK(config_deliverydate);
-    } else if (config_deliverydate->approach == "nbub-lf" || config_deliverydate->approach =="nbub") {
-        bitmap_q6_deliverydate = new nbub_lf::NbubLF(config_deliverydate);
+    } else if (config_deliverydate->approach == "cubit-lk") {
+        bitmap_q6_deliverydate = new cubit_lk::CubitLK(config_deliverydate);
+    } else if (config_deliverydate->approach == "cubit-lf" || config_deliverydate->approach =="cubit") {
+        bitmap_q6_deliverydate = new cubit_lf::CubitLF(config_deliverydate);
     } else if (config_deliverydate->approach == "ucb") {
         bitmap_q6_deliverydate = new ucb::Table(config_deliverydate);
     } else if (config_deliverydate->approach == "naive") {
@@ -793,7 +793,7 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	config_quantity->g_cardinality = 3; // [<1], [1,1000], [>1000]
 	enable_fence_pointer = config_quantity->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
-	config_quantity->approach = {"nbub-lk"};
+	config_quantity->approach = {"cubit-lk"};
 	config_quantity->nThreads_for_getval = 4;
 	config_quantity->show_memory = true;
 	config_quantity->on_disk = false;
@@ -821,10 +821,10 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_quantity->approach == "ub") {
         bitmap_q6_quantity = new ub::Table(config_quantity);
-    } else if (config_quantity->approach == "nbub-lk") {
-        bitmap_q6_quantity = new nbub_lk::NbubLK(config_quantity);
-    } else if (config_quantity->approach == "nbub-lf" || config_quantity->approach =="nbub") {
-        bitmap_q6_quantity = new nbub_lf::NbubLF(config_quantity);
+    } else if (config_quantity->approach == "cubit-lk") {
+        bitmap_q6_quantity = new cubit_lk::CubitLK(config_quantity);
+    } else if (config_quantity->approach == "cubit-lf" || config_quantity->approach =="cubit") {
+        bitmap_q6_quantity = new cubit_lf::CubitLF(config_quantity);
     } else if (config_quantity->approach == "ucb") {
         bitmap_q6_quantity = new ucb::Table(config_quantity);
     } else if (config_quantity->approach == "naive") {
@@ -861,7 +861,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	config_q1->g_cardinality = 2; // [<=2007], [>2007]
 	enable_fence_pointer = config_q1->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
-	config_q1->approach = {"nbub-lk"};
+	config_q1->approach = {"cubit-lk"};
 	config_q1->nThreads_for_getval = 4;
 	config_q1->show_memory = true;
 	config_q1->on_disk = false;
@@ -886,10 +886,10 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_q1->approach == "ub") {
         bitmap_q1_deliverydate = new ub::Table(config_q1);
-    } else if (config_q1->approach == "nbub-lk") {
-        bitmap_q1_deliverydate = new nbub_lk::NbubLK(config_q1);
-    } else if (config_q1->approach == "nbub-lf" || config_q1->approach =="nbub") {
-        bitmap_q1_deliverydate = new nbub_lf::NbubLF(config_q1);
+    } else if (config_q1->approach == "cubit-lk") {
+        bitmap_q1_deliverydate = new cubit_lk::CubitLK(config_q1);
+    } else if (config_q1->approach == "cubit-lf" || config_q1->approach =="cubit") {
+        bitmap_q1_deliverydate = new cubit_lf::CubitLF(config_q1);
     } else if (config_q1->approach == "ucb") {
         bitmap_q1_deliverydate = new ucb::Table(config_q1);
     } else if (config_q1->approach == "naive") {
@@ -924,7 +924,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	config_ol_number->g_cardinality = 15; // 0-15
 	enable_fence_pointer = config_ol_number->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
-	config_ol_number->approach = {"nbub-lk"};
+	config_ol_number->approach = {"cubit-lk"};
 	config_ol_number->nThreads_for_getval = 4;
 	config_ol_number->show_memory = true;
 	config_ol_number->on_disk = false;
@@ -949,10 +949,10 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_ol_number->approach == "ub") {
         bitmap_q1_ol_number = new ub::Table(config_ol_number);
-    } else if (config_ol_number->approach == "nbub-lk") {
-        bitmap_q1_ol_number = new nbub_lk::NbubLK(config_ol_number);
-    } else if (config_ol_number->approach == "nbub-lf" || config_ol_number->approach =="nbub") {
-        bitmap_q1_ol_number = new nbub_lf::NbubLF(config_ol_number);
+    } else if (config_ol_number->approach == "cubit-lk") {
+        bitmap_q1_ol_number = new cubit_lk::CubitLK(config_ol_number);
+    } else if (config_ol_number->approach == "cubit-lf" || config_ol_number->approach =="cubit") {
+        bitmap_q1_ol_number = new cubit_lf::CubitLF(config_ol_number);
     } else if (config_ol_number->approach == "ucb") {
         bitmap_q1_ol_number = new ucb::Table(config_ol_number);
     } else if (config_ol_number->approach == "naive") {

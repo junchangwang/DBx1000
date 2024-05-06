@@ -19,8 +19,8 @@
 #include "ub/table.h"
 #include "ucb/table.h"
 #include "naive/table.h"
-#include "nbub/table_lf.h"
-#include "nbub/table_lk.h"
+#include "cubit/table_lf.h"
+#include "cubit/table_lk.h"
 
 RC workload::init() {
 	sim_done = false;

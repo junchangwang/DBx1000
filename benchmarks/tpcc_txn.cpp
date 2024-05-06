@@ -1,4 +1,4 @@
-#include "nbub/table.h"
+#include "cubit/table.h"
 #include "fastbit/bitvector.h"
 #include "global.h"
 #include "helper.h"
@@ -112,14 +112,14 @@ RC tpcc_txn_man::run_txn(int tid, base_query * query) {
 // 	cout << "Memory concumption (Bytes): " << index->index_size() << endl;
 
 // 	start = std::chrono::high_resolution_clock::now();
-// 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_c_w_id);
+// 	cubit::Cubit *bitmap = dynamic_cast<cubit::Cubit *>(_wl->bitmap_c_w_id);
 // 	tmp = bitmap->evaluate(0, key);
 // 	tmp = bitmap->bitmaps[key]->btv->count();
 // 	end = std::chrono::high_resolution_clock::now();
 // 	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 // 	cout << "Bitmap: Loop times: " << tmp << ". Found string times: " << cnt << 
 // 			". Microseconds: " << time_elapsed_ms << ". Memory concumption (Bytes): " << endl;
-// 	dynamic_cast<nbub_lk::NbubLK *>(bitmap)->printMemory();
+// 	dynamic_cast<cubit_lk::CubitLK *>(bitmap)->printMemory();
 
 // 	exit(rc);
 // 	return rc;
@@ -505,7 +505,7 @@ RC tpcc_txn_man::run_new_order(tpcc_query * query) {
 			quantity = s_quantity - ol_quantity + 91;
 		}
 		r_stock_local->set_value(S_QUANTITY, &quantity);
-    	nbub::Nbub* bt_quantity = dynamic_cast<nbub::Nbub *>(_wl->bitmap_s_quantity);
+    	cubit::Cubit* bt_quantity = dynamic_cast<cubit::Cubit *>(_wl->bitmap_s_quantity);
 
 		int quantity_idx = 0;	
 		if (quantity < 10) {
@@ -798,7 +798,7 @@ tpcc_txn_man::run_stock_level_bt(tpcc_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-    nbub::Nbub* bt_quantity = dynamic_cast<nbub::Nbub *>(_wl->bitmap_s_quantity);
+    cubit::Cubit* bt_quantity = dynamic_cast<cubit::Cubit *>(_wl->bitmap_s_quantity);
 	ibis::bitvector* bv_quantity = bt_quantity->bitmaps[query->threshold_stock-10]->btv;
     auto cnt_result = 0;
 

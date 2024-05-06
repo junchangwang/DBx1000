@@ -1,4 +1,4 @@
-#include "nbub/table.h"
+#include "cubit/table.h"
 #include "global.h"
 #include "helper.h"
 #include "tpcc.h"
@@ -47,7 +47,7 @@ RC tpcc_wl::init()
 // 	config->g_cardinality = g_num_wh * DIST_PER_WARE;
 // 	enable_fence_pointer = config->enable_fence_pointer = true;
 // 	INDEX_WORDS = 10000;  // Fence length 
-// 	config->approach = {"nbub-lk"};
+// 	config->approach = {"cubit-lk"};
 // //	config->approach = {"naive"};
 // 	config->nThreads_for_getval = 4;
 // 	config->show_memory = true;
@@ -65,10 +65,10 @@ RC tpcc_wl::init()
 	
 // 	if (config->approach == "ub") {
 //         bitmap_c_w_id = new ub::Table(config);
-//     } else if (config->approach == "nbub-lk") {
-//         bitmap_c_w_id = new nbub_lk::NbubLK(config);
-//     } else if (config->approach == "nbub-lf" || config->approach =="nbub") {
-//         bitmap_c_w_id = new nbub_lf::NbubLF(config);
+//     } else if (config->approach == "cubit-lk") {
+//         bitmap_c_w_id = new cubit_lk::CubitLK(config);
+//     } else if (config->approach == "cubit-lf" || config->approach =="cubit") {
+//         bitmap_c_w_id = new cubit_lf::CubitLF(config);
 //     } else if (config->approach == "ucb") {
 //         bitmap_c_w_id = new ucb::Table(config);
 //     } else if (config->approach == "naive") {
@@ -96,7 +96,7 @@ RC tpcc_wl::init_bitmap_s_quantity()
 	bitmap_config->g_cardinality = 11;
 	enable_fence_pointer = bitmap_config->enable_fence_pointer = true;
 	INDEX_WORDS = 1000;  // Fence length 
-	bitmap_config->approach = {"nbub-lk"};
+	bitmap_config->approach = {"cubit-lk"};
 	bitmap_config->nThreads_for_getval = 4;
 	bitmap_config->show_memory = true;
 	bitmap_config->on_disk = false;
@@ -115,7 +115,7 @@ RC tpcc_wl::init_bitmap_s_quantity()
 	bitmap_config->verbose = false;
 	bitmap_config->time_out = 100;
 	
-	bitmap_s_quantity = new nbub_lk::NbubLK(bitmap_config);
+	bitmap_s_quantity = new cubit_lk::CubitLK(bitmap_config);
 
 	return RCOK;
 }
@@ -129,7 +129,7 @@ RC tpcc_wl::init_bitmap_s_quantity()
 // 	config->g_cardinality = g_num_wh * DIST_PER_WARE;
 // 	enable_fence_pointer = config->enable_fence_pointer = true;
 // 	INDEX_WORDS = 10000;  // Fence length 
-// 	config->approach = {"nbub-lk"};
+// 	config->approach = {"cubit-lk"};
 // 	config->nThreads_for_getval = 4;
 // 	config->show_memory = true;
 // 	config->on_disk = false;
@@ -145,7 +145,7 @@ RC tpcc_wl::init_bitmap_s_quantity()
 // 	config->verbose = false;
 // 	config->time_out = 100;
 	
-// 	bitmap_s_w_id = new nbub_lk::NbubLK(config);
+// 	bitmap_s_w_id = new cubit_lk::CubitLK(config);
 // }
 
 
@@ -341,7 +341,7 @@ void tpcc_wl::init_tab_stock(uint64_t wid) {
 		index_insert(i_stock, stockKey(sid, wid), row, wh_to_part(wid));
 
 #if (TPCC_EVA_CUBIT)
-		nbub::Nbub * bitmap = dynamic_cast<nbub::Nbub *>(bitmap_s_quantity);
+		cubit::Cubit * bitmap = dynamic_cast<cubit::Cubit *>(bitmap_s_quantity);
 
 		int quantity_idx = 0;	
 		if (quantity < 10) {
@@ -429,8 +429,8 @@ void tpcc_wl::init_tab_cust(uint64_t did, uint64_t wid) {
 	//	if (bitmap_c_w_id->config->approach == "naive" ) {
 	//		bitmap_c_w_id->append(0, key);
 	//	}
-	//	else if (bitmap_c_w_id->config->approach == "nbub-lk") {
-	//		nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_c_w_id);
+	//	else if (bitmap_c_w_id->config->approach == "cubit-lk") {
+	//		cubit::Cubit *bitmap = dynamic_cast<cubit::Cubit *>(bitmap_c_w_id);
 	//		bitmap->__init_append(0, key*g_cust_per_dist+(cid-1), key);
 	//	}
 	}

@@ -679,12 +679,12 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	// Optimizations can be applied to remove the cost of making private copies.
 	// However, it makes our memory reclamation mechanism more complex. Therefore, currently, 
 	// we simply retrive a pointer to the latest bitvector, which is always safe to access.
-	nbub::Nbub *bitmap_sd, *bitmap_dc, *bitmap_qt;
-	bitmap_sd = dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate);
+	cubit::Cubit *bitmap_sd, *bitmap_dc, *bitmap_qt;
+	bitmap_sd = dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate);
 	bitmap_sd->trans_begin(tid);
 	ibis::bitvector *btv_shipdate = bitmap_sd->bitmaps[year_val]->btv;
 
-	bitmap_dc = dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount);
+	bitmap_dc = dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount);
 	bitmap_dc->trans_begin(tid);
 	ibis::bitvector btv_discount;
 	btv_discount.copy(*bitmap_dc->bitmaps[discount_val-1]->btv);
@@ -693,7 +693,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 
 	auto tmp_1 = std::chrono::high_resolution_clock::now();
 
-	bitmap_qt = dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity);
+	bitmap_qt = dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity);
 	bitmap_qt->trans_begin(tid);
 	ibis::bitvector result;
 	result.copy(*bitmap_qt->bitmaps[0]->btv);
@@ -898,9 +898,9 @@ RC tpch_txn_man::run_RF1(int tid)
 	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
 
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_begin(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_begin(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_begin(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate)->trans_begin(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount)->trans_begin(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity)->trans_begin(tid);
 
 	for(int i = 0; i < insert_row.size(); i++) {
 		uint64_t lcnt = insert_lcnt[i];
@@ -929,9 +929,9 @@ RC tpch_txn_man::run_RF1(int tid)
 		<< lines << " tuples with revenue being " << ins_revenue << " have been inserted." << endl << endl;
 
 	assert(rc == RCOK);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_commit(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_commit(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_commit(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate)->trans_commit(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount)->trans_commit(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity)->trans_commit(tid);
 	return finish(rc);
 }
 
@@ -1010,9 +1010,9 @@ RC tpch_txn_man::run_RF2(int tid)
 	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
 
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_begin(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_begin(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_begin(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate)->trans_begin(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount)->trans_begin(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity)->trans_begin(tid);
 
 	for(int i = 0; i < delete_lcnt.size(); i++) {
 		row_t * row2 = delete_row[i];
@@ -1042,8 +1042,8 @@ RC tpch_txn_man::run_RF2(int tid)
 			<< del_cnt << " tuples with revenue being " << del_revenue << " have been removed." << endl << endl;
 
 	assert(rc == RCOK);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_shipdate)->trans_commit(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_discount)->trans_commit(tid);
-	dynamic_cast<nbub::Nbub *>(_wl->bitmap_quantity)->trans_commit(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate)->trans_commit(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount)->trans_commit(tid);
+	dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity)->trans_commit(tid);
 	return finish(rc);
 }
