@@ -68,17 +68,17 @@ RC Row_ptmvcc::access(txn_man * txn, TsType type, row_t * row) {
 				rc = RCOK;
 			}
 			else {
+				// Speculative read in PTMVCC.
 				uint32_t _his_next = (_his_latest + 1) % _his_len;
 				txn->cur_row = _write_history[_his_latest].row;
-				// TODO. If the corresponding txn has committed, we can return speculative entries.
-				// For now, I always assume that it has committed.
-				// if (global_txns[_write_history[_next_his].begin_txn].committed_ts <= txn->get_ts())
 				uint32_t tid = _write_history[_his_latest].end;
+				// TODO: We could maintain a mapping table to avoid the following scan.
 				for (UInt32 i = 0; i < g_thread_cnt; i++) { 
 					txn_man * txn_tmp = glob_manager->_all_txns[i];
 					if (txn_tmp->get_txn_id() == tid)
 					{
 						if (txn_tmp->committed_ts <= txn->get_ts()) {
+							// Transaction txn has the latest value in its private workspace. Speculatively use the data.
 							txn->cur_row = _write_history[_his_next].row;
 							break;
 						}

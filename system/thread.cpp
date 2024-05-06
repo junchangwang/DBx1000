@@ -111,6 +111,10 @@ RC thread_t::run() {
 		m_txn->set_txn_id(get_thd_id() + thd_txn_id * g_thread_cnt);
 		thd_txn_id ++;
 
+		// WARNING: The function get_next_ts() implicitly increments the global TIMESTAMP,
+		//			which is the required operation for classic MVCC mechanisms like HEKATON and MVCC.
+		//			However, PTMVCC does not increments TIMESTAMP at the beginning of a transaction.
+		//          So, PTMVCC uses the function fetch_ts (see below).
 		if ((CC_ALG == HSTORE && !HSTORE_LOCAL_TS)
 				|| CC_ALG == MVCC 
 				|| CC_ALG == HEKATON
