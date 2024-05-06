@@ -409,7 +409,7 @@ void tpch_wl::init_tab_orderAndLineitem() {
 		<< "i_Q6_bwtree_time:" << i_Q6_bwtree_time << ", "
 		<< "i_Q6_art_time:" << i_Q6_art_time <<", "
 		<< "i_bitmap_time:" << i_bitmap_time << endl
-	    << "orders_allocate:" << orders_allocate << ", "
+		<< "orders_allocate:" << orders_allocate << ", "
 		<< "orders_set_value:" << orders_set_value << ", "
 		<< "lineitem_allocate:" << lineitem_allocate << ", "
 		<< "lineitem_set_value:" << lineitem_set_value << endl
@@ -675,7 +675,7 @@ RC tpch_wl::init_bitmap()
 	config_shipdate->show_memory = true;
 	config_shipdate->on_disk = false;
 	config_shipdate->showEB = false;
-    config_shipdate->decode = false;
+	config_shipdate->decode = false;
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
@@ -737,7 +737,7 @@ RC tpch_wl::init_bitmap()
 	config_discount->show_memory = true;
 	config_discount->on_disk = false;
 	config_discount->showEB = false;
-    config_discount->decode = false;
+	config_discount->decode = false;
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
@@ -766,7 +766,7 @@ RC tpch_wl::init_bitmap()
 	} else if (config_discount->approach == "naive") {
 		bitmap_discount = new naive::Table(config_discount);
 	}
-    else {
+	else {
 		cerr << "Unknown approach." << endl;
 		exit(-1);
 	}
@@ -800,7 +800,7 @@ RC tpch_wl::init_bitmap()
 	config_quantity->show_memory = true;
 	config_quantity->on_disk = false;
 	config_quantity->showEB = false;
-    config_quantity->decode = false;
+	config_quantity->decode = false;
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.

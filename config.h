@@ -179,9 +179,9 @@ enum CHBenchQueryMethod {ALL_METHOD, BTREE_METHOD, BITMAP_METHOD, BITMAP_PARA_ME
 extern CHBenchTxnType 					g_chbench_txn_type;
 #define CHBENCH_EVA_CUBIT				true
 #define CHBENCH_SMALL					false
-#define CHBENCH_OLAP_NUMBER             1
+#define CHBENCH_OLAP_NUMBER				1
 #define CHBENCH_QUERY_TYPE				CHBenchQ1
-#define CHBENCH_QUERY_METHOD            BITMAP_PARA_METHOD
+#define CHBENCH_QUERY_METHOD			BITMAP_PARA_METHOD
 
 
 // ==== [TPCH] ====
@@ -193,8 +193,8 @@ enum TPCHTxnType {TPCH_ALL,
 				TPCH_Q6_SCAN,
 				TPCH_Q6_HASH,
 				TPCH_Q6_BTREE,
-                TPCH_Q6_BWTREE,
-                TPCH_Q6_ART,
+				TPCH_Q6_BWTREE,
+				TPCH_Q6_ART,
 				TPCH_Q6_CUBIT,
 				TPCH_RF1,
 				TPCH_RF2};
@@ -204,11 +204,11 @@ extern TPCHTxnType 					g_tpch_txn_type;
 // TODO centralized CC management. 
 /***********************************************/
 #define MAX_LOCK_CNT				(20 * THREAD_CNT) 
-#define TSTAB_SIZE                  50 * THREAD_CNT
-#define TSTAB_FREE                  TSTAB_SIZE 
-#define TSREQ_FREE                  4 * TSTAB_FREE
-#define MVHIS_FREE                  4 * TSTAB_FREE
-#define SPIN                        false
+#define TSTAB_SIZE					50 * THREAD_CNT
+#define TSTAB_FREE					TSTAB_SIZE 
+#define TSREQ_FREE					4 * TSTAB_FREE
+#define MVHIS_FREE					4 * TSTAB_FREE
+#define SPIN						false
 
 /***********************************************/
 // Test cases

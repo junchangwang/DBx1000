@@ -86,8 +86,8 @@ void chbench_query::gen_new_order(uint64_t thd_id) {
 	ol_cnt = URand(5, 15, w_id-1);
 
 	// get time
-    time_t curtime;
-    time(&curtime);
+	time_t curtime;
+	time(&curtime);
 	tm *nowtime = localtime(&curtime);
 	Date o_entry_date(nowtime->tm_year + 1900, nowtime->tm_mon + 1, nowtime->tm_mday);
 	o_entry_d = o_entry_date.DateToUint64();

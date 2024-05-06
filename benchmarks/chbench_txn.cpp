@@ -221,9 +221,9 @@ RC chbench_txn_man::run_payment(int tid, chbench_query * query) {
 	itemid_t * item;
 
 	uint64_t w_id = query->w_id;
-    uint64_t c_w_id = query->c_w_id;
+	uint64_t c_w_id = query->c_w_id;
 	/*====================================================+
-    	EXEC SQL UPDATE warehouse SET w_ytd = w_ytd + :h_amount
+		EXEC SQL UPDATE warehouse SET w_ytd = w_ytd + :h_amount
 		WHERE w_id=:w_id;
 	+====================================================*/
 	/*===================================================================+
@@ -351,10 +351,10 @@ RC chbench_txn_man::run_payment(int tid, chbench_query * query) {
 		r_cust = (row_t *) item->location;
 	}
 
-  	/*======================================================================+
-	   	EXEC SQL UPDATE customer SET c_balance = :c_balance, c_data = :c_new_data
-   		WHERE c_w_id = :c_w_id AND c_d_id = :c_d_id AND c_id = :c_id;
-   	+======================================================================*/
+	/*======================================================================+
+		EXEC SQL UPDATE customer SET c_balance = :c_balance, c_data = :c_new_data
+		WHERE c_w_id = :c_w_id AND c_d_id = :c_d_id AND c_id = :c_id;
+	+======================================================================*/
 	row_t * r_cust_local = get_row(r_cust, WR);
 	if (r_cust_local == NULL) {
 		return finish(Abort);
@@ -375,17 +375,17 @@ RC chbench_txn_man::run_payment(int tid, chbench_query * query) {
 	if ( strstr(c_credit, "BC") ) {
 	
 		/*=====================================================+
-		    EXEC SQL SELECT c_data
+			EXEC SQL SELECT c_data
 			INTO :c_data
 			FROM customer
 			WHERE c_w_id=:c_w_id AND c_d_id=:c_d_id AND c_id=:c_id;
 		+=====================================================*/
-//	  	char c_new_data[501];
-//	  	sprintf(c_new_data,"| %4d %2d %4d %2d %4d $%7.2f",
-//	      	c_id, c_d_id, c_w_id, d_id, w_id, query->h_amount);
-//		char * c_data = r_cust->get_value("C_DATA");
-//	  	strncat(c_new_data, c_data, 500 - strlen(c_new_data));
-//		r_cust->set_value("C_DATA", c_new_data);
+		// char c_new_data[501];
+		// sprintf(c_new_data,"| %4d %2d %4d %2d %4d $%7.2f",
+		// 	c_id, c_d_id, c_w_id, d_id, w_id, query->h_amount);
+		// char * c_data = r_cust->get_value("C_DATA");
+		// strncat(c_new_data, c_data, 500 - strlen(c_new_data));
+		// r_cust->set_value("C_DATA", c_new_data);
 			
 	}
 	
@@ -397,10 +397,10 @@ RC chbench_txn_man::run_payment(int tid, chbench_query * query) {
 	strncpy(&h_data[length + 4], d_name, 10);
 	h_data[length+14] = '\0';
 	/*=============================================================================+
-	  EXEC SQL INSERT INTO
-	  history (h_c_d_id, h_c_w_id, h_c_id, h_d_id, h_w_id, h_date, h_amount, h_data)
-	  VALUES (:c_d_id, :c_w_id, :c_id, :d_id, :w_id, :datetime, :h_amount, :h_data);
-	  +=============================================================================*/
+		EXEC SQL INSERT INTO
+		history (h_c_d_id, h_c_w_id, h_c_id, h_d_id, h_w_id, h_date, h_amount, h_data)
+		VALUES (:c_d_id, :c_w_id, :c_id, :d_id, :w_id, :datetime, :h_amount, :h_data);
+		+=============================================================================*/
 //	row_t * r_hist;
 //	uint64_t row_id;
 //	_wl->t_history->get_new_row(r_hist, 0, row_id);
@@ -435,8 +435,8 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 	
 	bool remote = query->remote;
 	uint64_t w_id = query->w_id;
-    uint64_t d_id = query->d_id;
-    uint64_t c_id = query->c_id;
+	uint64_t d_id = query->d_id;
+	uint64_t c_id = query->c_id;
 	uint64_t ol_cnt = query->ol_cnt;
 	/*=======================================================================+
 	EXEC SQL SELECT c_discount, c_last, c_credit, w_tax
@@ -513,9 +513,9 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 //	r_order->set_value(O_ALL_LOCAL, all_local);
 //	insert_row(r_order, _wl->t_order);
 	/*=======================================================+
-    EXEC SQL INSERT INTO NEW_ORDER (no_o_id, no_d_id, no_w_id)
-        VALUES (:o_id, :d_id, :w_id);
-    +=======================================================*/
+	EXEC SQL INSERT INTO NEW_ORDER (no_o_id, no_d_id, no_w_id)
+		VALUES (:o_id, :d_id, :w_id);
+	+=======================================================*/
 //	row_t * r_no;
 //	_wl->t_neworder->get_new_row(r_no, 0, row_id);
 //	r_no->set_value(NO_O_ID, o_id);
@@ -844,8 +844,8 @@ chbench_txn_man::run_order_status(chbench_query * query) {
 		// EXEC SQL OPEN c_name;
 		// if (namecnt%2) namecnt++; / / Locate midpoint customer for (n=0; n<namecnt/ 2; n++)
 		// {
-		//	   	EXEC SQL FETCH c_name
-		//	   	INTO :c_balance, :c_first, :c_middle, :c_id;
+		// 	EXEC SQL FETCH c_name
+		// 	INTO :c_balance, :c_first, :c_middle, :c_id;
 		// }
 		// EXEC SQL CLOSE c_name;
 
@@ -1084,12 +1084,12 @@ RC chbench_txn_man::run_Q6_scan(int tid, chbench_query * query) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<std::tuple<double, int>> results(CHBENCH_Q6_SCAN_THREADS);
-    uint64_t block_size = max_orderlines / CHBENCH_Q6_SCAN_THREADS;
+	uint64_t block_size = max_orderlines / CHBENCH_Q6_SCAN_THREADS;
 	uint64_t block_start = 0;
 	std::vector<std::thread> threads(CHBENCH_Q6_SCAN_THREADS - 1);
 
 	for (int i = 0; i < CHBENCH_Q6_SCAN_THREADS - 1; i++) {
-        threads[i] = std::thread(&chbench_txn_man::run_Q6_scan_singlethread, *this,\
+		threads[i] = std::thread(&chbench_txn_man::run_Q6_scan_singlethread, *this,\
 								block_start, block_start + block_size, query, std::ref(results[i]), tid*CHBENCH_Q6_SCAN_THREADS+i);
 		block_start = block_start + block_size;
 	}
@@ -1097,9 +1097,9 @@ RC chbench_txn_man::run_Q6_scan(int tid, chbench_query * query) {
 
 	for (auto &thread : threads) {
 		thread.join();
-    }
+	}
 
-    for (auto &result : results) {
+	for (auto &result : results) {
 		revenue += std::get<0>(result);
 		cnt += std::get<1>(result);
 	}
@@ -1311,7 +1311,7 @@ void chbench_txn_man::run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_b
 	int &cnt = result.second;
 	cnt = 0;
 	auto iter1 = seg_btv1.seg_table.find(begin);
-    auto iter2 = seg_btv1.seg_table.find(end);
+	auto iter2 = seg_btv1.seg_table.find(end);
 	for(; iter1 != iter2; iter1++) {
 		ibis::bitvector *current_result = iter1->second.btv;
 	for (ibis::bitvector::indexSet is = current_result->firstIndexSet(); is.nIndices() > 0; ++ is) 
@@ -1439,17 +1439,17 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query) {
 	vector<pair<double, int>> answer(n_threads);
 
 	for (int i = 1; i <= n_left; i++)
-        begin[i] = begin[i - 1] + n_cnt_per_thread + 1;
-    for (int i = n_left + 1; i <= n_threads; i++)
-        begin[i] = begin[i - 1] + n_cnt_per_thread;
+		begin[i] = begin[i - 1] + n_cnt_per_thread + 1;
+	for (int i = n_left + 1; i <= n_threads; i++)
+		begin[i] = begin[i - 1] + n_cnt_per_thread;
 
 	for (int i = 0; i < n_threads; i++) {
-        threads[i] = thread(&chbench_txn_man::bitmap_singlethread_fetch, *this, begin[i], begin[i + 1], \
+		threads[i] = thread(&chbench_txn_man::bitmap_singlethread_fetch, *this, begin[i], begin[i + 1], \
 							std::ref(answer[i]), row_buffer, ids, tid*CHBENCH_Q6_SCAN_THREADS + i);
-    }
-    for (int i = 0; i < n_threads; i++) {
-        threads[i].join();
-    }
+	}
+	for (int i = 0; i < n_threads; i++) {
+		threads[i].join();
+	}
 
 	for(int i = 0; i < answer.size(); i++) {
 		revenue += answer[i].first;
@@ -1732,12 +1732,12 @@ RC chbench_txn_man::run_Q1_scan(int tid, chbench_query * query) {
 	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<chbench_q1_data> results(CHBENCH_Q6_SCAN_THREADS, 16);
-    uint64_t block_size = max_orderlines / CHBENCH_Q6_SCAN_THREADS;
+	uint64_t block_size = max_orderlines / CHBENCH_Q6_SCAN_THREADS;
 	uint64_t block_start = 0;
 	std::vector<std::thread> threads(CHBENCH_Q6_SCAN_THREADS - 1);
 
 	for (int i = 0; i < CHBENCH_Q6_SCAN_THREADS - 1; i++) {
-        threads[i] = std::thread(&chbench_txn_man::run_Q1_scan_singlethread, *this,\
+		threads[i] = std::thread(&chbench_txn_man::run_Q1_scan_singlethread, *this,\
 								block_start, block_start + block_size, query, std::ref(results[i]), tid*CHBENCH_Q6_SCAN_THREADS+i);
 		block_start = block_start + block_size;
 	}
@@ -1745,7 +1745,7 @@ RC chbench_txn_man::run_Q1_scan(int tid, chbench_query * query) {
 
 	for (auto &thread : threads) {
 		thread.join();
-    }
+	}
 
 	for(int i = 0; i < CHBENCH_Q6_SCAN_THREADS - 1; i++) {
 		results[CHBENCH_Q6_SCAN_THREADS - 1] += results[i];
@@ -1791,8 +1791,8 @@ RC chbench_txn_man::run_Q1_btree(int tid, chbench_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 	shared_lock<shared_mutex> r_lock(index->rw_lock);
-    time_t curtime;
-    time(&curtime);
+	time_t curtime;
+	time(&curtime);
 	tm *nowtime = localtime(&curtime);
 	Date curr_date(nowtime->tm_year + 1900, nowtime->tm_mon + 1, nowtime->tm_mday);
 
@@ -2025,7 +2025,7 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 	}
 	for (auto &thread : threads) {
 		thread.join();
-    }
+	}
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
@@ -2054,8 +2054,8 @@ RC chbench_txn_man::run_Q1_bwtree(int tid, chbench_query * query)
 
 	auto start = std::chrono::high_resolution_clock::now();
 	index->AssignGCID(tid);
-    time_t curtime;
-    time(&curtime);
+	time_t curtime;
+	time(&curtime);
 	tm *nowtime = localtime(&curtime);
 	Date curr_date(nowtime->tm_year + 1900, nowtime->tm_mon + 1, nowtime->tm_mday);
 	for(Date date = Date(2007, 1, 2) ; date <= curr_date; date++) {
@@ -2127,8 +2127,8 @@ RC chbench_txn_man::run_Q1_art(int tid, chbench_query * query) {
 	shared_lock<shared_mutex> r_lock(index->rw_lock);
 	auto start = std::chrono::high_resolution_clock::now();
 	
-    time_t curtime;
-    time(&curtime);
+	time_t curtime;
+	time(&curtime);
 	tm *nowtime = localtime(&curtime);
 	Date curr_date(nowtime->tm_year + 1900, nowtime->tm_mon + 1, nowtime->tm_mday);
 	Date l_date = Date(2007, 1, 2);

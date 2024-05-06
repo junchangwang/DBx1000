@@ -35,16 +35,16 @@ public:
 	table_t * 		t_lineitem;
 	table_t * 		t_orders;
 
-	INDEX * 	i_orders;
-	INDEX * 	i_lineitem;
-	IndexHash *		i_Q6_hashtable;
-	index_btree *	i_Q6_btree;
-    index_bwtree *  i_Q6_bwtree;
-	index_art *     i_Q6_art;
+	INDEX * 		i_orders;
+	INDEX * 		i_lineitem;
+	IndexHash * 	i_Q6_hashtable;
+	index_btree * 	i_Q6_btree;
+	index_bwtree * 	i_Q6_bwtree;
+	index_art * 	i_Q6_art;
 
-	BaseTable *bitmap_shipdate;
-	BaseTable *bitmap_discount;
-	BaseTable *bitmap_quantity;
+	BaseTable * 	bitmap_shipdate;
+	BaseTable * 	bitmap_discount;
+	BaseTable * 	bitmap_quantity;
 	
 	bool ** delivering;
 	uint32_t next_tid;
@@ -69,11 +69,11 @@ private:
 	RC run_Q6_scan(int tid, tpch_query * m_query);
 	RC run_Q6_hash(int tid, tpch_query * query, IndexHash *index);
 	RC run_Q6_btree(int tid, tpch_query * query, index_btree *index);
-    RC run_Q6_bwtree(int tid, tpch_query * query, index_bwtree *index);
-    RC run_Q6_art(int tid, tpch_query * query, index_art *index);
-    RC run_Q6_bitmap(int tid, tpch_query *query);
-    RC run_RF1(int tid);
-    RC run_RF2(int tid);
+	RC run_Q6_bwtree(int tid, tpch_query * query, index_bwtree *index);
+	RC run_Q6_art(int tid, tpch_query * query, index_art *index);
+	RC run_Q6_bitmap(int tid, tpch_query *query);
+	RC run_RF1(int tid);
+	RC run_RF2(int tid);
 };
 
 static inline uint64_t tpch_lineitemKey(uint64_t i, uint64_t lcnt) {

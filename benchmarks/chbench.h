@@ -53,10 +53,10 @@ public:
 	BaseTable *bitmap_q6_quantity;
 	BaseTable *bitmap_q1_deliverydate;
 	BaseTable *bitmap_q1_ol_number;
-    index_bwtree *  i_Q6_bwtree;
-	index_art *     i_Q6_art;
-    index_bwtree *  i_Q1_bwtree;
-	index_art *     i_Q1_art;
+	index_bwtree *	i_Q6_bwtree;
+	index_art *		i_Q6_art;
+	index_bwtree *	i_Q1_bwtree;
+	index_art *		i_Q1_art;
 
 	bool ** delivering;
 	uint32_t next_tid;

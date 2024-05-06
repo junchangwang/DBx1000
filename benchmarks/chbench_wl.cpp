@@ -48,21 +48,21 @@ RC chbench_wl::init()
 RC chbench_wl::build()
 {	
 	// Check whether the index has been built before.
-    ifstream doneFlag;
+	ifstream doneFlag;
 	string path;
 	if(query_number == CHBenchQuery::CHBenchQ6)
 	path = "bm_chbench_n" + to_string(g_num_wh) + "_q6_done";
 	else path = "bm_chbench_n" + to_string(g_num_wh) + "_q1_done";
-    doneFlag.open(path);
-    if (doneFlag.good()) { 
-        cout << "WARNING: The index for " + path + " has been built before. Skip building." << endl;
-        doneFlag.close();
-        return RCOK;
-    }
+	doneFlag.open(path);
+	if (doneFlag.good()) { 
+		cout << "WARNING: The index for " + path + " has been built before. Skip building." << endl;
+		doneFlag.close();
+		return RCOK;
+	}
 
 	init();
 
-    int ret;
+	int ret;
 	cubit::Cubit *bitmap = nullptr;
 	if(query_number == CHBenchQuery::CHBenchQ6) {
 	// bitmap_q6_deliverydate
@@ -74,7 +74,7 @@ RC chbench_wl::build()
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
 		ret = system(cmd.c_str());
-                sleep(1);
+			 sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -94,7 +94,7 @@ RC chbench_wl::build()
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
 		ret = system(cmd.c_str());
-                sleep(1);
+				sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -114,7 +114,7 @@ RC chbench_wl::build()
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
 		ret = system(cmd.c_str());
-                sleep(1);
+				sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -134,7 +134,7 @@ RC chbench_wl::build()
 		string cmd = "mkdir -p ";
 		cmd.append(temp);
 		ret = system(cmd.c_str());
-                sleep(1);
+			 sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
 		bitmap->bitmaps[i]->btv->write(temp.c_str());
@@ -146,16 +146,16 @@ RC chbench_wl::build()
 	}
 	}
 	// create done file
-    fstream done;   
-    done.open(path, ios::out);
-    if (done.is_open()) {
-        done << bitmap->g_number_of_rows;
-        cout << "Succeeded in building bitmap files and " << path << endl;
-        done.close(); 
-    }
-    else {
-        cout << "Failed in building bitmap files and " << path << endl;
-    } 
+	fstream done;   
+	done.open(path, ios::out);
+	if (done.is_open()) {
+		done << bitmap->g_number_of_rows;
+		cout << "Succeeded in building bitmap files and " << path << endl;
+		done.close(); 
+	}
+	else {
+		cout << "Failed in building bitmap files and " << path << endl;
+	} 
 	return RCOK; 	
 }
 
@@ -185,20 +185,20 @@ RC chbench_wl::init_schema(const char * schema_file) {
 	int part_cnt = (CENTRAL_INDEX)? 1 : g_part_cnt;
 
 	i_Q6_bwtree = (index_bwtree *) _mm_malloc(sizeof(index_bwtree), 64);
-    new(i_Q6_bwtree) index_bwtree();
-    i_Q6_bwtree->init(part_cnt, tables[tname]);
+	new(i_Q6_bwtree) index_bwtree();
+	i_Q6_bwtree->init(part_cnt, tables[tname]);
 
 	i_Q1_bwtree = (index_bwtree *) _mm_malloc(sizeof(index_bwtree), 64);
-    new(i_Q1_bwtree) index_bwtree();
-    i_Q1_bwtree->init(part_cnt, tables[tname]);
+	new(i_Q1_bwtree) index_bwtree();
+	i_Q1_bwtree->init(part_cnt, tables[tname]);
 
-    i_Q6_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
-    new(i_Q6_art) index_art();
-    i_Q6_art->init(part_cnt, tables[tname]);
+	i_Q6_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
+	new(i_Q6_art) index_art();
+	i_Q6_art->init(part_cnt, tables[tname]);
 
-    i_Q1_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
-    new(i_Q1_art) index_art();
-    i_Q1_art->init(part_cnt, tables[tname]);
+	i_Q1_art = (index_art *) _mm_malloc(sizeof(index_art), 64);
+	new(i_Q1_art) index_art();
+	i_Q1_art->init(part_cnt, tables[tname]);
 
 	return RCOK;
 }
@@ -260,7 +260,7 @@ void chbench_wl::init_tab_item() {
 		row->set_value(I_NAME, name);
 		row->set_value(I_PRICE, URand(1, 100, 0));
 		char data[50];
-    	MakeAlphaString(26, 50, data, 0);
+		MakeAlphaString(26, 50, data, 0);
 		// TODO in TPCC, "original" should start at a random position
 		if (RAND(10, 0) == 0) 
 			strcpy(data, "original");		
@@ -279,14 +279,14 @@ void chbench_wl::init_tab_wh(uint32_t wid) {
 
 	row->set_value(W_ID, wid);
 	char name[10];
-    MakeAlphaString(6, 10, name, wid-1);
+	MakeAlphaString(6, 10, name, wid-1);
 	row->set_value(W_NAME, name);
 	char street[20];
-    MakeAlphaString(10, 20, street, wid-1);
+	MakeAlphaString(10, 20, street, wid-1);
 	row->set_value(W_STREET_1, street);
-    MakeAlphaString(10, 20, street, wid-1);
+	MakeAlphaString(10, 20, street, wid-1);
 	row->set_value(W_STREET_2, street);
-    MakeAlphaString(10, 20, street, wid-1);
+	MakeAlphaString(10, 20, street, wid-1);
 	row->set_value(W_CITY, street);
 	char state[2];
 	MakeAlphaString(2, 2, state, wid-1); /* State */
@@ -316,20 +316,20 @@ void chbench_wl::init_tab_dist(uint64_t wid) {
 		MakeAlphaString(6, 10, name, wid-1);
 		row->set_value(D_NAME, name);
 		char street[20];
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(D_STREET_1, street);
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(D_STREET_2, street);
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(D_CITY, street);
 		char state[2];
 		MakeAlphaString(2, 2, state, wid-1); /* State */
 		row->set_value(D_STATE, state);
 		char zip[9];
-    	MakeNumberString(9, 9, zip, wid-1); /* Zip */
+		MakeNumberString(9, 9, zip, wid-1); /* Zip */
 		row->set_value(D_ZIP, zip);
-    	double tax = (double)URand(0L,200L,wid-1)/1000.0;
-    	double w_ytd=30000.00;
+		double tax = (double)URand(0L,200L,wid-1)/1000.0;
+		double w_ytd=30000.00;
 		row->set_value(D_TAX, tax);
 		row->set_value(D_YTD, w_ytd);
 		row->set_value(D_NEXT_O_ID, static_cast<int64_t>(3001));
@@ -379,31 +379,31 @@ void chbench_wl::init_tab_stock(uint64_t wid) {
 }
 
 void * chbench_wl::threadInitWarehouse_sequential(void * This) {
-        chbench_wl * wl = (chbench_wl *) This;
+		chbench_wl * wl = (chbench_wl *) This;
 
-        for (int tid = 0; tid < g_num_wh; tid++) {
-                uint32_t wid = tid + 1;
-                tpc_buffer[tid] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
-                assert((uint64_t)tid < g_num_wh);
-                srand48_r(wid, tpc_buffer[tid]);
+		for (int tid = 0; tid < g_num_wh; tid++) {
+				uint32_t wid = tid + 1;
+				tpc_buffer[tid] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
+				assert((uint64_t)tid < g_num_wh);
+				srand48_r(wid, tpc_buffer[tid]);
 
-                if (tid == 0) {
-                        wl->init_tab_item();
-                        // Thread 0 initialize the table Stock to avoid using latches in initializing.
-                        wl->t_stock->init_row_buffer(g_max_items * g_num_wh);
-                }
-                wl->init_tab_wh( wid );
-                wl->init_tab_dist( wid );
-                wl->init_tab_stock(wid);
-                for (uint64_t did = 1; did <= DIST_PER_WARE; did++) {
-                        wl->init_tab_cust(did, wid);
-                        wl->init_tab_order(did, wid);
-                        for (uint64_t cid = 1; cid <= g_cust_per_dist; cid++)
-                                wl->init_tab_hist(cid, did, wid);
-                }
-        }
+				if (tid == 0) {
+						wl->init_tab_item();
+						// Thread 0 initialize the table Stock to avoid using latches in initializing.
+						wl->t_stock->init_row_buffer(g_max_items * g_num_wh);
+				}
+				wl->init_tab_wh( wid );
+				wl->init_tab_dist( wid );
+				wl->init_tab_stock(wid);
+				for (uint64_t did = 1; did <= DIST_PER_WARE; did++) {
+						wl->init_tab_cust(did, wid);
+						wl->init_tab_order(did, wid);
+						for (uint64_t cid = 1; cid <= g_cust_per_dist; cid++)
+								wl->init_tab_hist(cid, did, wid);
+				}
+		}
 
-        return NULL;
+		return NULL;
 }
 
 void chbench_wl::init_tab_cust(uint64_t did, uint64_t wid) {
@@ -430,17 +430,17 @@ void chbench_wl::init_tab_cust(uint64_t did, uint64_t wid) {
 		MakeAlphaString(FIRSTNAME_MINLEN, sizeof(c_first), c_first, wid-1);
 		row->set_value(C_FIRST, c_first);
 		char street[20];
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(C_STREET_1, street);
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(C_STREET_2, street);
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(C_CITY, street); 
 		char state[2];
 		MakeAlphaString(2, 2, state, wid-1); /* State */
 		row->set_value(C_STATE, state);
 		char zip[9];
-    	MakeNumberString(9, 9, zip, wid-1); /* Zip */
+		MakeNumberString(9, 9, zip, wid-1); /* Zip */
 		row->set_value(C_ZIP, zip);
 		char phone[16];
   		MakeNumberString(16, 16, phone, wid-1); /* Zip */
@@ -449,7 +449,7 @@ void chbench_wl::init_tab_cust(uint64_t did, uint64_t wid) {
 		row->set_value(C_CREDIT_LIM, 50000);
 		row->set_value(C_DELIVERY_CNT, 0);
 		char c_data[500];
-        MakeAlphaString(300, 500, c_data, wid-1);
+		MakeAlphaString(300, 500, c_data, wid-1);
 		row->set_value(C_DATA, c_data);
 #endif
 		if (RAND(10, wid-1) == 0) {
@@ -558,7 +558,7 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 			}
 			row->set_value(OL_QUANTITY, ol_quantity);
 			char ol_dist_info[24];
-	        MakeAlphaString(24, 24, ol_dist_info, wid-1);
+			MakeAlphaString(24, 24, ol_dist_info, wid-1);
 			row->set_value(OL_DIST_INFO, ol_dist_info);
 
 			// index insert
@@ -730,7 +730,7 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	config_deliverydate->show_memory = true;
 	config_deliverydate->on_disk = false;
 	config_deliverydate->showEB = false;
-    config_deliverydate->decode = false;
+	config_deliverydate->decode = false;
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
@@ -752,20 +752,20 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_deliverydate->approach == "ub") {
-        bitmap_q6_deliverydate = new ub::Table(config_deliverydate);
-    } else if (config_deliverydate->approach == "cubit-lk") {
-        bitmap_q6_deliverydate = new cubit_lk::CubitLK(config_deliverydate);
-    } else if (config_deliverydate->approach == "cubit-lf" || config_deliverydate->approach =="cubit") {
-        bitmap_q6_deliverydate = new cubit_lf::CubitLF(config_deliverydate);
-    } else if (config_deliverydate->approach == "ucb") {
-        bitmap_q6_deliverydate = new ucb::Table(config_deliverydate);
-    } else if (config_deliverydate->approach == "naive") {
-        bitmap_q6_deliverydate = new naive::Table(config_deliverydate);
-    }
-    else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
+		bitmap_q6_deliverydate = new ub::Table(config_deliverydate);
+	} else if (config_deliverydate->approach == "cubit-lk") {
+		bitmap_q6_deliverydate = new cubit_lk::CubitLK(config_deliverydate);
+	} else if (config_deliverydate->approach == "cubit-lf" || config_deliverydate->approach =="cubit") {
+		bitmap_q6_deliverydate = new cubit_lf::CubitLF(config_deliverydate);
+	} else if (config_deliverydate->approach == "ucb") {
+		bitmap_q6_deliverydate = new ucb::Table(config_deliverydate);
+	} else if (config_deliverydate->approach == "naive") {
+		bitmap_q6_deliverydate = new naive::Table(config_deliverydate);
+	}
+	else {
+		cerr << "Unknown approach." << endl;
+		exit(-1);
+	}
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
@@ -798,7 +798,7 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	config_quantity->show_memory = true;
 	config_quantity->on_disk = false;
 	config_quantity->showEB = false;
-    config_quantity->decode = false;
+	config_quantity->decode = false;
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
@@ -820,20 +820,20 @@ if(query_number == CHBenchQuery::CHBenchQ6) {
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_quantity->approach == "ub") {
-        bitmap_q6_quantity = new ub::Table(config_quantity);
-    } else if (config_quantity->approach == "cubit-lk") {
-        bitmap_q6_quantity = new cubit_lk::CubitLK(config_quantity);
-    } else if (config_quantity->approach == "cubit-lf" || config_quantity->approach =="cubit") {
-        bitmap_q6_quantity = new cubit_lf::CubitLF(config_quantity);
-    } else if (config_quantity->approach == "ucb") {
-        bitmap_q6_quantity = new ucb::Table(config_quantity);
-    } else if (config_quantity->approach == "naive") {
-        bitmap_q6_quantity = new naive::Table(config_quantity);
-    }
-    else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
+		bitmap_q6_quantity = new ub::Table(config_quantity);
+	} else if (config_quantity->approach == "cubit-lk") {
+		bitmap_q6_quantity = new cubit_lk::CubitLK(config_quantity);
+	} else if (config_quantity->approach == "cubit-lf" || config_quantity->approach =="cubit") {
+		bitmap_q6_quantity = new cubit_lf::CubitLF(config_quantity);
+	} else if (config_quantity->approach == "ucb") {
+		bitmap_q6_quantity = new ucb::Table(config_quantity);
+	} else if (config_quantity->approach == "naive") {
+		bitmap_q6_quantity = new naive::Table(config_quantity);
+	}
+	else {
+		cerr << "Unknown approach." << endl;
+		exit(-1);
+	}
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();	
 
@@ -866,7 +866,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	config_q1->show_memory = true;
 	config_q1->on_disk = false;
 	config_q1->showEB = false;
-    config_q1->decode = false;
+	config_q1->decode = false;
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
@@ -885,20 +885,20 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_q1->approach == "ub") {
-        bitmap_q1_deliverydate = new ub::Table(config_q1);
-    } else if (config_q1->approach == "cubit-lk") {
-        bitmap_q1_deliverydate = new cubit_lk::CubitLK(config_q1);
-    } else if (config_q1->approach == "cubit-lf" || config_q1->approach =="cubit") {
-        bitmap_q1_deliverydate = new cubit_lf::CubitLF(config_q1);
-    } else if (config_q1->approach == "ucb") {
-        bitmap_q1_deliverydate = new ucb::Table(config_q1);
-    } else if (config_q1->approach == "naive") {
-        bitmap_q1_deliverydate = new naive::Table(config_q1);
-    }
-    else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
+		bitmap_q1_deliverydate = new ub::Table(config_q1);
+	} else if (config_q1->approach == "cubit-lk") {
+		bitmap_q1_deliverydate = new cubit_lk::CubitLK(config_q1);
+	} else if (config_q1->approach == "cubit-lf" || config_q1->approach =="cubit") {
+		bitmap_q1_deliverydate = new cubit_lf::CubitLF(config_q1);
+	} else if (config_q1->approach == "ucb") {
+		bitmap_q1_deliverydate = new ucb::Table(config_q1);
+	} else if (config_q1->approach == "naive") {
+		bitmap_q1_deliverydate = new naive::Table(config_q1);
+	}
+	else {
+		cerr << "Unknown approach." << endl;
+		exit(-1);
+	}
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();	
 
@@ -929,7 +929,7 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	config_ol_number->show_memory = true;
 	config_ol_number->on_disk = false;
 	config_ol_number->showEB = false;
-    config_ol_number->decode = false;
+	config_ol_number->decode = false;
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
@@ -948,20 +948,20 @@ if(query_number == CHBenchQuery::CHBenchQ1) {
 	
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_ol_number->approach == "ub") {
-        bitmap_q1_ol_number = new ub::Table(config_ol_number);
-    } else if (config_ol_number->approach == "cubit-lk") {
-        bitmap_q1_ol_number = new cubit_lk::CubitLK(config_ol_number);
-    } else if (config_ol_number->approach == "cubit-lf" || config_ol_number->approach =="cubit") {
-        bitmap_q1_ol_number = new cubit_lf::CubitLF(config_ol_number);
-    } else if (config_ol_number->approach == "ucb") {
-        bitmap_q1_ol_number = new ucb::Table(config_ol_number);
-    } else if (config_ol_number->approach == "naive") {
-        bitmap_q1_ol_number = new naive::Table(config_ol_number);
-    }
-    else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
+		bitmap_q1_ol_number = new ub::Table(config_ol_number);
+	} else if (config_ol_number->approach == "cubit-lk") {
+		bitmap_q1_ol_number = new cubit_lk::CubitLK(config_ol_number);
+	} else if (config_ol_number->approach == "cubit-lf" || config_ol_number->approach =="cubit") {
+		bitmap_q1_ol_number = new cubit_lf::CubitLF(config_ol_number);
+	} else if (config_ol_number->approach == "ucb") {
+		bitmap_q1_ol_number = new ucb::Table(config_ol_number);
+	} else if (config_ol_number->approach == "naive") {
+		bitmap_q1_ol_number = new naive::Table(config_ol_number);
+	}
+	else {
+		cerr << "Unknown approach." << endl;
+		exit(-1);
+	}
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();	
 

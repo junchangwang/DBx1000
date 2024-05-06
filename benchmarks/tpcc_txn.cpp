@@ -132,9 +132,9 @@ RC tpcc_txn_man::run_payment(tpcc_query * query) {
 	itemid_t * item;
 
 	uint64_t w_id = query->w_id;
-    uint64_t c_w_id = query->c_w_id;
+	uint64_t c_w_id = query->c_w_id;
 	/*====================================================+
-    	EXEC SQL UPDATE warehouse SET w_ytd = w_ytd + :h_amount
+		EXEC SQL UPDATE warehouse SET w_ytd = w_ytd + :h_amount
 		WHERE w_id=:w_id;
 	+====================================================*/
 	/*===================================================================+
@@ -286,17 +286,17 @@ RC tpcc_txn_man::run_payment(tpcc_query * query) {
 	if ( strstr(c_credit, "BC") ) {
 	
 		/*=====================================================+
-		    EXEC SQL SELECT c_data
+			EXEC SQL SELECT c_data
 			INTO :c_data
 			FROM customer
 			WHERE c_w_id=:c_w_id AND c_d_id=:c_d_id AND c_id=:c_id;
 		+=====================================================*/
-//	  	char c_new_data[501];
-//	  	sprintf(c_new_data,"| %4d %2d %4d %2d %4d $%7.2f",
-//	      	c_id, c_d_id, c_w_id, d_id, w_id, query->h_amount);
-//		char * c_data = r_cust->get_value("C_DATA");
-//	  	strncat(c_new_data, c_data, 500 - strlen(c_new_data));
-//		r_cust->set_value("C_DATA", c_new_data);
+		// char c_new_data[501];
+		// sprintf(c_new_data,"| %4d %2d %4d %2d %4d $%7.2f",
+		// 	c_id, c_d_id, c_w_id, d_id, w_id, query->h_amount);
+		// char * c_data = r_cust->get_value("C_DATA");
+		// strncat(c_new_data, c_data, 500 - strlen(c_new_data));
+		// r_cust->set_value("C_DATA", c_new_data);
 			
 	}
 	
@@ -340,8 +340,8 @@ RC tpcc_txn_man::run_new_order(tpcc_query * query) {
 	
 	bool remote = query->remote;
 	uint64_t w_id = query->w_id;
-    uint64_t d_id = query->d_id;
-    uint64_t c_id = query->c_id;
+	uint64_t d_id = query->d_id;
+	uint64_t c_id = query->c_id;
 	uint64_t ol_cnt = query->ol_cnt;
 	/*=======================================================================+
 	EXEC SQL SELECT c_discount, c_last, c_credit, w_tax
@@ -417,9 +417,9 @@ RC tpcc_txn_man::run_new_order(tpcc_query * query) {
 //	r_order->set_value(O_ALL_LOCAL, all_local);
 //	insert_row(r_order, _wl->t_order);
 	/*=======================================================+
-    EXEC SQL INSERT INTO NEW_ORDER (no_o_id, no_d_id, no_w_id)
-        VALUES (:o_id, :d_id, :w_id);
-    +=======================================================*/
+	EXEC SQL INSERT INTO NEW_ORDER (no_o_id, no_d_id, no_w_id)
+		VALUES (:o_id, :d_id, :w_id);
+	+=======================================================*/
 //	row_t * r_no;
 //	_wl->t_neworder->get_new_row(r_no, 0, row_id);
 //	r_no->set_value(NO_O_ID, o_id);
@@ -505,7 +505,7 @@ RC tpcc_txn_man::run_new_order(tpcc_query * query) {
 			quantity = s_quantity - ol_quantity + 91;
 		}
 		r_stock_local->set_value(S_QUANTITY, &quantity);
-    	cubit::Cubit* bt_quantity = dynamic_cast<cubit::Cubit *>(_wl->bitmap_s_quantity);
+		cubit::Cubit* bt_quantity = dynamic_cast<cubit::Cubit *>(_wl->bitmap_s_quantity);
 
 		int quantity_idx = 0;	
 		if (quantity < 10) {
@@ -798,9 +798,9 @@ tpcc_txn_man::run_stock_level_bt(tpcc_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-    cubit::Cubit* bt_quantity = dynamic_cast<cubit::Cubit *>(_wl->bitmap_s_quantity);
+	cubit::Cubit* bt_quantity = dynamic_cast<cubit::Cubit *>(_wl->bitmap_s_quantity);
 	ibis::bitvector* bv_quantity = bt_quantity->bitmaps[query->threshold_stock-10]->btv;
-    auto cnt_result = 0;
+	auto cnt_result = 0;
 
 	item_dist = index_read(_wl->i_district, distKey(d_id, w_id), wh_to_part(w_id));
 	assert(item_dist);
@@ -824,7 +824,7 @@ tpcc_txn_man::run_stock_level_bt(tpcc_query * query) {
 			// row_t * r_orderline = (row_t *)item_orderline->location;
 			// row_t * r_orderline_local = get_row(r_orderline, RD);
 			// int64_t ol_i_id = *(int64_t *)r_orderline_local->get_value(OL_I_ID);
-            int64_t ol_i_id = item_orderline->item_id;
+			int64_t ol_i_id = item_orderline->item_id;
 			
 			if (item_ids.find(ol_i_id) == item_ids.end()) {
 				item_ids.insert(ol_i_id);
@@ -833,12 +833,12 @@ tpcc_txn_man::run_stock_level_bt(tpcc_query * query) {
 				item_stock = index_read(_wl->i_stock, stockKey(ol_i_id, w_id), wh_to_part(w_id));
 				row_t * r_stock = ((row_t *)item_stock->location);
 				
-                // position_n = r_stock - start_of_stock;
+				// position_n = r_stock - start_of_stock;
 				auto start_of_stock = _wl->t_stock->row_buffer;
 				auto position = r_stock - start_of_stock;
 
-                if (bv_quantity->getBit(position, _wl->bitmap_config) == 1)
-                    cnt_result++;
+				if (bv_quantity->getBit(position, _wl->bitmap_config) == 1)
+					cnt_result++;
 			}
 			item_orderline = item_orderline->next;
 		}

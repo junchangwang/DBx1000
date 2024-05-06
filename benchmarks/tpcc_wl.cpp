@@ -53,7 +53,7 @@ RC tpcc_wl::init()
 // 	config->show_memory = true;
 // 	config->on_disk = false;
 // 	config->showEB = false;
-//     config->decode = false;
+// 	config->decode = false;
 
 // 	// DBx1000 doesn't use the following parameters;
 // 	// they are used by nicolas.
@@ -63,21 +63,21 @@ RC tpcc_wl::init()
 // 	config->verbose = false;
 // 	config->time_out = 100;
 	
-// 	if (config->approach == "ub") {
-//         bitmap_c_w_id = new ub::Table(config);
-//     } else if (config->approach == "cubit-lk") {
-//         bitmap_c_w_id = new cubit_lk::CubitLK(config);
-//     } else if (config->approach == "cubit-lf" || config->approach =="cubit") {
-//         bitmap_c_w_id = new cubit_lf::CubitLF(config);
-//     } else if (config->approach == "ucb") {
-//         bitmap_c_w_id = new ucb::Table(config);
-//     } else if (config->approach == "naive") {
-//         bitmap_c_w_id = new naive::Table(config);
-//     }
-//     else {
-//         cerr << "Unknown approach." << endl;
-//         exit(-1);
-//     }
+	// if (config->approach == "ub") {
+	// 	bitmap_c_w_id = new ub::Table(config);
+	// } else if (config->approach == "cubit-lk") {
+	// 	bitmap_c_w_id = new cubit_lk::CubitLK(config);
+	// } else if (config->approach == "cubit-lf" || config->approach =="cubit") {
+	// 	bitmap_c_w_id = new cubit_lf::CubitLF(config);
+	// } else if (config->approach == "ucb") {
+	// 	bitmap_c_w_id = new ucb::Table(config);
+	// } else if (config->approach == "naive") {
+	// 	bitmap_c_w_id = new naive::Table(config);
+	// }
+	// else {
+	// 	cerr << "Unknown approach." << endl;
+	// 	exit(-1);
+	// }
 
 // 	cout << "[CUBIT]: Bitmap bitmap_c_w_id initialized successfully. "
 // 			<< "[Cardinality:" << config->g_cardinality
@@ -101,7 +101,7 @@ RC tpcc_wl::init_bitmap_s_quantity()
 	bitmap_config->show_memory = true;
 	bitmap_config->on_disk = false;
 	bitmap_config->showEB = false;
-    bitmap_config->decode = false;
+	bitmap_config->decode = false;
 	bitmap_config->encoding = EE;
 	bitmap_config->autoCommit = true;
 	bitmap_config->db_control = true;
@@ -134,7 +134,7 @@ RC tpcc_wl::init_bitmap_s_quantity()
 // 	config->show_memory = true;
 // 	config->on_disk = false;
 // 	config->showEB = false;
-//     config->decode = false;
+// 	config->decode = false;
 // 	config->encoding = EE;
 
 // 	// DBx1000 doesn't use the following parameters;
@@ -222,7 +222,7 @@ void tpcc_wl::init_tab_item() {
 		row->set_value(I_NAME, name);
 		row->set_value(I_PRICE, URand(1, 100, 0));
 		char data[50];
-    	MakeAlphaString(26, 50, data, 0);
+		MakeAlphaString(26, 50, data, 0);
 		// TODO in TPCC, "original" should start at a random position
 		if (RAND(10, 0) == 0) 
 			strcpy(data, "original");		
@@ -241,14 +241,14 @@ void tpcc_wl::init_tab_wh(uint32_t wid) {
 
 	row->set_value(W_ID, wid);
 	char name[10];
-    MakeAlphaString(6, 10, name, wid-1);
+	MakeAlphaString(6, 10, name, wid-1);
 	row->set_value(W_NAME, name);
 	char street[20];
-    MakeAlphaString(10, 20, street, wid-1);
+	MakeAlphaString(10, 20, street, wid-1);
 	row->set_value(W_STREET_1, street);
-    MakeAlphaString(10, 20, street, wid-1);
+	MakeAlphaString(10, 20, street, wid-1);
 	row->set_value(W_STREET_2, street);
-    MakeAlphaString(10, 20, street, wid-1);
+	MakeAlphaString(10, 20, street, wid-1);
 	row->set_value(W_CITY, street);
 	char state[2];
 	MakeAlphaString(2, 2, state, wid-1); /* State */
@@ -279,20 +279,20 @@ void tpcc_wl::init_tab_dist(uint64_t wid) {
 		MakeAlphaString(6, 10, name, wid-1);
 		row->set_value(D_NAME, name);
 		char street[20];
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(D_STREET_1, street);
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(D_STREET_2, street);
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(D_CITY, street);
 		char state[2];
 		MakeAlphaString(2, 2, state, wid-1); /* State */
 		row->set_value(D_STATE, state);
 		char zip[9];
-    	MakeNumberString(9, 9, zip, wid-1); /* Zip */
+		MakeNumberString(9, 9, zip, wid-1); /* Zip */
 		row->set_value(D_ZIP, zip);
-    	double tax = (double)URand(0L,200L,wid-1)/1000.0;
-    	double w_ytd=30000.00;
+		double tax = (double)URand(0L,200L,wid-1)/1000.0;
+		double w_ytd=30000.00;
 		row->set_value(D_TAX, tax);
 		row->set_value(D_YTD, w_ytd);
 		row->set_value(D_NEXT_O_ID, next_o_id);
@@ -383,17 +383,17 @@ void tpcc_wl::init_tab_cust(uint64_t did, uint64_t wid) {
 		MakeAlphaString(FIRSTNAME_MINLEN, sizeof(c_first), c_first, wid-1);
 		row->set_value(C_FIRST, c_first);
 		char street[20];
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(C_STREET_1, street);
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(C_STREET_2, street);
-        MakeAlphaString(10, 20, street, wid-1);
+		MakeAlphaString(10, 20, street, wid-1);
 		row->set_value(C_CITY, street); 
 		char state[2];
 		MakeAlphaString(2, 2, state, wid-1); /* State */
 		row->set_value(C_STATE, state);
 		char zip[9];
-    	MakeNumberString(9, 9, zip, wid-1); /* Zip */
+		MakeNumberString(9, 9, zip, wid-1); /* Zip */
 		row->set_value(C_ZIP, zip);
 		char phone[16];
   		MakeNumberString(16, 16, phone, wid-1); /* Zip */
@@ -402,7 +402,7 @@ void tpcc_wl::init_tab_cust(uint64_t did, uint64_t wid) {
 		row->set_value(C_CREDIT_LIM, 50000);
 		row->set_value(C_DELIVERY_CNT, 0);
 		char c_data[500];
-        MakeAlphaString(300, 500, c_data, wid-1);
+		MakeAlphaString(300, 500, c_data, wid-1);
 		row->set_value(C_DATA, c_data);
 #endif
 		if (RAND(10, wid-1) == 0) {
@@ -500,7 +500,7 @@ void tpcc_wl::init_tab_order(uint64_t did, uint64_t wid) {
 			}
 			row->set_value(OL_QUANTITY, 5);
 			char ol_dist_info[24];
-	        MakeAlphaString(24, 24, ol_dist_info, wid-1);
+			MakeAlphaString(24, 24, ol_dist_info, wid-1);
 			row->set_value(OL_DIST_INFO, ol_dist_info);
 			//printf("insert with key = %d\n", orderlineKey(wid, did, oid));
 			index_insert_orderline(i_orderline, orderlineKey(wid, did, oid), row, i_id);
