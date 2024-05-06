@@ -1,3 +1,4 @@
+#include "nbub/table.h"
 #include "global.h"
 #include "helper.h"
 #include "tpcc.h"
@@ -12,12 +13,15 @@
 #include "txn.h"
 #include "mem_alloc.h"
 #include "tpcc_const.h"
+#include <cstdint>
+#include <cstdio>
 
 RC tpcc_wl::init() 
 {
-#if TPCC_EVA_CUBIT
-	init_bitmap_c_w_id();
-#endif
+	// init_bitmap_c_w_id();
+	// init_bitmap_s_w_id();
+
+	init_bitmap_s_quantity();
 	workload::init();
 	string path = "./benchmarks/";
 #if TPCC_SMALL
@@ -34,53 +38,116 @@ RC tpcc_wl::init()
 	return RCOK;
 }
 
-RC tpcc_wl::init_bitmap_c_w_id( ) 
+// RC tpcc_wl::init_bitmap_c_w_id( ) 
+// {
+// 	Table_config *config = new Table_config{};
+// 	config->n_workers = g_thread_cnt;
+// 	config->DATA_PATH = "";
+// 	config->INDEX_PATH = "";
+// 	config->g_cardinality = g_num_wh * DIST_PER_WARE;
+// 	enable_fence_pointer = config->enable_fence_pointer = true;
+// 	INDEX_WORDS = 10000;  // Fence length 
+// 	config->approach = {"nbub-lk"};
+// //	config->approach = {"naive"};
+// 	config->nThreads_for_getval = 4;
+// 	config->show_memory = true;
+// 	config->on_disk = false;
+// 	config->showEB = false;
+//     config->decode = false;
+
+// 	// DBx1000 doesn't use the following parameters;
+// 	// they are used by nicolas.
+// 	config->n_rows = 0; 
+// 	config->n_queries = 900;
+// 	config->n_udis = 100;
+// 	config->verbose = false;
+// 	config->time_out = 100;
+	
+// 	if (config->approach == "ub") {
+//         bitmap_c_w_id = new ub::Table(config);
+//     } else if (config->approach == "nbub-lk") {
+//         bitmap_c_w_id = new nbub_lk::NbubLK(config);
+//     } else if (config->approach == "nbub-lf" || config->approach =="nbub") {
+//         bitmap_c_w_id = new nbub_lf::NbubLF(config);
+//     } else if (config->approach == "ucb") {
+//         bitmap_c_w_id = new ucb::Table(config);
+//     } else if (config->approach == "naive") {
+//         bitmap_c_w_id = new naive::Table(config);
+//     }
+//     else {
+//         cerr << "Unknown approach." << endl;
+//         exit(-1);
+//     }
+
+// 	cout << "[CUBIT]: Bitmap bitmap_c_w_id initialized successfully. "
+// 			<< "[Cardinality:" << config->g_cardinality
+// 			<< "] [Method:" << config->approach << "]" << endl;
+
+// 	return RCOK;
+// }
+
+RC tpcc_wl::init_bitmap_s_quantity()
 {
-	Table_config *config = new Table_config{};
-	config->n_workers = g_thread_cnt;
-	config->DATA_PATH = "";
-	config->INDEX_PATH = "";
-	config->g_cardinality = g_num_wh * DIST_PER_WARE;
-	enable_fence_pointer = config->enable_fence_pointer = true;
-	INDEX_WORDS = 10000;  // Fence length 
-	config->approach = {"nbub-lk"};
-//	config->approach = {"naive"};
-	config->nThreads_for_getval = 4;
-	config->show_memory = true;
-	config->on_disk = false;
-	config->showEB = false;
-    config->decode = false;
+	// quantity random over [10..100], threshold random within [10..20]
+	bitmap_config = new Table_config{};
+	bitmap_config->n_workers = g_thread_cnt;
+	bitmap_config->DATA_PATH = "";
+	bitmap_config->INDEX_PATH = "";
+	bitmap_config->g_cardinality = 11;
+	enable_fence_pointer = bitmap_config->enable_fence_pointer = true;
+	INDEX_WORDS = 1000;  // Fence length 
+	bitmap_config->approach = {"nbub-lk"};
+	bitmap_config->nThreads_for_getval = 4;
+	bitmap_config->show_memory = true;
+	bitmap_config->on_disk = false;
+	bitmap_config->showEB = false;
+    bitmap_config->decode = false;
+	bitmap_config->encoding = EE;
+	bitmap_config->autoCommit = true;
+	bitmap_config->db_control = true;
+	bitmap_config->n_merge_threshold = 20;
 
 	// DBx1000 doesn't use the following parameters;
 	// they are used by nicolas.
-	config->n_rows = 0; 
-	config->n_queries = 900;
-	config->n_udis = 100;
-	config->verbose = false;
-	config->time_out = 100;
+	bitmap_config->n_rows = 0; 
+	bitmap_config->n_queries = 900;
+	bitmap_config->n_udis = 100;
+	bitmap_config->verbose = false;
+	bitmap_config->time_out = 100;
 	
-	if (config->approach == "ub") {
-        bitmap_c_w_id = new ub::Table(config);
-    } else if (config->approach == "nbub-lk") {
-        bitmap_c_w_id = new nbub_lk::NbubLK(config);
-    } else if (config->approach == "nbub-lf" || config->approach =="nbub") {
-        bitmap_c_w_id = new nbub_lf::NbubLF(config);
-    } else if (config->approach == "ucb") {
-        bitmap_c_w_id = new ucb::Table(config);
-    } else if (config->approach == "naive") {
-        bitmap_c_w_id = new naive::Table(config);
-    }
-    else {
-        cerr << "Unknown approach." << endl;
-        exit(-1);
-    }
-
-	cout << "[CUBIT]: Bitmap bitmap_c_w_id initialized successfully. "
-			<< "[Cardinality:" << config->g_cardinality
-			<< "] [Method:" << config->approach << "]" << endl;
+	bitmap_s_quantity = new nbub_lk::NbubLK(bitmap_config);
 
 	return RCOK;
 }
+
+// RC tpcc_wl::init_bitmap_s_w_id()
+// {
+// 	Table_config *config = new Table_config{};
+// 	config->n_workers = g_thread_cnt;
+// 	config->DATA_PATH = "";
+// 	config->INDEX_PATH = "";
+// 	config->g_cardinality = g_num_wh * DIST_PER_WARE;
+// 	enable_fence_pointer = config->enable_fence_pointer = true;
+// 	INDEX_WORDS = 10000;  // Fence length 
+// 	config->approach = {"nbub-lk"};
+// 	config->nThreads_for_getval = 4;
+// 	config->show_memory = true;
+// 	config->on_disk = false;
+// 	config->showEB = false;
+//     config->decode = false;
+// 	config->encoding = EE;
+
+// 	// DBx1000 doesn't use the following parameters;
+// 	// they are used by nicolas.
+// 	config->n_rows = 0; 
+// 	config->n_queries = 900;
+// 	config->n_udis = 100;
+// 	config->verbose = false;
+// 	config->time_out = 100;
+	
+// 	bitmap_s_w_id = new nbub_lk::NbubLK(config);
+// }
+
 
 RC tpcc_wl::init_schema(const char * schema_file) {
 	workload::init_schema(schema_file);
@@ -101,6 +168,7 @@ RC tpcc_wl::init_schema(const char * schema_file) {
 	i_customer_id = indexes["CUSTOMER_ID_IDX"];
 	i_customers = indexes["CUSTOMERS_IDX"];
 	i_stock = indexes["STOCK_IDX"];
+	i_orderline = indexes["ORDERLINE_IDX"];
 	return RCOK;
 }
 
@@ -198,6 +266,7 @@ void tpcc_wl::init_tab_wh(uint32_t wid) {
 }
 
 void tpcc_wl::init_tab_dist(uint64_t wid) {
+	int64_t next_o_id = 3001;
 	for (uint64_t did = 1; did <= DIST_PER_WARE; did++) {
 		row_t * row;
 		uint64_t row_id;
@@ -226,7 +295,7 @@ void tpcc_wl::init_tab_dist(uint64_t wid) {
     	double w_ytd=30000.00;
 		row->set_value(D_TAX, tax);
 		row->set_value(D_YTD, w_ytd);
-		row->set_value(D_NEXT_O_ID, 3001);
+		row->set_value(D_NEXT_O_ID, next_o_id);
 		
 		index_insert(i_district, distKey(did, wid), row, wh_to_part(wid));
 	}
@@ -237,11 +306,12 @@ void tpcc_wl::init_tab_stock(uint64_t wid) {
 	for (UInt32 sid = 1; sid <= g_max_items; sid++) {
 		row_t * row;
 		uint64_t row_id;
-		t_stock->get_new_row(row, 0, row_id);
+		t_stock->get_new_row_seq(row, 0, row_id);
 		row->set_primary_key(sid);
 		row->set_value(S_I_ID, sid);
 		row->set_value(S_W_ID, wid);
-		row->set_value(S_QUANTITY, URand(10, 100, wid-1));
+		uint64_t quantity = URand(10, 100, wid-1);
+		row->set_value(S_QUANTITY, quantity);
 		row->set_value(S_REMOTE_CNT, 0);
 #if !TPCC_SMALL
 		char s_dist[25];
@@ -269,35 +339,24 @@ void tpcc_wl::init_tab_stock(uint64_t wid) {
 		row->set_value(S_DATA, s_data);
 #endif
 		index_insert(i_stock, stockKey(sid, wid), row, wh_to_part(wid));
+
+#if (TPCC_EVA_CUBIT)
+		nbub::Nbub * bitmap = dynamic_cast<nbub::Nbub *>(bitmap_s_quantity);
+
+		int quantity_idx = 0;	
+		if (quantity < 10) {
+			quantity_idx = 0;
+		} else if ( quantity < 20) {
+			quantity_idx = quantity - 10;
+		} else {
+			quantity_idx = 11;
+		}
+
+		for (int i = quantity_idx; i < 11; i++) {
+			bitmap->__init_append(0, row_id, i);
+		}
+#endif
 	}
-}
-
-void * tpcc_wl::threadInitWarehouse_sequential(void * This) {
-        tpcc_wl * wl = (tpcc_wl *) This;
-
-        for (int tid = 0; tid < g_num_wh; tid++) {
-                uint32_t wid = tid + 1;
-                tpc_buffer[tid] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
-                assert((uint64_t)tid < g_num_wh);
-                srand48_r(wid, tpc_buffer[tid]);
-
-                if (tid == 0) {
-                        wl->init_tab_item();
-                        // Thread 0 initialize the table Stock to avoid using latches in initializing.
-                        wl->t_stock->init_row_buffer(g_max_items * g_num_wh);
-                }
-                wl->init_tab_wh( wid );
-                wl->init_tab_dist( wid );
-                wl->init_tab_stock(wid);
-                for (uint64_t did = 1; did <= DIST_PER_WARE; did++) {
-                        wl->init_tab_cust(did, wid);
-                        wl->init_tab_order(did, wid);
-                        for (uint64_t cid = 1; cid <= g_cust_per_dist; cid++)
-                                wl->init_tab_hist(cid, did, wid);
-                }
-        }
-
-        return NULL;
 }
 
 void tpcc_wl::init_tab_cust(uint64_t did, uint64_t wid) {
@@ -363,17 +422,17 @@ void tpcc_wl::init_tab_cust(uint64_t did, uint64_t wid) {
 		key = custKey(cid, did, wid);
 		index_insert(i_customer_id, key, row, wh_to_part(wid));
 
-#if TPCC_EVA_CUBIT
 		key = distKey(did - 1, wid - 1);
 		index_insert(i_customers, key, row, wh_to_part(wid));
-		if (bitmap_c_w_id->config->approach == "naive" ) {
-			bitmap_c_w_id->append(0, key);
-		}
-		else if (bitmap_c_w_id->config->approach == "nbub-lk") {
-			nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_c_w_id);
-			bitmap->__init_append(0, key*g_cust_per_dist+(cid-1), key);
-		}
-#endif
+
+
+	//	if (bitmap_c_w_id->config->approach == "naive" ) {
+	//		bitmap_c_w_id->append(0, key);
+	//	}
+	//	else if (bitmap_c_w_id->config->approach == "nbub-lk") {
+	//		nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(bitmap_c_w_id);
+	//		bitmap->__init_append(0, key*g_cust_per_dist+(cid-1), key);
+	//	}
 	}
 }
 
@@ -429,7 +488,8 @@ void tpcc_wl::init_tab_order(uint64_t did, uint64_t wid) {
 			row->set_value(OL_D_ID, did);
 			row->set_value(OL_W_ID, wid);
 			row->set_value(OL_NUMBER, ol);
-			row->set_value(OL_I_ID, URand(1, 100000, wid-1));
+			uint64_t i_id = URand(1, 100000, wid-1);
+			row->set_value(OL_I_ID, i_id);
 			row->set_value(OL_SUPPLY_W_ID, wid);
 			if (oid < 2101) {
 				row->set_value(OL_DELIVERY_D, o_entry);
@@ -442,6 +502,8 @@ void tpcc_wl::init_tab_order(uint64_t did, uint64_t wid) {
 			char ol_dist_info[24];
 	        MakeAlphaString(24, 24, ol_dist_info, wid-1);
 			row->set_value(OL_DIST_INFO, ol_dist_info);
+			//printf("insert with key = %d\n", orderlineKey(wid, did, oid));
+			index_insert_orderline(i_orderline, orderlineKey(wid, did, oid), row, i_id);
 		}
 #endif
 		// NEW ORDER
@@ -489,16 +551,48 @@ void * tpcc_wl::threadInitWarehouse(void * This) {
 	assert((uint64_t)tid < g_num_wh);
 	srand48_r(wid, tpc_buffer[tid]);
 	
-	if (tid == 0)
+	if (tid == 0) {
 		wl->init_tab_item();
+		// Thread 0 initialize the table Stock to avoid using latches in initializing.
+		wl->t_stock->init_row_buffer(g_max_items * g_num_wh);
+		for (int i = 1; i <= g_num_wh; i++)
+			wl->init_tab_stock(i);
+	}
 	wl->init_tab_wh( wid );
 	wl->init_tab_dist( wid );
-	wl->init_tab_stock( wid );
 	for (uint64_t did = 1; did <= DIST_PER_WARE; did++) {
 		wl->init_tab_cust(did, wid);
 		wl->init_tab_order(did, wid);
 		for (uint64_t cid = 1; cid <= g_cust_per_dist; cid++) 
 			wl->init_tab_hist(cid, did, wid);
 	}
+	return NULL;
+}
+
+void * tpcc_wl::threadInitWarehouse_sequential(void * This) {
+	tpcc_wl * wl = (tpcc_wl *) This;
+
+	for (int tid = 0; tid < g_num_wh; tid++) {
+		uint32_t wid = tid + 1;
+		tpc_buffer[tid] = (drand48_data *) _mm_malloc(sizeof(drand48_data), 64);
+		assert((uint64_t)tid < g_num_wh);
+		srand48_r(wid, tpc_buffer[tid]);
+
+		if (tid == 0) {
+			wl->init_tab_item();
+			// Thread 0 initialize the table Stock to avoid using latches in initializing.
+			wl->t_stock->init_row_buffer(g_max_items * g_num_wh);
+		}
+		wl->init_tab_wh( wid );
+		wl->init_tab_dist( wid );
+		wl->init_tab_stock(wid);
+		for (uint64_t did = 1; did <= DIST_PER_WARE; did++) {
+			wl->init_tab_cust(did, wid);
+			wl->init_tab_order(did, wid);
+			for (uint64_t cid = 1; cid <= g_cust_per_dist; cid++) 
+				wl->init_tab_hist(cid, did, wid);
+		}
+	}
+
 	return NULL;
 }

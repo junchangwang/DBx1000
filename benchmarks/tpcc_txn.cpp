@@ -1,3 +1,7 @@
+#include "nbub/table.h"
+#include "fastbit/bitvector.h"
+#include "global.h"
+#include "helper.h"
 #include "tpcc.h"
 #include "tpcc_query.h"
 #include "tpc_helper.h"
@@ -9,6 +13,10 @@
 #include "index_hash.h"
 #include "index_btree.h"
 #include "tpcc_const.h"
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <vector>
 
 void tpcc_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 	txn_man::init(h_thd, h_wl, thd_id);
@@ -17,9 +25,6 @@ void tpcc_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 
 RC tpcc_txn_man::run_txn(int tid, base_query * query) {
 	tpcc_query * m_query = (tpcc_query *) query;
-#if TPCC_EVA_CUBIT && (TPCC_EVA_CUBIT == TPCC)
-	return evaluate_index(m_query);
-#else
 	switch (m_query->type) {
 		case TPCC_PAYMENT :
 			return run_payment(m_query); break;
@@ -28,91 +33,97 @@ RC tpcc_txn_man::run_txn(int tid, base_query * query) {
 /*		case TPCC_ORDER_STATUS :
 			return run_order_status(m_query); break;
 		case TPCC_DELIVERY :
-			return run_delivery(m_query); break;
+			return run_delivery(m_query); break;*/
 		case TPCC_STOCK_LEVEL :
-			return run_stock_level(m_query); break;*/
+	#if (TPCC_EVA_CUBIT)
+			return run_stock_level_bt(m_query); break;
+	#else
+			return run_stock_level(m_query); break;
+	#endif
 		default:
 			assert(false);
 	}
-#endif
+	// The following althernative path is used to evaluate the customer-list sub-query
+	// described in the paper.
+	// return evaluate_index(m_query);
 }
 
-RC tpcc_txn_man::evaluate_index(tpcc_query * query) 
-{
-	RC rc = RCOK;
-	itemid_t * item;
+// RC tpcc_txn_man::evaluate_index(tpcc_query * query) 
+// {
+// 	RC rc = RCOK;
+// 	itemid_t * item;
 
-	// m_lock is used to sequentially debug and execute evaluate_index()
-	// to evaluate CUBIT. It can be removed in real code.
-	static std::mutex m_lock;
-	std::lock_guard<std::mutex> gard(m_lock);
+// 	// m_lock is used to sequentially debug and execute evaluate_index()
+// 	// to evaluate CUBIT. It can be removed in real code.
+// 	static std::mutex m_lock;
+// 	std::lock_guard<std::mutex> gard(m_lock);
 
-	// Assume the query arguments specified by the programmer.
-	uint64_t c_w_id = 0;
-	uint64_t c_d_id = 4;
-	std::string t_last = "OUGHTESEPRI";
+// 	// Assume the query arguments specified by the programmer.
+// 	uint64_t c_w_id = 0;
+// 	uint64_t c_d_id = 4;
+// 	std::string t_last = "OUGHTESEPRI";
 
-	/*==========================================================+
-		To evaluate CUBIT, we perform the following query:
+// 	/*==========================================================+
+// 		To evaluate CUBIT, we perform the following query:
 
-		EXEC SQL SELECT c_id INTO :c_ids
-		FROM customer
-		WHERE c_d_id=:c_d_id AND c_w_id=:c_w_id;
+// 		EXEC SQL SELECT c_id INTO :c_ids
+// 		FROM customer
+// 		WHERE c_d_id=:c_d_id AND c_w_id=:c_w_id;
 
-		which is a notable sub query of use cases such as the following
+// 		which is a notable sub query of use cases such as the following
 
-		EXEC SQL SELECT count(c_id) INTO :namecnt
-		FROM customer
-		WHERE c_last=:c_last AND c_d_id=:c_d_id AND c_w_id=:c_w_id;
-	+==========================================================*/
+// 		EXEC SQL SELECT count(c_id) INTO :namecnt
+// 		FROM customer
+// 		WHERE c_last=:c_last AND c_d_id=:c_d_id AND c_w_id=:c_w_id;
+// 	+==========================================================*/
 
-	int cnt = 0;
-	int tmp = 0;
-	uint64_t key = distKey(c_d_id, c_w_id);
-	INDEX * index = _wl->i_customers;
-	item = index_read(index, key, wh_to_part(query->c_w_id));
-	assert(item != NULL);
+// 	int cnt = 0;
+// 	int tmp = 0;
+// 	uint64_t key = distKey(c_d_id, c_w_id);
+// 	INDEX * index = _wl->i_customers;
+// 	item = index_read(index, key, wh_to_part(query->c_w_id));
+// 	assert(item != NULL);
 
-	auto start = std::chrono::high_resolution_clock::now();
-	for (tmp = 0; item; tmp++) {
-		row_t *r_cust = ((row_t *)item->location);
-		row_t *r_cust_local = get_row(r_cust, RD);
-		if (r_cust_local == NULL) {
-			return RCOK;
-		}
+// 	auto start = std::chrono::high_resolution_clock::now();
+// 	for (tmp = 0; item; tmp++) {
+// 		row_t *r_cust = ((row_t *)item->location);
+// 		row_t *r_cust_local = get_row(r_cust, RD);
+// 		if (r_cust_local == NULL) {
+// 			return RCOK;
+// 		}
 
-		// For a fair comparasion, we don't touch the memory of the tuple
-		// to avoid cache misses.
+// 		// For a fair comparasion, we don't touch the memory of the tuple
+// 		// to avoid cache misses.
 
-		// char c_last[LASTNAME_LEN];
-		// char *tmp_str = r_cust_local->get_value(C_LAST);
-		// memcpy(c_last, tmp_str, LASTNAME_LEN-1);
-		// c_last[LASTNAME_LEN-1] = '\0';
+// 		// char c_last[LASTNAME_LEN];
+// 		// char *tmp_str = r_cust_local->get_value(C_LAST);
+// 		// memcpy(c_last, tmp_str, LASTNAME_LEN-1);
+// 		// c_last[LASTNAME_LEN-1] = '\0';
 
-		// if (!strcmp(t_last.c_str(), c_last)) {
-		// 	cnt ++;
-		// }
+// 		// if (!strcmp(t_last.c_str(), c_last)) {
+// 		// 	cnt ++;
+// 		// }
 
-		item = item->next;
-	}
-	auto end = std::chrono::high_resolution_clock::now();
-	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "HashTable: Loop times: " << tmp << ". Found string times: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
-	cout << "Memory concumption (Bytes): " << index->index_size() << endl;
+// 		item = item->next;
+// 	}
+// 	auto end = std::chrono::high_resolution_clock::now();
+// 	long  long time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+// 	cout << "HashTable: Loop times: " << tmp << ". Found string times: " << cnt << ". Microseconds: " << time_elapsed_ms << endl;
+// 	cout << "Memory concumption (Bytes): " << index->index_size() << endl;
 
-	start = std::chrono::high_resolution_clock::now();
-	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_c_w_id);
-	tmp = bitmap->evaluate(0, key);
-	tmp = bitmap->bitmaps[key]->btv->count();
-	end = std::chrono::high_resolution_clock::now();
-	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout << "Bitmap: Loop times: " << tmp << ". Found string times: " << cnt << 
-			". Microseconds: " << time_elapsed_ms << ". Memory concumption (Bytes): " << endl;
-	dynamic_cast<nbub_lk::NbubLK *>(bitmap)->printMemory();
+// 	start = std::chrono::high_resolution_clock::now();
+// 	nbub::Nbub *bitmap = dynamic_cast<nbub::Nbub *>(_wl->bitmap_c_w_id);
+// 	tmp = bitmap->evaluate(0, key);
+// 	tmp = bitmap->bitmaps[key]->btv->count();
+// 	end = std::chrono::high_resolution_clock::now();
+// 	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+// 	cout << "Bitmap: Loop times: " << tmp << ". Found string times: " << cnt << 
+// 			". Microseconds: " << time_elapsed_ms << ". Memory concumption (Bytes): " << endl;
+// 	dynamic_cast<nbub_lk::NbubLK *>(bitmap)->printMemory();
 
-	exit(rc);
-	return rc;
-}
+// 	exit(rc);
+// 	return rc;
+// }
 
 
 RC tpcc_txn_man::run_payment(tpcc_query * query) {
@@ -462,6 +473,7 @@ RC tpcc_txn_man::run_new_order(tpcc_query * query) {
 		index_read(stock_index, stock_key, wh_to_part(ol_supply_w_id), stock_item);
 		assert(item != NULL);
 		row_t * r_stock = ((row_t *)stock_item->location);
+		uint64_t row_id = r_stock - _wl->t_stock->row_buffer;
 		row_t * r_stock_local = get_row(r_stock, WR);
 		if (r_stock_local == NULL) {
 			return finish(Abort);
@@ -493,6 +505,17 @@ RC tpcc_txn_man::run_new_order(tpcc_query * query) {
 			quantity = s_quantity - ol_quantity + 91;
 		}
 		r_stock_local->set_value(S_QUANTITY, &quantity);
+    	nbub::Nbub* bt_quantity = dynamic_cast<nbub::Nbub *>(_wl->bitmap_s_quantity);
+
+		int quantity_idx = 0;	
+		if (quantity < 10) {
+			quantity_idx = 0;
+		} else {
+			quantity_idx = quantity - 10;
+		} 
+
+		if (quantity_idx < 11)
+			bt_quantity->update(/*tid*/ 0, row_id, quantity_idx);
 
 		/*====================================================+
 		EXEC SQL INSERT
@@ -708,5 +731,123 @@ tpcc_txn_man::run_delivery(tpcc_query * query) {
 
 RC 
 tpcc_txn_man::run_stock_level(tpcc_query * query) {
-	return RCOK;
+	RC rc = RCOK;
+	itemid_t *item_dist;
+	uint64_t item_cnt = 0;
+
+	uint64_t w_id = query->w_id;
+	uint64_t d_id = query->d_id;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	item_dist = index_read(_wl->i_district, distKey(d_id, w_id), wh_to_part(w_id));
+	assert(item_dist);
+	row_t * r_dist = ((row_t *)item_dist->location);
+	row_t * r_dist_local = get_row(r_dist, RD);
+	if (r_dist_local == NULL) {
+		return finish(Abort);
+	}
+	assert (*(int64_t *)r_dist_local->get_value(D_W_ID) == w_id);
+
+	int64_t next_o_id = *(int64_t *) r_dist_local->get_value(D_NEXT_O_ID);	
+
+	std::set<int64_t> item_ids;
+	itemid_t *item_orderline;
+
+	for (int64_t o_id = (next_o_id-20) > 0 ? (next_o_id-20) : 0; o_id < next_o_id; o_id++) {
+		//printf("read with key = %d\n", orderlineKey(w_id, d_id, o_id));
+		item_orderline = index_read(_wl->i_orderline, orderlineKey(w_id, d_id, o_id), wh_to_part(w_id));
+		while (item_orderline != NULL) {
+			row_t * r_orderline = (row_t *)item_orderline->location;
+			row_t * r_orderline_local = get_row(r_orderline, RD);
+			int64_t ol_i_id = *(int64_t *)r_orderline_local->get_value(OL_I_ID);
+			
+			if (item_ids.find(ol_i_id) == item_ids.end()) {
+				item_ids.insert(ol_i_id);
+
+				itemid_t *item_stock;
+				item_stock = index_read(_wl->i_stock, stockKey(ol_i_id, w_id), wh_to_part(w_id));
+				row_t * r_stock = ((row_t *)item_stock->location);
+				row_t * r_stock_local = get_row(r_stock, RD);
+
+				int64_t s_quantity = *(int64_t *)r_stock_local->get_value(S_QUANTITY);
+				if (s_quantity < query->threshold_stock) {
+					item_cnt++;
+				}
+			}
+			item_orderline = item_orderline->next;
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	double time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+	printf("cnt=%lu, threshold=%lu, d_id=%lu, w_id=%lu, time(ms)=%.2f\n", item_cnt, query->threshold_stock, d_id, w_id, time_elapsed_us/1000);
+
+	return finish(rc);
+}
+
+RC 
+tpcc_txn_man::run_stock_level_bt(tpcc_query * query) {
+	RC rc = RCOK;
+	itemid_t *item_dist;
+	uint64_t item_cnt = 0;
+
+	uint64_t w_id = query->w_id;
+	uint64_t d_id = query->d_id;
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+    nbub::Nbub* bt_quantity = dynamic_cast<nbub::Nbub *>(_wl->bitmap_s_quantity);
+	ibis::bitvector* bv_quantity = bt_quantity->bitmaps[query->threshold_stock-10]->btv;
+    auto cnt_result = 0;
+
+	item_dist = index_read(_wl->i_district, distKey(d_id, w_id), wh_to_part(w_id));
+	assert(item_dist);
+	row_t * r_dist = ((row_t *)item_dist->location);
+	row_t * r_dist_local = get_row(r_dist, RD);
+	if (r_dist_local == NULL) {
+		return finish(Abort);
+	}
+	assert (*(int64_t *)r_dist_local->get_value(D_W_ID) == w_id);
+
+	int64_t next_o_id = *(int64_t *) r_dist_local->get_value(D_NEXT_O_ID);	
+
+	std::set<int64_t> item_ids;
+	itemid_t *item_orderline;
+
+	for (int64_t o_id = (next_o_id-20) > 0 ? (next_o_id-20) : 0; o_id < next_o_id; o_id++) {
+		//printf("read with key = %d\n", orderlineKey(w_id, d_id, o_id));
+		item_orderline = index_read(_wl->i_orderline, orderlineKey(w_id, d_id, o_id), wh_to_part(w_id));
+
+		while (item_orderline != NULL) {
+			// row_t * r_orderline = (row_t *)item_orderline->location;
+			// row_t * r_orderline_local = get_row(r_orderline, RD);
+			// int64_t ol_i_id = *(int64_t *)r_orderline_local->get_value(OL_I_ID);
+            int64_t ol_i_id = item_orderline->item_id;
+			
+			if (item_ids.find(ol_i_id) == item_ids.end()) {
+				item_ids.insert(ol_i_id);
+
+				itemid_t *item_stock;
+				item_stock = index_read(_wl->i_stock, stockKey(ol_i_id, w_id), wh_to_part(w_id));
+				row_t * r_stock = ((row_t *)item_stock->location);
+				
+                // position_n = r_stock - start_of_stock;
+				auto start_of_stock = _wl->t_stock->row_buffer;
+				auto position = r_stock - start_of_stock;
+
+                if (bv_quantity->getBit(position, _wl->bitmap_config) == 1)
+                    cnt_result++;
+			}
+			item_orderline = item_orderline->next;
+		}
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	double time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+
+	printf("cnt=%d, threshold=%lu, d_id=%lu, w_id=%lu, time(ms)=%.2f\n", cnt_result, query->threshold_stock, d_id, w_id, time_elapsed_us/1000);
+
+	return finish(rc);
 }

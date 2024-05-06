@@ -109,6 +109,7 @@ extern UInt32 g_init_parallelism;
 // TPCC
 extern UInt32 g_num_wh;
 extern double g_perc_payment;
+extern double g_perc_neworder;
 extern bool g_wh_update;
 extern char * output_file;
 extern UInt32 g_max_items;
@@ -154,7 +155,7 @@ typedef uint64_t (*func_ptr)(idx_key_t);	// part_id func_ptr(index_key);
 /* general concurrency control */
 enum access_t {RD, WR, XP, SCAN, DEL};
 /* LOCK */
-enum lock_t {LOCK_EX, LOCK_SH, LOCK_NONE };
+enum lock_t {LOCK_EXC, LOCK_SHA, LOCK_NONE };
 /* TIMESTAMP */
 enum TsType {R_REQ, W_REQ, P_REQ, XP_REQ, D_REQ}; 
 

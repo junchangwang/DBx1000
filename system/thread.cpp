@@ -55,7 +55,9 @@ RC thread_t::run() {
 	rc = _wl->get_txn_man(m_txn, this);
 	assert (rc == RCOK);
 	glob_manager->set_txn_man(m_txn);
+#if WORKLOAD == CHBench
 	sleep(2);
+#endif
 
 	base_query * m_query = NULL;
 	uint64_t thd_txn_id = 0;
@@ -226,7 +228,7 @@ RC thread_t::run() {
 	    if (_wl->sim_done) {
    		    return FINISH;
    		}
-		cout <<"txns : " << txn_cnt << endl;
+		// cout <<"txns : " << txn_cnt << endl;
 	}
 	assert(false);
 }

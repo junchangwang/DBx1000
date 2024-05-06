@@ -221,8 +221,6 @@ void Stats::print() {
 		);
 		fclose(outf);
 	}
-
-#if (WORKLOAD == TPCH)
 	printf("[summary] txn_cnt=%ld, abort_cnt=%ld"
 		", run_time=%f, time_wait=%f, time_ts_alloc=%f"
 		", time_man=%f, time_index=%f, time_abort=%f, time_cleanup=%f, latency=%f"
@@ -249,6 +247,8 @@ void Stats::print() {
 		total_debug4, // / BILLION,
 		total_debug5  // / BILLION 
 	);
+
+#if (WORKLOAD == TPCH) & (TPCH_EVA_CUBIT)
 	printf("\n*************** Throughput output****************\n");
 	printf("ThroughputScan %f\n", total_scan_Q6_txn_cnt / (total_scan_run_time / BILLION) * g_thread_cnt);
 	printf("ThroughputHash %f\n", total_hash_Q6_txn_cnt / (total_hash_run_time / BILLION) * g_thread_cnt);
