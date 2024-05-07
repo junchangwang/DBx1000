@@ -143,13 +143,13 @@ int main(int argc, char* argv[])
 			int begin = i * WORKERS_PER_MERGE_TH;
 			int range = WORKERS_PER_MERGE_TH;
 			cout << "[CUBIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
-			merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config);
+			merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config, &bitmap_mutex);
 		}
 		if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
 			int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
 			int range = (config->n_workers % WORKERS_PER_MERGE_TH);
 			cout << "[CUBIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
-			merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config);
+			merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config, &bitmap_mutex);
 			n_merge_ths ++;
 		}
 		cout << "[CUBIT]: Creating " << n_merge_ths << " merging threads" << endl;
@@ -294,13 +294,13 @@ void merge_start(BaseTable *bitmap, Table_config *config, std::thread *merge_ths
 		int begin = i * WORKERS_PER_MERGE_TH;
 		int range = WORKERS_PER_MERGE_TH;
 		cout << "[CUBIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
-		merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config);
+		merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config, &bitmap_mutex);
 	}
 	if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
 		int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
 		int range = (config->n_workers % WORKERS_PER_MERGE_TH);
 		cout << "[CUBIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
-		merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config);
+		merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config, &bitmap_mutex);
 		n_merge_ths ++;
 	}
 	cout << "[CUBIT]: Creating " << n_merge_ths << " merging threads" << endl;
