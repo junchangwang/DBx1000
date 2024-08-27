@@ -14,8 +14,11 @@
 #include "chbench_const.h"
 #include "output_log.h"
 #include "Date.h"
-
+#include "perf.h"
 using namespace cubit;
+#define WAIT_FOR_PERF_U (1000 * 50)
+
+extern bool perf_enabled;
 
 extern 	CHBenchQuery query_number;
 int new_order_numbers;
@@ -124,6 +127,8 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 				return run_Q6_bitmap_parallel(tid, m_query);
 			}
 			return run_Q6_bitmap(tid, m_query); break;
+		case CHBENCH_Q6_BITMAP_PARALLEL :
+			return run_Q6_bitmap_parallel(tid, m_query);
 		case CHBENCH_Q6_BWTREE :
 			return run_Q6_bwtree(tid, m_query); break;
 		case CHBENCH_Q6_ART :
@@ -140,6 +145,8 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 			return run_Q1_bwtree(tid, m_query); break;
 		case CHBENCH_Q1_ART :
 			return run_Q1_art(tid, m_query); break;
+		case CHBENCH_VERIFY_TABLE :
+			return run_test_table(tid, m_query); break;
 		default:
 			assert(false);
 	}
@@ -1098,7 +1105,7 @@ RC chbench_txn_man::run_Q6_scan(int tid, chbench_query * query) {
 	for (auto &thread : threads) {
 		thread.join();
 	}
-
+	auto read_end = std::chrono::high_resolution_clock::now();
 	for (auto &result : results) {
 		revenue += std::get<0>(result);
 		cnt += std::get<1>(result);
@@ -1106,13 +1113,13 @@ RC chbench_txn_man::run_Q6_scan(int tid, chbench_query * query) {
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long  long time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-
+	long  long read_time = std::chrono::duration_cast<std::chrono::microseconds>(read_end-start).count();
 //	if (perf_enabled == true && tid == 0) {
 //		kill_perf_process(perf_pid);
 //		usleep(WAIT_FOR_PERF_U);
 //	}
 
-	string tmp = "Q6 SCAN-Paral(ms): " + to_string(time_elapsed_us/1000) + "\n";
+	string tmp = "Q6 SCAN-Paral(ms): " + to_string(time_elapsed_us/1000)+"\t\t"+"read_time:"+to_string(read_time/1000)+"\t\t\t"+"count_time(ms):"+to_string((time_elapsed_us-read_time)/1000) +"\t\t"+"nums:"+to_string(cnt)+"\t\t"+"revenue:"+to_string(revenue) +"\n";
 	output_info[tid].push_back(tmp);
 	assert(rc == RCOK);
 	return finish(rc);
@@ -1212,7 +1219,7 @@ RC chbench_txn_man::run_Q6_btree(int tid, chbench_query * query) {
 	auto end = std::chrono::high_resolution_clock::now();
 	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
-	string tmp = "Q6 BTree(ms): " + to_string(total_us/1000) + " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(cnt) + "\n";
+	string tmp = "Q6 BTree(ms): " + to_string(total_us/1000)+"\t\t" + "index_read(ms): " + to_string(index_us/1000)+"\t\t" +"count_time(ms):"+to_string((total_us-index_us)/1000)+"\t\t"+"nums:"+to_string(cnt)+ "\t\t"+"revenue:"+to_string(revenue)+"\n";
 	output_info[tid].push_back(tmp);
 	
 
@@ -1290,7 +1297,7 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 	auto end = std::chrono::high_resolution_clock::now();
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
-	string tmp = "Q6 Bitmap (ms): " + to_string(total_us/1000)+ " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(cnt) + "\n";
+	string tmp = "Q6 Bitmap (ms): " + to_string(total_us/1000)+ "\t\t"+"index_read(ms): " + to_string(index_us/1000)+"\t\t"+"count_time(ms):"+to_string((total_us-index_us)/1000)+"\t\t" + "nums: " + to_string(cnt)+"\t\t" +"revenue:"+to_string(revenue) +"\n";
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
@@ -1427,7 +1434,7 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query) {
 			}
 		}
 	}
-
+	auto index_end = std::chrono::high_resolution_clock::now();
 	// parallel fetch
 	int n_threads = bitmap_dd->config->nThreads_for_getval;
 	assert(bitmap_dd->config->nThreads_for_getval == CHBENCH_Q6_SCAN_THREADS);
@@ -1458,8 +1465,9 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query) {
 
 	auto end = std::chrono::high_resolution_clock::now();
 	long long total_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	long long index_us = std::chrono::duration_cast<std::chrono::microseconds>(index_end-start).count();
 
-	string tmp = "Q6 Bitmap-Parallel(ms): " + to_string(total_us/1000) + " nums: " + to_string(cnt) + "\n";
+	string tmp = "Q6 Bitmap-Parallel(ms):" + to_string(total_us/1000)+"\t"+"index_time(ms):"+to_string(index_us/1000)+"\t\t"+"count_time(ms):"+to_string((total_us-index_us)/1000)+"\t\t" + "nums: " + to_string(cnt)+"\t\t"+"revenue:"+to_string(revenue) + "\n";
 	output_info[tid].push_back(tmp);
 
 	delete [] ids;
@@ -1482,11 +1490,19 @@ RC chbench_txn_man::run_Q6_bwtree(int tid, chbench_query * query)
 	row_t* current_row;
 
 	long long total_us = (long long)0;
+	long long index_read_time=(long long)0;
 	vector<itemid_t *> item_list{};
 
 	index_bwtree *index = _wl->i_Q6_bwtree;
 
 	auto start = std::chrono::high_resolution_clock::now();
+	auto index_read_start = std::chrono::high_resolution_clock::now();
+
+	int perf_pid;
+	if (perf_enabled == true && tid == 0) {
+		perf_pid = gen_perf_process((char *)"BWTREE");
+		usleep(WAIT_FOR_PERF_U);
+	}
 
 	index->AssignGCID(tid);
 	Date r_date(max_delivery_d / 10000, (max_delivery_d % 10000) / 100, max_delivery_d % 100);
@@ -1507,6 +1523,11 @@ RC chbench_txn_man::run_Q6_bwtree(int tid, chbench_query * query)
 	}
 	index->UnregisterThread(tid);
 
+	if (perf_enabled == true && tid == 0) {
+		kill_perf_process(perf_pid);
+	}
+	auto index_read_end = std::chrono::high_resolution_clock::now();
+
 	for (auto const &local_item : item_list)
 	{
 		row_t * r_lt = ((row_t *)local_item->location);
@@ -1525,8 +1546,9 @@ RC chbench_txn_man::run_Q6_bwtree(int tid, chbench_query * query)
 
 	auto end = std::chrono::high_resolution_clock::now();
 	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+	index_read_time=std::chrono::duration_cast<std::chrono::microseconds>(index_read_end - index_read_start).count();
 
-	string tmp = "Q6 BWTree(ms): " + to_string(total_us/1000) + "\n";
+	string tmp = "Q6 BWTree(ms): " + to_string(total_us/1000)+"\t\t"+"index_read(ms):"+to_string(index_read_time/1000)+"\t\t"+"count_time(ms):"+to_string((total_us-index_read_time)/1000)+"\t\t"+"nums:"+to_string(cnt)+"\t\t"+"revenue:"+to_string(revenue)+"\n";
 	output_info[tid].push_back(tmp);
 	
 	assert(rc == RCOK);
@@ -1601,7 +1623,7 @@ RC chbench_txn_man::run_Q6_art(int tid, chbench_query * query) {
 	auto end = std::chrono::high_resolution_clock::now();
 	total_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
-	string tmp = "Q6 ART(ms): " + to_string(total_us/1000) + " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(cnt) + "\n";
+	string tmp = "Q6 ART(ms): " + to_string(total_us/1000) +"\t\t\t"+ "index_read(ms): " + to_string(index_us/1000)+"\t\t" +"count_time(ms):"+to_string((total_us-index_us)/1000)+"\t\t"+ "nums:" + to_string(cnt)+"\t\t" +"revenue:"+to_string(revenue) +"\n";
 	output_info[tid].push_back(tmp);
 	
 	delete item_list;
@@ -2190,6 +2212,51 @@ RC chbench_txn_man::run_Q1_art(int tid, chbench_query * query) {
 	output_info[tid].push_back(tmp);
 	
 
+	assert(rc == RCOK);
+	return finish(rc);
+}
+
+RC chbench_txn_man::run_test_table(int tid,chbench_query * query){
+	RC rc = RCOK;
+	uint64_t start_row=0;
+	uint64_t end_row=(uint64_t)_wl->t_orderline->cur_tab_size;
+	uint64_t end_row_10=10;
+	row_t* current_row;
+	row_t* order_row;
+	for(uint64_t row_id = start_row; row_id < end_row_10; row_id++) {
+		cout<<row_id<<endl;
+		current_row = (row_t*) &(_wl->t_orderline->row_buffer[row_id]);
+		assert(current_row != NULL);
+		row_t* row_local = get_row(current_row, SCAN);
+		if(row_local == NULL) {
+			continue;
+		}
+		order_row=(row_t*) &(_wl->t_order->row_buffer[row_id]);
+		assert(current_row != NULL);
+		row_t* order_local=get_row(order_row,SCAN);
+		if(order_row==NULL){
+			continue;
+		}
+		uint64_t ol_o_id;
+		uint64_t ol_w_id;
+		uint64_t ol_d_id;
+		uint64_t ol_i_id;
+		uint64_t ol_number;
+		double ol_amount;
+		row_local->get_value(OL_O_ID,ol_o_id);
+		row_local->get_value(OL_W_ID,ol_w_id);
+		row_local->get_value(OL_D_ID,ol_d_id);
+		row_local->get_value(OL_I_ID,ol_i_id);
+		row_local->get_value(OL_NUMBER,ol_number);
+		cout<<ol_o_id<<"---"<<ol_w_id<<"---"<<ol_d_id<<"---"<<ol_number<<endl;
+		uint64_t o_id;
+		uint64_t o_w_id;
+		uint64_t o_d_id;
+		order_local->get_value(O_ID,o_id);
+		order_local->get_value(O_W_ID,o_w_id);
+		order_local->get_value(O_D_ID,o_d_id);
+		cout<<o_id<<"---"<<o_w_id<<"---"<<o_d_id<<"---"<<endl;
+	}
 	assert(rc == RCOK);
 	return finish(rc);
 }

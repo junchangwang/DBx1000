@@ -139,11 +139,11 @@ RC tpch_txn_man::run_Q6_scan(int tid, tpch_query * query) {
 	itemid_t * item;
 	int cnt = 0;
 	
-//	int perf_pid;
-//	if (perf_enabled == true && tid == 0) {
-//		perf_pid = gen_perf_process((char *)"SCAN");
-//		usleep(WAIT_FOR_PERF_U);
-//	}
+	int perf_pid;
+	if (perf_enabled == true && tid == 0) {
+		perf_pid = gen_perf_process((char *)"SCAN");
+		usleep(WAIT_FOR_PERF_U);
+	}
 
 	struct scan_block {
 		void operator()(tpch_txn_man *obj, tpch_query *query, table_t *table, uint64_t row_start, uint64_t row_end, std::tuple<double, int> &result) {

@@ -8,6 +8,7 @@ output
 graphs_*
 dat_*
 bm_*
+output_*
 perf.output.*
 perf.data*
 perf.*

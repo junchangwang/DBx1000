@@ -61,7 +61,8 @@ RC index_art::init(uint64_t part_cnt) {
                 roots[i] = new ART_OLC::Tree{loadKey_chbenchq6};
             }
         }
-        assert(roots[i]);
+        if(CHBENCH_QUERY_TYPE != CHBenchQuery::CHBenchTest)
+            assert(roots[i]);
     }
     return RCOK;
 }

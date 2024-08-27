@@ -191,4 +191,24 @@ enum {
 	S_REMOTE_CNT,
 	S_DATA
 };
+enum{
+	S_SUPPKEY,
+	S_NAME,
+	S_ADDRESS,
+	S_PHONE,
+	S_ACCTBAL,
+	S_COMMENT,
+	S_NATIONKEY
+};
+enum{
+	N_NATIONKEY,
+	N_NAME,
+	N_REGIONKEY,
+	N_COMMENT
+};
+enum{
+	R_REGIONKEY,
+	R_NAME,
+	R_COMMENT
+};
 #endif

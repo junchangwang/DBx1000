@@ -39,6 +39,7 @@ RC chbench_wl::init()
 	init_schema( path.c_str() );
 	cout << "CHBENCH schema initialized" << endl;
 	t_orderline->init_row_buffer(g_cust_per_dist * g_num_wh * 150 + 51200 * g_thread_cnt * 15);
+	t_order->init_row_buffer(g_cust_per_dist * g_num_wh * 150);
 	init_table();
 	next_tid = 0;
 
@@ -170,6 +171,9 @@ RC chbench_wl::init_schema(const char * schema_file) {
 	t_orderline = tables["ORDER-LINE"];
 	t_item = tables["ITEM"];
 	t_stock = tables["STOCK"];
+	t_supplier=tables["SUPPLIER"];
+	t_nation=tables["NATION"];
+	t_region=tables["REGION"];
 
 	i_item = indexes["ITEM_IDX"];
 	i_warehouse = indexes["WAREHOUSE_IDX"];
@@ -180,6 +184,9 @@ RC chbench_wl::init_schema(const char * schema_file) {
 	i_stock = indexes["STOCK_IDX"];
 	i_orderline = indexes["ORDERLINE_IDX"];
 	i_orderline_d = indexes["ORDERLINE_IDX_D"];
+	i_supplier=indexes["SUPPLIER_IDX"];
+	i_nation=indexes["NATION_IDX"];
+	i_region=indexes["REGION_IDX"];
 
 	string tname("ORDER-LINE");
 	int part_cnt = (CENTRAL_INDEX)? 1 : g_part_cnt;
@@ -503,7 +510,7 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 	for (UInt32 oid = 1; oid <= g_cust_per_dist; oid++) {
 		row_t * row;
 		uint64_t row_id;
-		t_order->get_new_row(row, wh_to_part(wid), row_id);
+		t_order->get_new_row_seq(row, wh_to_part(wid), row_id);
 		row->set_primary_key(oid);
 		uint64_t o_ol_cnt = 1;
 		uint64_t cid = perm[oid - 1]; //get_permutation();
@@ -545,7 +552,8 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 			int64_t ol_quantity = (int64_t)URand(1, 25000, wid-1);
 			if (oid < 2101) {
 				row->set_value(OL_DELIVERY_D, o_entry);
-				row->set_value(OL_AMOUNT, (double)0);
+				// row->set_value(OL_AMOUNT, (double)0);
+				row->set_value(OL_AMOUNT, (double)URand(1, 999999, wid-1)/100);
 				key = chbenchQ6Key(ol_quantity, o_entry);
 				if(ol == 1 && o_entry >= 20070102) {
 					ATOM_ADD(cnt_q1_number1, 1);
@@ -584,6 +592,14 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 					case CHBenchQueryMethod::ART_METHOD :
 						primary_key += ol;
 						tree_insert((INDEX*)i_Q1_art, (INDEX*)i_Q6_art, o_entry, key, row, primary_key);
+						break;
+					case CHBenchQueryMethod::ALL_METHOD :
+						primary_key += ol;
+						index_insert_with_primary_key((INDEX *)i_Q6_art, key, primary_key, row, 0);
+						index_insert((INDEX*)i_orderline, key, row, 0);
+						i_Q6_bwtree->AssignGCID(wid - 1);
+						index_insert((INDEX*)i_Q6_bwtree, key, row, 0);
+						i_Q6_bwtree->UnregisterThread(wid - 1);
 						break;
 				}
 			}
@@ -631,6 +647,73 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 	}
 }
 
+void chbench_wl::init_tab_region(){
+	const char* name[] = {"Africa", "Asia", "Europe", "North America", "South America"};
+	for (UInt32 i = 1; i <= 5; i++) {
+		row_t * row;
+		uint64_t row_id;
+		t_region->get_new_row(row, 0, row_id);
+		row->set_primary_key(i);
+		row->set_value(R_REGIONKEY, i);
+		// Create a char array to hold the name
+    char region_name[25]; // Assuming R_NAME has a max size of 25 characters
+    strncpy(region_name, name[i-1], sizeof(region_name));
+    region_name[sizeof(region_name) - 1] = '\0'; // Ensure null-termination
+		
+		row->set_value(R_NAME,region_name);
+		char comment[152];
+		MakeAlphaString(52, 152, comment, 0);		
+		row->set_value(R_COMMENT, comment);
+		
+		index_insert(i_region, i, row, 0);
+	}
+}
+
+void chbench_wl::init_tab_nation(){
+	for (UInt32 i = 1; i <= 25; i++) {
+		row_t * row;
+		uint64_t row_id;
+		t_nation->get_new_row(row, 0, row_id);
+		row->set_primary_key(i);
+		row->set_value(N_NATIONKEY, i);
+		char name[25];
+		MakeAlphaString(15, 25, name, 0);
+		row->set_value(N_NATIONKEY, name);
+		row->set_value(N_REGIONKEY,URand(1,5,0));
+		char comment[152];
+		MakeAlphaString(52, 152, comment, 0);		
+		row->set_value(N_COMMENT, comment);
+		
+		index_insert(i_nation, i, row, 0);
+	}
+}
+
+void chbench_wl::init_tab_supplier(){
+	for (UInt32 i = 1; i <= 10000; i++) {
+		row_t * row;
+		uint64_t row_id;
+		t_supplier->get_new_row(row, 0, row_id);
+		row->set_primary_key(i);
+		row->set_value(S_SUPPKEY, i);
+		char name[25];
+		MakeAlphaString(15, 25, name, 0);
+		row->set_value(S_NAME, name);
+		row->set_value(S_NATIONKEY,URand(1,25,0));
+		char address[40];
+		MakeAlphaString(20, 40, address, 0);
+		row->set_value(S_ADDRESS,address);
+		char phone[15];
+		MakeAlphaString(15, 15, phone, 0);
+		row->set_value(S_PHONE,phone);
+		row->set_value(S_ACCTBAL, (double)URand(1, 999999, 0)/100);
+		char comment[101];
+		MakeAlphaString(51, 101, comment, 0);		
+		row->set_value(S_COMMENT, comment);
+		
+		index_insert(i_supplier, i, row, 0);
+	}
+}
+
 /*==================================================================+
 | ROUTINE NAME
 | InitPermutation
@@ -668,7 +751,12 @@ void * chbench_wl::threadInitWarehouse(void * This) {
 	srand48_r(wid, tpc_buffer[tid]);
 	// cout << *tpc_buffer[tid]->__x << "_" << wid << endl;
 	if (tid == 0) 
+	{
 		wl->init_tab_item();
+		wl->init_tab_region();
+		wl->init_tab_nation();
+		wl->init_tab_supplier();
+	}
 	wl->init_tab_wh( wid );
 	wl->init_tab_dist( wid );
 	wl->init_tab_stock( wid );
@@ -985,6 +1073,10 @@ void chbench_wl::tree_insert(INDEX *tree_q1, INDEX *tree_q6, uint64_t key_q1, ui
 			case CHBenchQueryMethod::BWTREE_METHOD :
 				;
 			case CHBenchQueryMethod::BTREE_METHOD :
+				index_insert((INDEX*)tree_q6, key_q6, row, 0);;
+				break;
+			case CHBenchQueryMethod::ALL_METHOD :
+				index_insert_with_primary_key((INDEX *)tree_q6, key_q6, primary_key, row, 0);
 				index_insert((INDEX*)tree_q6, key_q6, row, 0);;
 				break;
 			default :

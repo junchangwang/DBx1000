@@ -18,7 +18,7 @@
 // # of transactions to run for warmup
 #define WARMUP						0
 // YCSB, TPCC, TPCH, or CHBench
-#define WORKLOAD 					TPCH
+#define WORKLOAD 					CHBench
 // print the transaction latency distribution
 #define PRT_LAT_DISTR				false
 #define STATS_ENABLE				true
@@ -27,7 +27,7 @@
 #define MEM_ALLIGN					8 
 
 // [THREAD_ALLOC]
-#define THREAD_ALLOC				false
+#define THREAD_ALLOC				true
 #define THREAD_ARENA_SIZE			(1UL << 22) 
 #define MEM_PAD 					true
 
@@ -41,7 +41,7 @@
 /***********************************************/
 // WAIT_DIE, NO_WAIT, DL_DETECT, TIMESTAMP, MVCC, HEKATON, HSTORE, OCC, VLL, TICTOC, SILO, PTMVCC
 // TODO TIMESTAMP does not work at this moment
-#define CC_ALG 						HEKATON
+#define CC_ALG 						PTMVCC
 #define ISOLATION_LEVEL 			SNAPSHOT
 #define CORE_CNT					4
 
@@ -165,6 +165,7 @@ enum CHBenchTxnType {CHBENCH_ALL,
 				CHBENCH_Q6_SCAN,
 				CHBENCH_Q6_BTREE,
 				CHBENCH_Q6_BITMAP,
+				CHBENCH_Q6_BITMAP_PARALLEL,
 				CHBENCH_Q6_BWTREE,
 				CHBENCH_Q6_ART,
 				CHBENCH_Q1_SCAN,
@@ -172,16 +173,17 @@ enum CHBenchTxnType {CHBENCH_ALL,
 				CHBENCH_Q1_BITMAP,
 				CHBENCH_Q1_BITMAP_PARALLEL,
 				CHBENCH_Q1_BWTREE,
-				CHBENCH_Q1_ART};
+				CHBENCH_Q1_ART,
+				CHBENCH_VERIFY_TABLE};
 
-enum CHBenchQuery {CHBenchQ1, CHBenchQ6};
-enum CHBenchQueryMethod {ALL_METHOD, BTREE_METHOD, BITMAP_METHOD, BITMAP_PARA_METHOD, SCAN_METHOD, BWTREE_METHOD, ART_METHOD};
+enum CHBenchQuery {CHBenchQ1, CHBenchQ6,CHBenchTest};
+enum CHBenchQueryMethod {ALL_METHOD, BTREE_METHOD, BITMAP_METHOD, BITMAP_PARA_METHOD, SCAN_METHOD, BWTREE_METHOD, ART_METHOD, VERIFY_TABLE};
 extern CHBenchTxnType 					g_chbench_txn_type;
 #define CHBENCH_EVA_CUBIT				true
 #define CHBENCH_SMALL					false
-#define CHBENCH_OLAP_NUMBER				1
-#define CHBENCH_QUERY_TYPE				CHBenchQ1
-#define CHBENCH_QUERY_METHOD			BITMAP_PARA_METHOD
+#define CHBENCH_OLAP_NUMBER				4
+#define CHBENCH_QUERY_TYPE				CHBenchQ6
+#define CHBENCH_QUERY_METHOD			BITMAP_METHOD
 
 
 // ==== [TPCH] ====

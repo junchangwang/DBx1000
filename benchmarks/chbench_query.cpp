@@ -18,7 +18,10 @@ void chbench_query::init(uint64_t thd_id, workload * h_wl) {
 	if(thd_id < CHBENCH_OLAP_NUMBER) {
 		if(query_number == CHBenchQuery::CHBenchQ6)
 			gen_q6(thd_id);
-		else gen_q1(thd_id);
+		else if(query_number == CHBenchQuery::CHBenchQ1)
+			gen_q1(thd_id);
+		else
+			test_table(thd_id);
 		return;
 	}
 	double x = (double)(rand() % 100) / 100.0;
@@ -161,21 +164,7 @@ void chbench_query::gen_q6(uint64_t thd_id) {
 	max_delivery_d = 20200101;
 	min_quantity = 1;
 	max_quantity = 1000;
-	switch (q6_id%3)
-	{
-	case 0 :
-		type = CHBENCH_Q6_SCAN;
-		break;
-	case 1 :
-		type = CHBENCH_Q6_BTREE;
-		break;
-	case 2 :
-		type = CHBENCH_Q6_BITMAP;
-		break;
-	default:
-		assert(false);
-		break;
-	}
+	
 
 	switch (CHBENCH_QUERY_METHOD)
 	{
@@ -189,7 +178,7 @@ void chbench_query::gen_q6(uint64_t thd_id) {
 		type = CHBENCH_Q6_BITMAP;
 		break;
 	case CHBenchQueryMethod::BITMAP_PARA_METHOD :
-		type = CHBENCH_Q6_BITMAP;
+		type = CHBENCH_Q6_BITMAP_PARALLEL;
 		break;
 	case CHBenchQueryMethod::BWTREE_METHOD :
 		type = CHBENCH_Q6_BWTREE;
@@ -198,6 +187,30 @@ void chbench_query::gen_q6(uint64_t thd_id) {
 		type = CHBENCH_Q6_ART;
 		break;
 	case CHBenchQueryMethod::ALL_METHOD :
+		switch (q6_id%5)
+		{
+		case 0 :
+			type = CHBENCH_Q6_SCAN;
+			break;
+		case 1 :
+			type = CHBENCH_Q6_BTREE;
+			break;
+		case 2 :
+			type = CHBENCH_Q6_BWTREE;
+			break;
+		case 3:
+			type = CHBENCH_Q6_ART;
+			break;
+		case 4:
+			type = CHBENCH_Q6_BITMAP;
+			break;
+		case 5:
+			type = CHBENCH_Q6_BITMAP_PARALLEL;
+			break;
+		default:
+			assert(false);
+			break;
+		}
 		break;
 	default:
 		assert(false);
@@ -256,4 +269,8 @@ void chbench_query::gen_q1(uint64_t thd_id) {
 	}
 	q1_id++;
 	return;
+}
+
+void chbench_query::test_table(uint64_t thd_id){
+	type=CHBENCH_VERIFY_TABLE;
 }

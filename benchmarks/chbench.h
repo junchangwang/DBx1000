@@ -37,6 +37,9 @@ public:
 	table_t *		t_orderline;
 	table_t *		t_item;
 	table_t *		t_stock;
+	table_t *		t_supplier;
+	table_t *		t_nation;
+	table_t *		t_region;
 
 	INDEX * 	i_item;
 	INDEX * 	i_warehouse;
@@ -48,6 +51,9 @@ public:
 	INDEX * 	i_order; // key = (w_id, d_id, o_id)
 	INDEX * 	i_orderline; // key = (quantity, data)
 	INDEX * 	i_orderline_d; // key = (data). 
+	INDEX *		i_supplier;
+	INDEX *		i_nation;
+	INDEX *		i_region;
 
 	BaseTable *bitmap_q6_deliverydate;
 	BaseTable *bitmap_q6_quantity;
@@ -69,6 +75,9 @@ private:
 	void init_tab_cust(uint64_t d_id, uint64_t w_id);
 	void init_tab_hist(uint64_t c_id, uint64_t d_id, uint64_t w_id);
 	void init_tab_order(uint64_t d_id, uint64_t w_id);
+	void init_tab_supplier();
+	void init_tab_nation();
+	void init_tab_region();
 	void tree_insert(INDEX *tree_q1, INDEX *tree_q6, uint64_t key_q1, uint64_t key_q6, row_t *row, uint64_t primary_key);
 	
 	void init_permutation(uint64_t * perm_c_id, uint64_t wid);
@@ -135,6 +144,7 @@ private:
 	RC run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query);
 	RC run_Q1_bwtree(int tid, chbench_query * query);
 	RC run_Q1_art(int tid, chbench_query * query);
+	RC run_test_table(int tid,chbench_query * query);
 };
 
 

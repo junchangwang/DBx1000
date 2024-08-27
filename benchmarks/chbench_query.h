@@ -63,6 +63,7 @@ private:
 	void gen_order_status(uint64_t thd_id);
 	void gen_q6(uint64_t thd_id);
 	void gen_q1(uint64_t thd_id);
+	void test_table(uint64_t thd_id);
 };
 
 #endif
