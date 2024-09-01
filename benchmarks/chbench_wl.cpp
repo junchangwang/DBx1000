@@ -647,31 +647,34 @@ void chbench_wl::init_tab_order(uint64_t did, uint64_t wid) {
 	}
 }
 
-void chbench_wl::init_tab_region(){
-	const char* name[] = {"Africa", "Asia", "Europe", "North America", "South America"};
-	for (UInt32 i = 1; i <= 5; i++) {
-		row_t * row;
+void chbench_wl::init_tab_region()
+{
+	const char *name[] = {"Africa", "Asia", "Europe", "North America", "South America"};
+	for (UInt32 i = 1; i <= 5; i++)
+	{
+		row_t *row;
 		uint64_t row_id;
 		t_region->get_new_row(row, 0, row_id);
 		row->set_primary_key(i);
 		row->set_value(R_REGIONKEY, i);
 		// Create a char array to hold the name
-    char region_name[25]; // Assuming R_NAME has a max size of 25 characters
-    strncpy(region_name, name[i-1], sizeof(region_name));
-    region_name[sizeof(region_name) - 1] = '\0'; // Ensure null-termination
-		
-		row->set_value(R_NAME,region_name);
+		char region_name[25]; // Assuming R_NAME has a max size of 25 characters
+		strncpy(region_name, name[i - 1], sizeof(region_name));
+		region_name[sizeof(region_name) - 1] = '\0'; // Ensure null-termination
+		row->set_value(R_NAME, region_name);
 		char comment[152];
-		MakeAlphaString(52, 152, comment, 0);		
+		MakeAlphaString(52, 152, comment, 0);
 		row->set_value(R_COMMENT, comment);
-		
+
 		index_insert(i_region, i, row, 0);
 	}
 }
 
-void chbench_wl::init_tab_nation(){
-	for (UInt32 i = 1; i <= 25; i++) {
-		row_t * row;
+void chbench_wl::init_tab_nation()
+{
+	for (UInt32 i = 1; i <= 25; i++)
+	{
+		row_t *row;
 		uint64_t row_id;
 		t_nation->get_new_row(row, 0, row_id);
 		row->set_primary_key(i);
@@ -679,18 +682,20 @@ void chbench_wl::init_tab_nation(){
 		char name[25];
 		MakeAlphaString(15, 25, name, 0);
 		row->set_value(N_NATIONKEY, name);
-		row->set_value(N_REGIONKEY,URand(1,5,0));
+		row->set_value(N_REGIONKEY, URand(1, 5, 0));
 		char comment[152];
-		MakeAlphaString(52, 152, comment, 0);		
+		MakeAlphaString(52, 152, comment, 0);
 		row->set_value(N_COMMENT, comment);
-		
+
 		index_insert(i_nation, i, row, 0);
 	}
 }
 
-void chbench_wl::init_tab_supplier(){
-	for (UInt32 i = 1; i <= 10000; i++) {
-		row_t * row;
+void chbench_wl::init_tab_supplier()
+{
+	for (UInt32 i = 1; i <= 10000; i++)
+	{
+		row_t *row;
 		uint64_t row_id;
 		t_supplier->get_new_row(row, 0, row_id);
 		row->set_primary_key(i);
@@ -698,18 +703,18 @@ void chbench_wl::init_tab_supplier(){
 		char name[25];
 		MakeAlphaString(15, 25, name, 0);
 		row->set_value(S_NAME, name);
-		row->set_value(S_NATIONKEY,URand(1,25,0));
+		row->set_value(S_NATIONKEY, URand(1, 25, 0));
 		char address[40];
 		MakeAlphaString(20, 40, address, 0);
-		row->set_value(S_ADDRESS,address);
+		row->set_value(S_ADDRESS, address);
 		char phone[15];
 		MakeAlphaString(15, 15, phone, 0);
-		row->set_value(S_PHONE,phone);
-		row->set_value(S_ACCTBAL, (double)URand(1, 999999, 0)/100);
+		row->set_value(S_PHONE, phone);
+		row->set_value(S_ACCTBAL, (double)URand(1, 999999, 0) / 100);
 		char comment[101];
-		MakeAlphaString(51, 101, comment, 0);		
+		MakeAlphaString(51, 101, comment, 0);
 		row->set_value(S_COMMENT, comment);
-		
+
 		index_insert(i_supplier, i, row, 0);
 	}
 }

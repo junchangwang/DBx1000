@@ -32,7 +32,7 @@
 #define MEM_PAD 					true
 
 // [PART_ALLOC] 
-#define PART_ALLOC 					false
+#define PART_ALLOC					false
 #define MEM_SIZE					(1UL << 30) 
 #define NO_FREE						false
 
@@ -41,7 +41,7 @@
 /***********************************************/
 // WAIT_DIE, NO_WAIT, DL_DETECT, TIMESTAMP, MVCC, HEKATON, HSTORE, OCC, VLL, TICTOC, SILO, PTMVCC
 // TODO TIMESTAMP does not work at this moment
-#define CC_ALG 						PTMVCC
+#define CC_ALG						PTMVCC
 #define ISOLATION_LEVEL 			SNAPSHOT
 #define CORE_CNT					4
 

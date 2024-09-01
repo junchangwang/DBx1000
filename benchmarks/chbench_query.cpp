@@ -272,5 +272,5 @@ void chbench_query::gen_q1(uint64_t thd_id) {
 }
 
 void chbench_query::test_table(uint64_t thd_id){
-	type=CHBENCH_VERIFY_TABLE;
+	type = CHBENCH_VERIFY_TABLE;
 }

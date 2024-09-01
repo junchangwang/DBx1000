@@ -146,7 +146,7 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 		case CHBENCH_Q1_ART :
 			return run_Q1_art(tid, m_query); break;
 		case CHBENCH_VERIFY_TABLE :
-			return run_test_table(tid, m_query); break;
+			return validate_table(tid, m_query); break;
 		default:
 			assert(false);
 	}
@@ -1498,11 +1498,11 @@ RC chbench_txn_man::run_Q6_bwtree(int tid, chbench_query * query)
 	auto start = std::chrono::high_resolution_clock::now();
 	auto index_read_start = std::chrono::high_resolution_clock::now();
 
-	int perf_pid;
-	if (perf_enabled == true && tid == 0) {
-		perf_pid = gen_perf_process((char *)"BWTREE");
-		usleep(WAIT_FOR_PERF_U);
-	}
+	// int perf_pid;
+	// if (perf_enabled == true && tid == 0) {
+	// 	perf_pid = gen_perf_process((char *)"BWTREE");
+	// 	usleep(WAIT_FOR_PERF_U);
+	// }
 
 	index->AssignGCID(tid);
 	Date r_date(max_delivery_d / 10000, (max_delivery_d % 10000) / 100, max_delivery_d % 100);
@@ -1523,9 +1523,9 @@ RC chbench_txn_man::run_Q6_bwtree(int tid, chbench_query * query)
 	}
 	index->UnregisterThread(tid);
 
-	if (perf_enabled == true && tid == 0) {
-		kill_perf_process(perf_pid);
-	}
+	// if (perf_enabled == true && tid == 0) {
+	// 	kill_perf_process(perf_pid);
+	// }
 	auto index_read_end = std::chrono::high_resolution_clock::now();
 
 	for (auto const &local_item : item_list)
@@ -2210,19 +2210,18 @@ RC chbench_txn_man::run_Q1_art(int tid, chbench_query * query) {
 
 	string tmp = "Q1 ART (ms): " + to_string(total_us/1000) + " index_read(ms): " + to_string(index_us/1000) + " nums: " + to_string(ans.cnt[1]) + "\n";
 	output_info[tid].push_back(tmp);
-	
 
 	assert(rc == RCOK);
 	return finish(rc);
 }
 
-RC chbench_txn_man::run_test_table(int tid,chbench_query * query){
+RC chbench_txn_man::validate_table(int tid,chbench_query * query){
 	RC rc = RCOK;
-	uint64_t start_row=0;
-	uint64_t end_row=(uint64_t)_wl->t_orderline->cur_tab_size;
-	uint64_t end_row_10=10;
-	row_t* current_row;
-	row_t* order_row;
+	uint64_t start_row = 0;
+	uint64_t end_row = (uint64_t)_wl->t_orderline->cur_tab_size;
+	uint64_t end_row_10 = 10;
+	row_t *current_row;
+	row_t *order_row;
 	for(uint64_t row_id = start_row; row_id < end_row_10; row_id++) {
 		cout<<row_id<<endl;
 		current_row = (row_t*) &(_wl->t_orderline->row_buffer[row_id]);
@@ -2231,9 +2230,9 @@ RC chbench_txn_man::run_test_table(int tid,chbench_query * query){
 		if(row_local == NULL) {
 			continue;
 		}
-		order_row=(row_t*) &(_wl->t_order->row_buffer[row_id]);
+		order_row = (row_t *)&(_wl->t_order->row_buffer[row_id]);
 		assert(current_row != NULL);
-		row_t* order_local=get_row(order_row,SCAN);
+		row_t *order_local = get_row(order_row, SCAN);
 		if(order_row==NULL){
 			continue;
 		}
@@ -2243,19 +2242,19 @@ RC chbench_txn_man::run_test_table(int tid,chbench_query * query){
 		uint64_t ol_i_id;
 		uint64_t ol_number;
 		double ol_amount;
-		row_local->get_value(OL_O_ID,ol_o_id);
-		row_local->get_value(OL_W_ID,ol_w_id);
-		row_local->get_value(OL_D_ID,ol_d_id);
-		row_local->get_value(OL_I_ID,ol_i_id);
-		row_local->get_value(OL_NUMBER,ol_number);
-		cout<<ol_o_id<<"---"<<ol_w_id<<"---"<<ol_d_id<<"---"<<ol_number<<endl;
+		row_local->get_value(OL_O_ID, ol_o_id);
+		row_local->get_value(OL_W_ID, ol_w_id);
+		row_local->get_value(OL_D_ID, ol_d_id);
+		row_local->get_value(OL_I_ID, ol_i_id);
+		row_local->get_value(OL_NUMBER, ol_number);
+		cout << ol_o_id << "---" << ol_w_id << "---" << ol_d_id << "---" << ol_number << endl;
 		uint64_t o_id;
 		uint64_t o_w_id;
 		uint64_t o_d_id;
-		order_local->get_value(O_ID,o_id);
-		order_local->get_value(O_W_ID,o_w_id);
-		order_local->get_value(O_D_ID,o_d_id);
-		cout<<o_id<<"---"<<o_w_id<<"---"<<o_d_id<<"---"<<endl;
+		order_local->get_value(O_ID, o_id);
+		order_local->get_value(O_W_ID, o_w_id);
+		order_local->get_value(O_D_ID, o_d_id);
+		cout << o_id << "---" << o_w_id << "---" << o_d_id << "---" << endl;
 	}
 	assert(rc == RCOK);
 	return finish(rc);

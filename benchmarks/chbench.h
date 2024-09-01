@@ -144,7 +144,7 @@ private:
 	RC run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query);
 	RC run_Q1_bwtree(int tid, chbench_query * query);
 	RC run_Q1_art(int tid, chbench_query * query);
-	RC run_test_table(int tid,chbench_query * query);
+	RC validate_table(int tid,chbench_query * query);
 };
 
 
