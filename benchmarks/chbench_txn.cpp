@@ -2218,44 +2218,71 @@ RC chbench_txn_man::run_Q1_art(int tid, chbench_query * query) {
 RC chbench_txn_man::validate_table(int tid,chbench_query * query){
 	RC rc = RCOK;
 	uint64_t start_row = 0;
-	uint64_t end_row = (uint64_t)_wl->t_orderline->cur_tab_size;
-	uint64_t end_row_10 = 10;
+	uint64_t order_row_size = (uint64_t)_wl->t_order->cur_tab_size;
+	uint64_t orderline_row_size = (uint64_t)_wl->t_orderline->cur_tab_size;
+	uint64_t end_row = 100;
 	row_t *current_row;
 	row_t *order_row;
-	for(uint64_t row_id = start_row; row_id < end_row_10; row_id++) {
-		cout<<row_id<<endl;
-		current_row = (row_t*) &(_wl->t_orderline->row_buffer[row_id]);
-		assert(current_row != NULL);
-		row_t* row_local = get_row(current_row, SCAN);
-		if(row_local == NULL) {
-			continue;
-		}
-		order_row = (row_t *)&(_wl->t_order->row_buffer[row_id]);
-		assert(current_row != NULL);
+	for(uint64_t i = start_row; i < end_row; i++) {
+		uint64_t order_row_id = URand(start_row, order_row_size, 0);
+		// cout<<order_row_id<<endl;
+		order_row = (row_t *)&(_wl->t_order->row_buffer[order_row_id]);
+		assert(order_row != NULL);
 		row_t *order_local = get_row(order_row, SCAN);
-		if(order_row==NULL){
+		if (order_row == NULL)
+		{
 			continue;
 		}
-		uint64_t ol_o_id;
-		uint64_t ol_w_id;
-		uint64_t ol_d_id;
-		uint64_t ol_i_id;
-		uint64_t ol_number;
-		double ol_amount;
-		row_local->get_value(OL_O_ID, ol_o_id);
-		row_local->get_value(OL_W_ID, ol_w_id);
-		row_local->get_value(OL_D_ID, ol_d_id);
-		row_local->get_value(OL_I_ID, ol_i_id);
-		row_local->get_value(OL_NUMBER, ol_number);
-		cout << ol_o_id << "---" << ol_w_id << "---" << ol_d_id << "---" << ol_number << endl;
-		uint64_t o_id;
+		UInt32 o_id;
 		uint64_t o_w_id;
 		uint64_t o_d_id;
 		order_local->get_value(O_ID, o_id);
 		order_local->get_value(O_W_ID, o_w_id);
 		order_local->get_value(O_D_ID, o_d_id);
-		cout << o_id << "---" << o_w_id << "---" << o_d_id << "---" << endl;
+		// cout << o_id << "---" << o_w_id << "---" << o_d_id << "---" << endl;
+		uint64_t row_id;
+		for (uint64_t j = start_row; i < orderline_row_size; j++) {
+			current_row = (row_t *)&(_wl->t_orderline->row_buffer[j]);
+			assert(current_row != NULL);
+			row_t *row_local = get_row(current_row, SCAN);
+			if (row_local == NULL)
+			{
+				continue;
+			}
+			UInt32 ol_o_id;
+			row_local->get_value(OL_O_ID, ol_o_id);
+			if (ol_o_id == o_id)
+			{
+				row_id = j;
+				break;
+			}
+		}
+		uint64_t o_ol_cnt;
+		order_local->get_value(O_OL_CNT, o_ol_cnt);
+		for (uint32_t ol = 1; ol <= o_ol_cnt; ol++) {
+			current_row = (row_t *)&(_wl->t_orderline->row_buffer[row_id]);
+			assert(current_row != NULL);
+			row_t *row_local = get_row(current_row, SCAN);
+			if (row_local == NULL)
+			{
+				continue;
+			}
+			UInt32 ol_o_id;
+			uint64_t ol_w_id;
+			uint64_t ol_d_id;
+			uint64_t ol_i_id;
+			uint64_t ol_number;
+			double ol_amount;
+			row_local->get_value(OL_O_ID, ol_o_id);
+			row_local->get_value(OL_W_ID, ol_w_id);
+			row_local->get_value(OL_D_ID, ol_d_id);
+			row_local->get_value(OL_I_ID, ol_i_id);
+			row_local->get_value(OL_NUMBER, ol_number);
+			// cout << ol_o_id << "---" << ol_w_id << "---" << ol_d_id << "---" << ol_number << endl;
+			assert(o_id == ol_o_id);
+		}
 	}
+	cout << "Table order and table orderline are both correct." << endl;
 	assert(rc == RCOK);
 	return finish(rc);
 }

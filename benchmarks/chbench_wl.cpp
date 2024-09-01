@@ -693,7 +693,7 @@ void chbench_wl::init_tab_nation()
 
 void chbench_wl::init_tab_supplier()
 {
-	for (UInt32 i = 1; i <= 10000; i++)
+	for (UInt32 i = 1; i <= SF * 10000; i++)
 	{
 		row_t *row;
 		uint64_t row_id;
