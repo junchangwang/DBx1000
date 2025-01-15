@@ -27,8 +27,6 @@ extern CHBenchQuery query_number;
 
 // defined in parser.cpp
 void parser(int argc, char * argv[]);
-// int verify_bitmap(workload * m_wl);
-void merge_start(BaseTable *bitmap, Table_config *config, std::thread *merge_ths);
 
 int main(int argc, char* argv[])
 {
@@ -119,74 +117,56 @@ int main(int argc, char* argv[])
 #endif
 	pthread_barrier_init( &warmup_bar, NULL, g_thread_cnt );
 
-	// Intialize the background merge threads for NBUB.
-#if (WORKLOAD == TPCC && TPCC_EVA_RABIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_RABIT == true)
+	// Intialize the background merge threads for RABIT.
 
+#if (EVA_RABIT == true)
     int n_merge_ths;
     std::thread *merge_ths;
 	std::thread *merge_ths2;
-	BaseTable *bitmap = NULL;
 	Table_config *config = NULL;
+	BaseTable *bitmap1 = NULL;
+	BaseTable *bitmap2 = NULL;
+	std::thread merge_thread1;
+	std::thread merge_thread2;
 	
-	if( WORKLOAD == TPCC ) {
-		bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_s_quantity;
-		config = bitmap->config;
+	if ( WORKLOAD == TPCC ) {
+		bitmap1 = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_s_quantity;
+		config = bitmap1->config;
 
-	if (config->approach == "rabit") 
-	{
-		merge_ths = new thread[config->n_workers / WORKERS_PER_MERGE_TH + 1];
-
-		__atomic_store_n(&run_merge_func, true, MM_CST);
-
-		// n_merge_ths = config->n_workers / WORKERS_PER_MERGE_TH;
-		// for (int i = 0; i < n_merge_ths; i++) {
-		// 	int begin = i * WORKERS_PER_MERGE_TH;
-		// 	int range = WORKERS_PER_MERGE_TH;
-		// 	cout << "[RABIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
-		// 	merge_ths[i] = std::thread(run_merge_func, bitmap, begin, range, config, &bitmap_mutex);
-		// }
-		// if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
-		// 	int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
-		// 	int range = (config->n_workers % WORKERS_PER_MERGE_TH);
-		// 	cout << "[RABIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
-		// 	merge_ths[n_merge_ths] = std::thread(run_merge_func, bitmap, begin, range, config, &bitmap_mutex);
-		// 	n_merge_ths ++;
-		// }
-		// cout << "[RABIT]: Creating " << n_merge_ths << " merging threads" << endl;
+		if (config->approach == "rabit") 
+		{
+			__atomic_store_n(&run_merge_func, true, MM_CST);
+			merge_thread1 = std::thread(rabit_merge_dispatcher, bitmap1);
+		}
 	}
-	}
-	else {
+	else if (WORKLOAD == CHBench) {
 		if(query_number == CHBenchQuery::CHBenchQ1) {
-			bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q1_deliverydate;
-			config = bitmap->config;
-			merge_start(bitmap, config, merge_ths);
-			bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q1_ol_number;
-			config = bitmap->config;
-			merge_start(bitmap, config, merge_ths2);
+			bitmap1 = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q1_deliverydate;
+			merge_thread1 = std::thread(rabit_merge_dispatcher, bitmap1);
+			bitmap2 = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q1_ol_number;
+			merge_thread2 = std::thread(rabit_merge_dispatcher, bitmap2);
 		}
 		else {
-			bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q6_deliverydate;
-			config = bitmap->config;
-			merge_start(bitmap, config, merge_ths);
-			bitmap = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q6_quantity;
-			config = bitmap->config;
-			merge_start(bitmap, config, merge_ths2);
+			bitmap1 = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q6_deliverydate;
+			merge_thread1 = std::thread(rabit_merge_dispatcher, bitmap1);
+			bitmap2 = dynamic_cast<chbench_wl *>(m_wl)->bitmap_q6_quantity;
+			merge_thread2 = std::thread(rabit_merge_dispatcher, bitmap2);
 		}
+	}
+	else if (WORKLOAD == TPCH) {
+		bitmap1 = dynamic_cast<tpch_wl *>(m_wl)->bitmap_discount;
+		merge_thread1 = std::thread(rabit_merge_dispatcher, bitmap1);
+		bitmap2 = dynamic_cast<tpch_wl *>(m_wl)->bitmap_quantity;
+		merge_thread2 = std::thread(rabit_merge_dispatcher, bitmap2);
 	}
 #endif
 
-	// gen_perf_process((char *)"SCAN");
-	// spawn and run txns again.
-	//int64_t starttime = get_server_clock();
 	auto start = std::chrono::high_resolution_clock::now();
 	for (uint32_t i = 0; i < thd_cnt - 1; i++) {
 		uint64_t vid = i;
 		pthread_create(&p_thds[i], NULL, f, (void *)vid);
 	}
 	f((void *)(thd_cnt - 1));
-
-//	if (WORKLOAD == TPCC && TPCC_EVA_RABIT == true)
-//		assert(!verify_bitmap(m_wl));
 
 	for (uint32_t i = 0; i < thd_cnt - 1; i++) 
 		pthread_join(p_thds[i], NULL);
@@ -225,83 +205,4 @@ void * f(void * id) {
 	uint64_t tid = (uint64_t)id;
 	m_thds[tid]->run();
 	return NULL;
-}
-
-// int verify_bitmap(workload * m_wl) 
-// {
-// 	rcu_register_thread();
-
-// 	tpcc_wl *wl = dynamic_cast<tpcc_wl *>(m_wl);
-
-// 	if (wl->bitmap_c_w_id->config->approach == "naive") {
-// 		int ROW_ID = g_cust_per_dist;
-// 		naive::Table *bitmap = dynamic_cast<naive::Table*>(wl->bitmap_c_w_id);
-// 		assert(bitmap->get_value(ROW_ID-1) == bitmap->get_value(0));
-// 		int old_val = bitmap->get_value(ROW_ID);
-// 		int to_val = old_val + 1;
-
-// 		assert(bitmap->bitmaps[old_val]->getBit(ROW_ID, bitmap->config) == 1);
-// 		bitmap->update(0, ROW_ID, to_val);
-// 		assert(bitmap->bitmaps[old_val]->getBit(ROW_ID, bitmap->config) == 0);
-// 		assert(bitmap->bitmaps[to_val]->getBit(ROW_ID, bitmap->config) == 1);
-// 	} 
-// 	else if (wl->bitmap_c_w_id->config->approach == "rabit") {
-// 		RUB last_rub = RUB{0, TYPE_INV, {}};
-// 		int ROW_ID = 6;
-// 		rabit::Rabit *bitmap = dynamic_cast<rabit::Rabit*>(wl->bitmap_c_w_id);
-// 		assert(bitmap->get_value_rcu(ROW_ID-1, db_timestamp, last_rub) == 
-// 					bitmap->get_value_rcu(0, db_timestamp, last_rub));
-// 		int old_val = bitmap->get_value_rcu(ROW_ID, db_timestamp, last_rub);
-// 		int to_val = old_val + 1;
-
-// 		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 1);
-// 		bitmap->update(0, ROW_ID, to_val);
-// 		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 1);
-
-// 		assert(bitmap->get_value_rcu(/*rowid*/ ROW_ID, db_timestamp-1, last_rub) == old_val);
-// 		assert(bitmap->get_value_rcu(/*rowid*/ ROW_ID, db_timestamp, last_rub) == to_val);
-
-// 		// FIXME: after enable merge()
-// 		// MERGE_THRESH = 1;  // Make sure MERGE_THRESH = 1;
-// 		bitmap->evaluate(0, old_val);
-// 		bitmap->evaluate(0, to_val);
-// 		this_thread::sleep_for(1ms);
-// 		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 0);
-// 		assert(bitmap->bitmaps[to_val]->btv->getBit(ROW_ID, bitmap->config) == 0);
-// 		this_thread::sleep_for(1ms);
-// 		bitmap->evaluate(0, old_val);
-// 		bitmap->evaluate(0, to_val); 
-// 		this_thread::sleep_for(1ms);
-// 		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 0);
-// 		assert(bitmap->bitmaps[to_val]->btv->getBit(ROW_ID, bitmap->config) == 1);
-
-// 		cout << "[RABIT]: verify_bitmap by moving row " << ROW_ID
-// 		<< " from " << old_val << " to " << to_val << endl;
-// 	}
-
-// 	rcu_unregister_thread();
-
-// 	return 0;		
-// }
-
-void merge_start(BaseTable *bitmap, Table_config *config, std::thread *merge_ths) {
-	int n_merge_ths;
-	__atomic_store_n(&run_merge_func, true, MM_CST);
-
-	n_merge_ths = config->n_workers / WORKERS_PER_MERGE_TH;
-	merge_ths = new thread[config->n_workers / WORKERS_PER_MERGE_TH + 1];
-	// for (int i = 0; i < n_merge_ths; i++) {
-	// 	int begin = i * WORKERS_PER_MERGE_TH;
-	// 	int range = WORKERS_PER_MERGE_TH;
-	// 	cout << "[RABIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
-	// 	merge_ths[i] = std::thread(run_merge_func, bitmap, begin, range, config, &bitmap_mutex);
-	// }
-	// if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
-	// 	int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
-	// 	int range = (config->n_workers % WORKERS_PER_MERGE_TH);
-	// 	cout << "[RABIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
-	// 	merge_ths[n_merge_ths] = std::thread(run_merge_func, bitmap, begin, range, config, &bitmap_mutex);
-	// 	n_merge_ths ++;
-	// }
-	cout << "[RABIT]: Creating " << n_merge_ths << " merging threads" << endl;
 }

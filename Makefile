@@ -1,5 +1,6 @@
 CC=g++
-CFLAGS= -g -O3 -std=gnu++17 -Wno-invalid-offsetof
+# CFLAGS= -g -O3 -std=gnu++17 -Wno-invalid-offsetof
+CFLAGS= -g -ggdb -O0 -std=gnu++17 -Wno-invalid-offsetof
 
 .SUFFIXES: .o .cpp .h
 
@@ -17,7 +18,6 @@ CPPS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)*.cpp))
 CPPS += ./storage/ARTOLC/Tree.cpp
 OBJS = $(CPPS:.cpp=.o)
 DEPS = $(CPPS:.cpp=.d)
-
 
 all: rundb
 
