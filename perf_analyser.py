@@ -135,7 +135,7 @@ def analyzer():
 
 
 def main():
-    # ret = analyser('perf.output.CUBIT.121774')
+    # ret = analyser('perf.output.RABIT.121774')
     print ("[perf_analyser]: Start analyzing output file: " + str(sys.argv[1]))
     
     process_output(str(sys.argv[1]))

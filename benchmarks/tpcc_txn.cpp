@@ -1,4 +1,4 @@
-#include "cubit/table.h"
+#include "bitmaps/rabit/table.h"
 #include "fastbit/bitvector.h"
 #include "global.h"
 #include "helper.h"
@@ -35,7 +35,7 @@ RC tpcc_txn_man::run_txn(int tid, base_query * query) {
 		case TPCC_DELIVERY :
 			return run_delivery(m_query); break;*/
 		case TPCC_STOCK_LEVEL :
-	#if (TPCC_EVA_CUBIT)
+	#if (TPCC_EVA_RABIT)
 			return run_stock_level_bt(m_query); break;
 	#else
 			return run_stock_level(m_query); break;
@@ -54,7 +54,7 @@ RC tpcc_txn_man::run_txn(int tid, base_query * query) {
 // 	itemid_t * item;
 
 // 	// m_lock is used to sequentially debug and execute evaluate_index()
-// 	// to evaluate CUBIT. It can be removed in real code.
+// 	// to evaluate RABIT. It can be removed in real code.
 // 	static std::mutex m_lock;
 // 	std::lock_guard<std::mutex> gard(m_lock);
 
@@ -64,7 +64,7 @@ RC tpcc_txn_man::run_txn(int tid, base_query * query) {
 // 	std::string t_last = "OUGHTESEPRI";
 
 // 	/*==========================================================+
-// 		To evaluate CUBIT, we perform the following query:
+// 		To evaluate RABIT, we perform the following query:
 
 // 		EXEC SQL SELECT c_id INTO :c_ids
 // 		FROM customer
@@ -112,14 +112,14 @@ RC tpcc_txn_man::run_txn(int tid, base_query * query) {
 // 	cout << "Memory concumption (Bytes): " << index->index_size() << endl;
 
 // 	start = std::chrono::high_resolution_clock::now();
-// 	cubit::Cubit *bitmap = dynamic_cast<cubit::Cubit *>(_wl->bitmap_c_w_id);
+// 	rabit::Rabit *bitmap = dynamic_cast<rabit::Rabit *>(_wl->bitmap_c_w_id);
 // 	tmp = bitmap->evaluate(0, key);
 // 	tmp = bitmap->bitmaps[key]->btv->count();
 // 	end = std::chrono::high_resolution_clock::now();
 // 	time_elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 // 	cout << "Bitmap: Loop times: " << tmp << ". Found string times: " << cnt << 
 // 			". Microseconds: " << time_elapsed_ms << ". Memory concumption (Bytes): " << endl;
-// 	dynamic_cast<cubit_lk::CubitLK *>(bitmap)->printMemory();
+// 	dynamic_cast<rabit::Rabit *>(bitmap)->printMemory();
 
 // 	exit(rc);
 // 	return rc;
@@ -505,7 +505,7 @@ RC tpcc_txn_man::run_new_order(tpcc_query * query) {
 			quantity = s_quantity - ol_quantity + 91;
 		}
 		r_stock_local->set_value(S_QUANTITY, &quantity);
-		cubit::Cubit* bt_quantity = dynamic_cast<cubit::Cubit *>(_wl->bitmap_s_quantity);
+		rabit::Rabit* bt_quantity = dynamic_cast<rabit::Rabit *>(_wl->bitmap_s_quantity);
 
 		int quantity_idx = 0;	
 		if (quantity < 10) {
@@ -798,8 +798,8 @@ tpcc_txn_man::run_stock_level_bt(tpcc_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	cubit::Cubit* bt_quantity = dynamic_cast<cubit::Cubit *>(_wl->bitmap_s_quantity);
-	ibis::bitvector* bv_quantity = bt_quantity->bitmaps[query->threshold_stock-10]->btv;
+	rabit::Rabit* bt_quantity = dynamic_cast<rabit::Rabit *>(_wl->bitmap_s_quantity);
+	ibis::bitvector* bv_quantity = bt_quantity->Btvs[query->threshold_stock-10]->btv;
 	auto cnt_result = 0;
 
 	item_dist = index_read(_wl->i_district, distKey(d_id, w_id), wh_to_part(w_id));

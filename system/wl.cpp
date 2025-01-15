@@ -12,15 +12,13 @@
 #include "catalog.h"
 #include "mem_alloc.h"
 
-
 #include "fastbit/bitvector.h"
-#include "nicolas/base_table.h"
-#include "nicolas/util.h"
-#include "ub/table.h"
-#include "ucb/table.h"
-#include "naive/table.h"
-#include "cubit/table_lf.h"
-#include "cubit/table_lk.h"
+// #include "nicolas/util.h"
+// #include "bitmaps/base_table.h"
+// #include "bitmaps/ub/table.h"
+// #include "bitmaps/ucb/table.h"
+// #include "bitmaps/naive/table.h"
+// #include "bitmaps/rabit/table.h"
 
 RC workload::init() {
 	sim_done = false;

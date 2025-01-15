@@ -1,18 +1,18 @@
 #ifndef _TPCC_H_
 #define _TPCC_H_
 
+#include <cstdint>
+
 #include "wl.h"
 #include "txn.h"
 
 #include "fastbit/bitvector.h"
-#include "nicolas/base_table.h"
 #include "nicolas/util.h"
-#include "ub/table.h"
-#include "ucb/table.h"
-#include "naive/table.h"
-#include "cubit/table_lf.h"
-#include "cubit/table_lk.h"
-#include <cstdint>
+#include "bitmaps/base_table.h"
+#include "bitmaps/ub/table.h"
+#include "bitmaps/ucb/table.h"
+#include "bitmaps/naive/table.h"
+#include "bitmaps/rabit/table.h"
 
 class table_t;
 class INDEX;

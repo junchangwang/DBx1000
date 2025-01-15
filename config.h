@@ -137,7 +137,7 @@
 #define TPCC_ACCESS_ALL 			false 
 #define WH_UPDATE					true
 #define NUM_WH 						4
-#define TPCC_EVA_CUBIT				true
+#define TPCC_EVA_RABIT				true
 //
 enum TPCCTxnType {TPCC_ALL, 
 				TPCC_PAYMENT, 
@@ -179,7 +179,7 @@ enum CHBenchTxnType {CHBENCH_ALL,
 enum CHBenchQuery {CHBenchQ1, CHBenchQ6,CHBenchTest};
 enum CHBenchQueryMethod {ALL_METHOD, BTREE_METHOD, BITMAP_METHOD, BITMAP_PARA_METHOD, SCAN_METHOD, BWTREE_METHOD, ART_METHOD, VERIFY_TABLE};
 extern CHBenchTxnType 					g_chbench_txn_type;
-#define CHBENCH_EVA_CUBIT				true
+#define CHBENCH_EVA_RABIT				true
 #define CHBENCH_SMALL					false
 #define CHBENCH_OLAP_NUMBER				4
 #define CHBENCH_QUERY_TYPE				CHBenchQ6
@@ -187,7 +187,7 @@ extern CHBenchTxnType 					g_chbench_txn_type;
 
 
 // ==== [TPCH] ====
-#define TPCH_EVA_CUBIT				true
+#define TPCH_EVA_RABIT				true
 #define TPCH_EVA_RF					true
 #define RF_TXN_NUM					1500
 
@@ -197,7 +197,7 @@ enum TPCHTxnType {TPCH_ALL,
 				TPCH_Q6_BTREE,
 				TPCH_Q6_BWTREE,
 				TPCH_Q6_ART,
-				TPCH_Q6_CUBIT,
+				TPCH_Q6_RABIT,
 				TPCH_RF1,
 				TPCH_RF2};
 extern TPCHTxnType 					g_tpch_txn_type;

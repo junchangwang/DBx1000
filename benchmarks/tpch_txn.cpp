@@ -84,13 +84,13 @@ RC tpch_txn_man::run_txn(int tid, base_query * query)
 			INC_STATS(get_thd_id(), Q6_art_txn_cnt, 1);
 			break;
 
-		case TPCH_Q6_CUBIT :
+		case TPCH_Q6_RABIT :
 			_starttime = get_sys_clock();
 			rc = run_Q6_bitmap(tid, m_query);
 			_endtime = get_sys_clock();
 			_timespan = _endtime - _starttime;
-			INC_STATS(get_thd_id(), cubit_run_time, _timespan);
-			INC_STATS(get_thd_id(), Q6_cubit_txn_cnt, 1);
+			INC_STATS(get_thd_id(), rabit_run_time, _timespan);
+			INC_STATS(get_thd_id(), Q6_rabit_txn_cnt, 1);
 			break;
 
 		case TPCH_RF1 :
@@ -667,7 +667,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 
 	int perf_pid;
 	if (perf_enabled == true && tid == 0) {
-		perf_pid = gen_perf_process((char *)"CUBIT");
+		perf_pid = gen_perf_process((char *)"RABIT");
 		usleep(WAIT_FOR_PERF_U);
 	}
 
@@ -679,26 +679,26 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	// Optimizations can be applied to remove the cost of making private copies.
 	// However, it makes our memory reclamation mechanism more complex. Therefore, currently, 
 	// we simply retrive a pointer to the latest bitvector, which is always safe to access.
-	cubit::Cubit *bitmap_sd, *bitmap_dc, *bitmap_qt;
-	bitmap_sd = dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate);
+	rabit::Rabit *bitmap_sd, *bitmap_dc, *bitmap_qt;
+	bitmap_sd = dynamic_cast<rabit::Rabit *>(_wl->bitmap_shipdate);
 	bitmap_sd->trans_begin(tid);
-	ibis::bitvector *btv_shipdate = bitmap_sd->bitmaps[year_val]->btv;
+	ibis::bitvector *btv_shipdate = bitmap_sd->Btvs[year_val]->btv;
 
-	bitmap_dc = dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount);
+	bitmap_dc = dynamic_cast<rabit::Rabit *>(_wl->bitmap_discount);
 	bitmap_dc->trans_begin(tid);
 	ibis::bitvector btv_discount;
-	btv_discount.copy(*bitmap_dc->bitmaps[discount_val-1]->btv);
-	btv_discount |= *bitmap_dc->bitmaps[discount_val]->btv;
-	btv_discount |= *bitmap_dc->bitmaps[discount_val+1]->btv;
+	btv_discount.copy(*bitmap_dc->Btvs[discount_val-1]->btv);
+	btv_discount |= *bitmap_dc->Btvs[discount_val]->btv;
+	btv_discount |= *bitmap_dc->Btvs[discount_val+1]->btv;
 
 	auto tmp_1 = std::chrono::high_resolution_clock::now();
 
-	bitmap_qt = dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity);
+	bitmap_qt = dynamic_cast<rabit::Rabit *>(_wl->bitmap_quantity);
 	bitmap_qt->trans_begin(tid);
 	ibis::bitvector result;
-	result.copy(*bitmap_qt->bitmaps[0]->btv);
+	result.copy(*bitmap_qt->Btvs[0]->btv);
 	for (int i = 1; i < bitmap_quantity_bin(quantity_val); i++) {
-		result |= *bitmap_qt->bitmaps[i]->btv;
+		result |= *bitmap_qt->Btvs[i]->btv;
 	}
 
 	auto tmp_2 = std::chrono::high_resolution_clock::now();
@@ -746,7 +746,7 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 
 	// int perf_pid;
 	// if (perf_enabled == true && tid == 0) {
-	// 	perf_pid = gen_perf_process((char *)"CUBIT");
+	// 	perf_pid = gen_perf_process((char *)"RABIT");
 	// 	usleep(WAIT_FOR_PERF_U);
 	// }
 
@@ -776,13 +776,13 @@ RC tpch_txn_man::run_Q6_bitmap(int tid, tpch_query *query)
 	// 	usleep(WAIT_FOR_PERF_U);
 	// }
 
-	cout << "********Q6 with CUBIT revenue is : " << revenue << "  . Number of items: " << cnt << endl;
-	string tmp = "CUBIT " + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
+	cout << "********Q6 with RABIT revenue is : " << revenue << "  . Number of items: " << cnt << endl;
+	string tmp = "RABIT " + to_string(cnt) + " " + to_string(index_us+tuple_us) + "  " + to_string(index_us) + "  " + to_string(tuple_us) + "\n";
 	output_info[tid].push_back(tmp);
 
 	// Detailed performance analysis
 		// if (tid == 0) {
-	//		 cout << "[CUBIT Q6]: tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
+	//		 cout << "[RABIT Q6]: tmp_1: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_1-start).count()
 	// 		<< "  tmp_2: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_2-tmp_1).count()
 	// 		<< "  tmp_3: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_3-tmp_2).count()
 	// 		<< "  tmp_4: " << std::chrono::duration_cast<std::chrono::microseconds>(tmp_4-tmp_3).count()
@@ -898,9 +898,9 @@ RC tpch_txn_man::run_RF1(int tid)
 	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
 
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate)->trans_begin(tid);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount)->trans_begin(tid);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity)->trans_begin(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_shipdate)->trans_begin(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_discount)->trans_begin(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_quantity)->trans_begin(tid);
 
 	for(int i = 0; i < insert_row.size(); i++) {
 		uint64_t lcnt = insert_lcnt[i];
@@ -919,7 +919,7 @@ RC tpch_txn_man::run_RF1(int tid)
 		// Q6 index (btree)
 		_wl->index_insert((INDEX *)_wl->i_Q6_btree, Q6_key, row2, 0);
 
-		// CUBIT
+		// RABIT
 		_wl->bitmap_shipdate->append(tid, (shipdate/1000-92));
 		_wl->bitmap_discount->append(tid, discount);
 		_wl->bitmap_quantity->append(tid, bitmap_quantity_bin(quantity));
@@ -929,9 +929,9 @@ RC tpch_txn_man::run_RF1(int tid)
 		<< lines << " tuples with revenue being " << ins_revenue << " have been inserted." << endl << endl;
 
 	assert(rc == RCOK);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate)->trans_commit(tid);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount)->trans_commit(tid);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity)->trans_commit(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_shipdate)->trans_commit(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_discount)->trans_commit(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_quantity)->trans_commit(tid);
 	return finish(rc);
 }
 
@@ -1010,9 +1010,9 @@ RC tpch_txn_man::run_RF2(int tid)
 	unique_lock<shared_mutex> w_lock2(_wl->i_Q6_hashtable->rw_lock);
 	unique_lock<shared_mutex> w_lock3(_wl->i_Q6_btree->rw_lock);
 
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate)->trans_begin(tid);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount)->trans_begin(tid);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity)->trans_begin(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_shipdate)->trans_begin(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_discount)->trans_begin(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_quantity)->trans_begin(tid);
 
 	for(int i = 0; i < delete_lcnt.size(); i++) {
 		row_t * row2 = delete_row[i];
@@ -1042,8 +1042,8 @@ RC tpch_txn_man::run_RF2(int tid)
 			<< del_cnt << " tuples with revenue being " << del_revenue << " have been removed." << endl << endl;
 
 	assert(rc == RCOK);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_shipdate)->trans_commit(tid);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_discount)->trans_commit(tid);
-	dynamic_cast<cubit::Cubit *>(_wl->bitmap_quantity)->trans_commit(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_shipdate)->trans_commit(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_discount)->trans_commit(tid);
+	dynamic_cast<rabit::Rabit *>(_wl->bitmap_quantity)->trans_commit(tid);
 	return finish(rc);
 }

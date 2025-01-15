@@ -17,7 +17,7 @@
 
 RC tpch_wl::init() 
 {
-#if TPCH_EVA_CUBIT
+#if TPCH_EVA_RABIT
 	init_bitmap();
 #endif
 	workload::init();
@@ -49,7 +49,7 @@ RC tpch_wl::build()
 
 	int ret;
 	// bitmap_shipdate
-	cubit::Cubit *bitmap = dynamic_cast<cubit::Cubit *>(bitmap_shipdate);
+	rabit::Rabit *bitmap = dynamic_cast<rabit::Rabit *>(bitmap_shipdate);
 	for (uint64_t i = 0; i < bitmap_shipdate->config->g_cardinality; ++i) {
 		string temp = "bm_";
 		temp.append(to_string(curr_SF));
@@ -60,15 +60,15 @@ RC tpch_wl::build()
 		sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
-		bitmap->bitmaps[i]->btv->write(temp.c_str());
+		bitmap->Btvs[i]->btv->write(temp.c_str());
 
 		ibis::bitvector * test_btv = new ibis::bitvector();
 		test_btv->read(temp.c_str());
 		test_btv->adjustSize(0, bitmap->g_number_of_rows);
-		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
+		assert(*(bitmap->Btvs[i]->btv) == (*test_btv));
 	}
 
-	bitmap = dynamic_cast<cubit::Cubit *>(bitmap_discount);
+	bitmap = dynamic_cast<rabit::Rabit *>(bitmap_discount);
 	for (uint64_t i = 0; i < bitmap_discount->config->g_cardinality; ++i) {
 		string temp = "bm_";
 		temp.append(to_string(curr_SF));
@@ -79,15 +79,15 @@ RC tpch_wl::build()
 		sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
-		bitmap->bitmaps[i]->btv->write(temp.c_str());
+		bitmap->Btvs[i]->btv->write(temp.c_str());
 
 		ibis::bitvector * test_btv = new ibis::bitvector();
 		test_btv->read(temp.c_str());
 		test_btv->adjustSize(0, bitmap->g_number_of_rows);
-		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
+		assert(*(bitmap->Btvs[i]->btv) == (*test_btv));
 	}
 	
-	bitmap = dynamic_cast<cubit::Cubit *>(bitmap_quantity);
+	bitmap = dynamic_cast<rabit::Rabit *>(bitmap_quantity);
 	for (uint64_t i = 0; i < bitmap_quantity->config->g_cardinality; ++i) {
 		string temp = "bm_";
 		temp.append(to_string(curr_SF));
@@ -98,12 +98,12 @@ RC tpch_wl::build()
 		sleep(1);
 		temp.append(to_string(i));
 		temp.append(".bm");
-		bitmap->bitmaps[i]->btv->write(temp.c_str());
+		bitmap->Btvs[i]->btv->write(temp.c_str());
 
 		ibis::bitvector * test_btv = new ibis::bitvector();
 		test_btv->read(temp.c_str());
 		test_btv->adjustSize(0, bitmap->g_number_of_rows);
-		assert(*(bitmap->bitmaps[i]->btv) == (*test_btv));
+		assert(*(bitmap->Btvs[i]->btv) == (*test_btv));
 	}
 	// create done file
 	fstream done;   
@@ -177,25 +177,25 @@ RC tpch_wl::printMemory() {
 	// each bitmap Menory
 	uint64_t bitmap = 0, updateable_bitmap = 0, fence_pointers = 0;
 
-	auto Bitmap = dynamic_cast<cubit::Cubit *>(bitmap_discount);
+	auto Bitmap = dynamic_cast<rabit::Rabit *>(bitmap_discount);
 	for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
-		Bitmap->bitmaps[i]->btv->compress();
-		bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-		fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
+		Bitmap->Btvs[i]->btv->compress();
+		bitmap += Bitmap->Btvs[i]->btv->getSerialSize();
+		fence_pointers += Bitmap->Btvs[i]->btv->index.size() * sizeof(int) * 2;
 	}
 
-	Bitmap = dynamic_cast<cubit::Cubit *>(bitmap_quantity);
+	Bitmap = dynamic_cast<rabit::Rabit *>(bitmap_quantity);
 	for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
-		Bitmap->bitmaps[i]->btv->compress();
-		bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-		fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
+		Bitmap->Btvs[i]->btv->compress();
+		bitmap += Bitmap->Btvs[i]->btv->getSerialSize();
+		fence_pointers += Bitmap->Btvs[i]->btv->index.size() * sizeof(int) * 2;
 	}
 
-	Bitmap = dynamic_cast<cubit::Cubit *>(bitmap_shipdate);
+	Bitmap = dynamic_cast<rabit::Rabit *>(bitmap_shipdate);
 	for (int i = 0; i < Bitmap->config->g_cardinality; ++i) {
-		Bitmap->bitmaps[i]->btv->compress();
-		bitmap += Bitmap->bitmaps[i]->btv->getSerialSize();
-		fence_pointers += Bitmap->bitmaps[i]->btv->index.size() * sizeof(int) * 2;
+		Bitmap->Btvs[i]->btv->compress();
+		bitmap += Bitmap->Btvs[i]->btv->getSerialSize();
+		fence_pointers += Bitmap->Btvs[i]->btv->index.size() * sizeof(int) * 2;
 	}
 
 	cout << "*************************Print Memory concumption: *******" << endl;	
@@ -204,7 +204,7 @@ RC tpch_wl::printMemory() {
 	cout << "BtreeMemory (MB): " << i_Q6_btree->index_size()/1000000 << endl;
 	cout << "BwtreeMemory (MB): " << i_Q6_bwtree->index_size()/1000000 << endl;
 	cout << "ARTMemory (MB): " << i_Q6_art->index_size()/1000000 << endl;
-	cout << "CUBITMemory (MB): " << bitmap/1000000 << endl;
+	cout << "RABITMemory (MB): " << bitmap/1000000 << endl;
 
 	cout << "*************************Print Memory concumption end *******" << endl;	
 	return RCOK;
@@ -381,14 +381,14 @@ void tpch_wl::init_tab_orderAndLineitem() {
 				if (bitmap_shipdate->config->approach == "naive" ) {
 					bitmap_shipdate->append(0, row_id2);
 				}
-				else if (bitmap_shipdate->config->approach == "cubit-lk") {
-					cubit::Cubit *bitmap = dynamic_cast<cubit::Cubit *>(bitmap_shipdate);
+				else if (bitmap_shipdate->config->approach == "rabit") {
+					rabit::Rabit *bitmap = dynamic_cast<rabit::Rabit *>(bitmap_shipdate);
 					bitmap->__init_append(0, row_id2, (shipdate/1000-92));
 
-					bitmap = dynamic_cast<cubit::Cubit *>(bitmap_discount);
+					bitmap = dynamic_cast<rabit::Rabit *>(bitmap_discount);
 					bitmap->__init_append(0, row_id2, discount);
 
-					bitmap = dynamic_cast<cubit::Cubit *>(bitmap_quantity);
+					bitmap = dynamic_cast<rabit::Rabit *>(bitmap_quantity);
 					// bitmap->__init_append(0, row_id2, quantity-1);
 					bitmap->__init_append(0, row_id2, bitmap_quantity_bin(quantity));
 				}
@@ -670,7 +670,7 @@ RC tpch_wl::init_bitmap()
 	config_shipdate->g_cardinality = 7; // [92, 98]
 	enable_fence_pointer = config_shipdate->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
-	config_shipdate->approach = {"cubit-lk"};
+	config_shipdate->approach = {"rabit"};
 	config_shipdate->nThreads_for_getval = 4;
 	config_shipdate->show_memory = true;
 	config_shipdate->on_disk = false;
@@ -695,10 +695,8 @@ RC tpch_wl::init_bitmap()
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_shipdate->approach == "ub") {
 		bitmap_shipdate = new ub::Table(config_shipdate);
-	} else if (config_shipdate->approach == "cubit-lk") {
-		bitmap_shipdate = new cubit_lk::CubitLK(config_shipdate);
-	} else if (config_shipdate->approach == "cubit-lf" || config_shipdate->approach =="cubit") {
-		bitmap_shipdate = new cubit_lf::CubitLF(config_shipdate);
+	} else if (config_shipdate->approach == "rabit") {
+		bitmap_shipdate = new rabit::Rabit(config_shipdate);
 	} else if (config_shipdate->approach == "ucb") {
 		bitmap_shipdate = new ucb::Table(config_shipdate);
 	} else if (config_shipdate->approach == "naive") {
@@ -711,7 +709,7 @@ RC tpch_wl::init_bitmap()
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
-	cout << "[CUBIT]: Bitmap bitmap_shipdate initialized successfully. "
+	cout << "[RABIT]: Bitmap bitmap_shipdate initialized successfully. "
 			<< "[Cardinality:" << config_shipdate->g_cardinality
 			<< "] [Method:" << config_shipdate->approach << "]" << endl;
 	}
@@ -732,7 +730,7 @@ RC tpch_wl::init_bitmap()
 	config_discount->g_cardinality = 11; // [0, 10]
 	enable_fence_pointer = config_discount->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
-	config_discount->approach = {"cubit-lk"};
+	config_discount->approach = {"rabit"};
 	config_discount->nThreads_for_getval = 4;
 	config_discount->show_memory = true;
 	config_discount->on_disk = false;
@@ -757,10 +755,8 @@ RC tpch_wl::init_bitmap()
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_discount->approach == "ub") {
 		bitmap_discount = new ub::Table(config_discount);
-	} else if (config_discount->approach == "cubit-lk") {
-		bitmap_discount = new cubit_lk::CubitLK(config_discount);
-	} else if (config_discount->approach == "cubit-lf" || config_discount->approach =="cubit") {
-		bitmap_discount = new cubit_lf::CubitLF(config_discount);
+	} else if (config_discount->approach == "rabit") {
+		bitmap_discount = new rabit::Rabit(config_discount);
 	} else if (config_discount->approach == "ucb") {
 		bitmap_discount = new ucb::Table(config_discount);
 	} else if (config_discount->approach == "naive") {
@@ -773,7 +769,7 @@ RC tpch_wl::init_bitmap()
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
-	cout << "[CUBIT]: Bitmap bitmap_discount initialized successfully. "
+	cout << "[RABIT]: Bitmap bitmap_discount initialized successfully. "
 			<< "[Cardinality:" << config_discount->g_cardinality
 			<< "] [Method:" << config_discount->approach << "]" << endl;
 	}
@@ -795,7 +791,7 @@ RC tpch_wl::init_bitmap()
 	config_quantity->g_cardinality = 3; // [0,23], 24, [25,49]
 	enable_fence_pointer = config_quantity->enable_fence_pointer = true;
 	INDEX_WORDS = 10000;  // Fence length 
-	config_quantity->approach = {"cubit-lk"};
+	config_quantity->approach = {"rabit"};
 	config_quantity->nThreads_for_getval = 4;
 	config_quantity->show_memory = true;
 	config_quantity->on_disk = false;
@@ -820,10 +816,8 @@ RC tpch_wl::init_bitmap()
 	// start = std::chrono::high_resolution_clock::now();
 	if (config_quantity->approach == "ub") {
 		bitmap_quantity = new ub::Table(config_quantity);
-	} else if (config_quantity->approach == "cubit-lk") {
-		bitmap_quantity = new cubit_lk::CubitLK(config_quantity);
-	} else if (config_quantity->approach == "cubit-lf" || config_quantity->approach =="cubit") {
-		bitmap_quantity = new cubit_lf::CubitLF(config_quantity);
+	} else if (config_quantity->approach == "rabit") {
+		bitmap_quantity = new rabit::Rabit(config_quantity);
 	} else if (config_quantity->approach == "ucb") {
 		bitmap_quantity = new ucb::Table(config_quantity);
 	} else if (config_quantity->approach == "naive") {
@@ -836,7 +830,7 @@ RC tpch_wl::init_bitmap()
 	// end = std::chrono::high_resolution_clock::now();
 	// time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();	
 
-	cout << "[CUBIT]: Bitmap bitmap_quantity initialized successfully. "
+	cout << "[RABIT]: Bitmap bitmap_quantity initialized successfully. "
 			<< "[Cardinality:" << config_quantity->g_cardinality
 			<< "] [Method:" << config_quantity->approach << "]" << endl;
 	}

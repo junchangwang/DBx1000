@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS= -g -O3 -std=gnu++17
+CFLAGS= -g -O3 -std=gnu++17 -Wno-invalid-offsetof
 
 .SUFFIXES: .o .cpp .h
 
@@ -23,11 +23,6 @@ all: rundb
 
 rundb: $(OBJS) $(LIBBITMAP)
 	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(LIBBITMAP):
-	rm -fr CUBIT/
-	git clone -b multi-threaded git@github.com:junchangwang/CUBIT.git
-	cd CUBIT && ./build.sh
 
 -include $(OBJS:%.o=%.d)
 

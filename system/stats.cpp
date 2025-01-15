@@ -33,7 +33,7 @@ void Stats_thd::clear() {
 	Q6_btree_txn_cnt = 0;
 	Q6_bwtree_txn_cnt = 0;
 	Q6_art_txn_cnt = 0;
-	Q6_cubit_txn_cnt = 0;
+	Q6_rabit_txn_cnt = 0;
 	Q6_hash_txn_cnt = 0;
 	Q6_scan_txn_cnt = 0;
 	scan_run_time = 0;
@@ -41,7 +41,7 @@ void Stats_thd::clear() {
 	btree_run_time = 0;
 	bwtree_run_time = 0;
 	art_run_time = 0;
-	cubit_run_time = 0;
+	rabit_run_time = 0;
 }
 
 void Stats_tmp::init() {
@@ -125,14 +125,14 @@ void Stats::print() {
 	double total_btree_run_time = 0;
 	double total_bwtree_run_time = 0;
 	double total_art_run_time = 0;
-	double total_cubit_run_time = 0;
+	double total_rabit_run_time = 0;
 	// uint64_t total_Q6_txn_cnt = 0;
 	uint64_t total_scan_Q6_txn_cnt = 0;
 	uint64_t total_hash_Q6_txn_cnt = 0;
 	uint64_t total_btree_Q6_txn_cnt = 0;
 	uint64_t total_bwtree_Q6_txn_cnt = 0;
 	uint64_t total_art_Q6_txn_cnt = 0;
-	uint64_t total_cubit_Q6_txn_cnt = 0;
+	uint64_t total_rabit_Q6_txn_cnt = 0;
 	double total_time_man = 0;
 	double total_debug1 = 0;
 	double total_debug2 = 0;
@@ -155,14 +155,14 @@ void Stats::print() {
 		total_btree_run_time += _stats[tid]->btree_run_time;
 		total_bwtree_run_time += _stats[tid]->bwtree_run_time;
 		total_art_run_time += _stats[tid]->art_run_time;
-		total_cubit_run_time += _stats[tid]->cubit_run_time;
+		total_rabit_run_time += _stats[tid]->rabit_run_time;
 		// total_Q6_txn_cnt += _stats[tid]->Q6_tnx_cnt;
 		total_scan_Q6_txn_cnt += _stats[tid]->Q6_scan_txn_cnt;
 		total_hash_Q6_txn_cnt += _stats[tid]->Q6_hash_txn_cnt;
 		total_btree_Q6_txn_cnt += _stats[tid]->Q6_btree_txn_cnt;
 		total_bwtree_Q6_txn_cnt += _stats[tid]->Q6_bwtree_txn_cnt;
 		total_art_Q6_txn_cnt += _stats[tid]->Q6_art_txn_cnt;
-		total_cubit_Q6_txn_cnt += _stats[tid]->Q6_cubit_txn_cnt;
+		total_rabit_Q6_txn_cnt += _stats[tid]->Q6_rabit_txn_cnt;
 		total_time_man += _stats[tid]->time_man;
 		total_debug1 += _stats[tid]->debug1;
 		total_debug2 += _stats[tid]->debug2;
@@ -183,7 +183,7 @@ void Stats::print() {
 			_stats[tid]->abort_cnt
 		);
 	}
-	// print Scan BTree Hash CUBIT
+	// print Scan BTree Hash RABIT
 	for (auto it : output_info) {
 		for (auto it2 : it) {
 			cout << it2;
@@ -248,18 +248,18 @@ void Stats::print() {
 		total_debug5  // / BILLION 
 	);
 
-#if (WORKLOAD == TPCH) & (TPCH_EVA_CUBIT)
+#if (WORKLOAD == TPCH) & (TPCH_EVA_RABIT)
 	printf("\n*************** Throughput output****************\n");
 	printf("ThroughputScan %f\n", total_scan_Q6_txn_cnt / (total_scan_run_time / BILLION) * g_thread_cnt);
 	printf("ThroughputHash %f\n", total_hash_Q6_txn_cnt / (total_hash_run_time / BILLION) * g_thread_cnt);
 	printf("ThroughputBTree %f\n", total_btree_Q6_txn_cnt / (total_btree_run_time / BILLION) * g_thread_cnt);
 	printf("ThroughputBWTree %f\n", total_bwtree_Q6_txn_cnt / (total_bwtree_run_time / BILLION) * g_thread_cnt);
 	printf("ThroughputART %f\n", total_art_Q6_txn_cnt / (total_art_run_time / BILLION) * g_thread_cnt);
-	printf("ThroughputCUBIT %f\n", total_cubit_Q6_txn_cnt / (total_cubit_run_time / BILLION) * g_thread_cnt);
+	printf("ThroughputRABIT %f\n", total_rabit_Q6_txn_cnt / (total_rabit_run_time / BILLION) * g_thread_cnt);
 	cout << "THREAD_CNT " << g_thread_cnt << endl;
-	printf("run time (s): total %f, scan %f, hash %f, btree %f, bwtree %f, art %f, cubit %f\n",  (total_scan_run_time + total_hash_run_time + total_btree_run_time + total_cubit_run_time) / BILLION,total_scan_run_time / BILLION, total_hash_run_time / BILLION, total_btree_run_time / BILLION, total_bwtree_run_time / BILLION, total_art_run_time / BILLION, total_cubit_run_time / BILLION);
-	printf("txn count: total %ld, scan %ld, hash %ld, btree %ld, bwtree %ld, art %ld, cubit %ld\n", total_scan_Q6_txn_cnt + total_hash_Q6_txn_cnt + total_btree_Q6_txn_cnt + total_cubit_Q6_txn_cnt,total_scan_Q6_txn_cnt, total_hash_Q6_txn_cnt, total_btree_Q6_txn_cnt, total_bwtree_Q6_txn_cnt, total_art_Q6_txn_cnt, total_cubit_Q6_txn_cnt);
-	// printf("total_Q6 time %f\n", (total_scan_run_time + total_hash_run_time + total_btree_run_time + total_cubit_run_time) / BILLION);
+	printf("run time (s): total %f, scan %f, hash %f, btree %f, bwtree %f, art %f, rabit %f\n",  (total_scan_run_time + total_hash_run_time + total_btree_run_time + total_rabit_run_time) / BILLION,total_scan_run_time / BILLION, total_hash_run_time / BILLION, total_btree_run_time / BILLION, total_bwtree_run_time / BILLION, total_art_run_time / BILLION, total_rabit_run_time / BILLION);
+	printf("txn count: total %ld, scan %ld, hash %ld, btree %ld, bwtree %ld, art %ld, rabit %ld\n", total_scan_Q6_txn_cnt + total_hash_Q6_txn_cnt + total_btree_Q6_txn_cnt + total_rabit_Q6_txn_cnt,total_scan_Q6_txn_cnt, total_hash_Q6_txn_cnt, total_btree_Q6_txn_cnt, total_bwtree_Q6_txn_cnt, total_art_Q6_txn_cnt, total_rabit_Q6_txn_cnt);
+	// printf("total_Q6 time %f\n", (total_scan_run_time + total_hash_run_time + total_btree_run_time + total_rabit_run_time) / BILLION);
 	printf("SF = %.4f\n", (double)g_num_orders/1500000);
 #endif
 

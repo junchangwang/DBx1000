@@ -108,7 +108,7 @@ Query_thd::init(workload * h_wl, int thread_id) {
 		queries[qid].init(thread_id, h_wl);
 
 		// Generate Q6 related vars
-		// Using this way, we can guarantee each (scan, hash, btree, cubit) group use the same config.
+		// Using this way, we can guarantee each (scan, hash, btree, rabit) group use the same config.
 		if (qid % 6 == 0) {
 			year = URand(93, 97, 0);
 			date = (uint64_t)(year * 1000 + 1);
@@ -123,7 +123,7 @@ Query_thd::init(workload * h_wl, int thread_id) {
 		else if (qid % 6 == 2) type = TPCH_Q6_BTREE;
 		else if (qid % 6 == 3) type = TPCH_Q6_BWTREE;
 		else if (qid % 6 == 4) type = TPCH_Q6_ART;
-		else type = TPCH_Q6_CUBIT;
+		else type = TPCH_Q6_RABIT;
 
 		if (qid % 100 == 20) /* magic number */
 			type = TPCH_RF1;

@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 	pthread_barrier_init( &warmup_bar, NULL, g_thread_cnt );
 
 	// Intialize the background merge threads for NBUB.
-#if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true)
+#if (WORKLOAD == TPCC && TPCC_EVA_RABIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_RABIT == true)
 
     int n_merge_ths;
     std::thread *merge_ths;
@@ -132,27 +132,27 @@ int main(int argc, char* argv[])
 		bitmap = dynamic_cast<tpcc_wl *>(m_wl)->bitmap_s_quantity;
 		config = bitmap->config;
 
-	if ((config->approach == "cubit-lf") || (config->approach == "cubit-lk")) 
+	if (config->approach == "rabit") 
 	{
 		merge_ths = new thread[config->n_workers / WORKERS_PER_MERGE_TH + 1];
 
 		__atomic_store_n(&run_merge_func, true, MM_CST);
 
-		n_merge_ths = config->n_workers / WORKERS_PER_MERGE_TH;
-		for (int i = 0; i < n_merge_ths; i++) {
-			int begin = i * WORKERS_PER_MERGE_TH;
-			int range = WORKERS_PER_MERGE_TH;
-			cout << "[CUBIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
-			merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config, &bitmap_mutex);
-		}
-		if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
-			int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
-			int range = (config->n_workers % WORKERS_PER_MERGE_TH);
-			cout << "[CUBIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
-			merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config, &bitmap_mutex);
-			n_merge_ths ++;
-		}
-		cout << "[CUBIT]: Creating " << n_merge_ths << " merging threads" << endl;
+		// n_merge_ths = config->n_workers / WORKERS_PER_MERGE_TH;
+		// for (int i = 0; i < n_merge_ths; i++) {
+		// 	int begin = i * WORKERS_PER_MERGE_TH;
+		// 	int range = WORKERS_PER_MERGE_TH;
+		// 	cout << "[RABIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
+		// 	merge_ths[i] = std::thread(run_merge_func, bitmap, begin, range, config, &bitmap_mutex);
+		// }
+		// if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
+		// 	int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
+		// 	int range = (config->n_workers % WORKERS_PER_MERGE_TH);
+		// 	cout << "[RABIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
+		// 	merge_ths[n_merge_ths] = std::thread(run_merge_func, bitmap, begin, range, config, &bitmap_mutex);
+		// 	n_merge_ths ++;
+		// }
+		// cout << "[RABIT]: Creating " << n_merge_ths << " merging threads" << endl;
 	}
 	}
 	else {
@@ -185,7 +185,7 @@ int main(int argc, char* argv[])
 	}
 	f((void *)(thd_cnt - 1));
 
-//	if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true)
+//	if (WORKLOAD == TPCC && TPCC_EVA_RABIT == true)
 //		assert(!verify_bitmap(m_wl));
 
 	for (uint32_t i = 0; i < thd_cnt - 1; i++) 
@@ -194,8 +194,8 @@ int main(int argc, char* argv[])
 	auto end = std::chrono::high_resolution_clock::now();
 	double time_elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
 
-// #if (WORKLOAD == TPCC && TPCC_EVA_CUBIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_CUBIT == true)
-// 	if ((config->approach == "cubit-lf") || (config->approach == "cubit-lk")) 
+// #if (WORKLOAD == TPCC && TPCC_EVA_RABIT == true) || (WORKLOAD == CHBench && CHBENCH_EVA_RABIT == true)
+// 	if (config->approach == "rabit")
 // 	{
 // 		__atomic_store_n(&run_merge_func, false, MM_CST);
 
@@ -245,10 +245,10 @@ void * f(void * id) {
 // 		assert(bitmap->bitmaps[old_val]->getBit(ROW_ID, bitmap->config) == 0);
 // 		assert(bitmap->bitmaps[to_val]->getBit(ROW_ID, bitmap->config) == 1);
 // 	} 
-// 	else if (wl->bitmap_c_w_id->config->approach == "cubit-lk") {
+// 	else if (wl->bitmap_c_w_id->config->approach == "rabit") {
 // 		RUB last_rub = RUB{0, TYPE_INV, {}};
 // 		int ROW_ID = 6;
-// 		cubit::Cubit *bitmap = dynamic_cast<cubit::Cubit*>(wl->bitmap_c_w_id);
+// 		rabit::Rabit *bitmap = dynamic_cast<rabit::Rabit*>(wl->bitmap_c_w_id);
 // 		assert(bitmap->get_value_rcu(ROW_ID-1, db_timestamp, last_rub) == 
 // 					bitmap->get_value_rcu(0, db_timestamp, last_rub));
 // 		int old_val = bitmap->get_value_rcu(ROW_ID, db_timestamp, last_rub);
@@ -275,7 +275,7 @@ void * f(void * id) {
 // 		assert(bitmap->bitmaps[old_val]->btv->getBit(ROW_ID, bitmap->config) == 0);
 // 		assert(bitmap->bitmaps[to_val]->btv->getBit(ROW_ID, bitmap->config) == 1);
 
-// 		cout << "[CUBIT]: verify_bitmap by moving row " << ROW_ID
+// 		cout << "[RABIT]: verify_bitmap by moving row " << ROW_ID
 // 		<< " from " << old_val << " to " << to_val << endl;
 // 	}
 
@@ -290,18 +290,18 @@ void merge_start(BaseTable *bitmap, Table_config *config, std::thread *merge_ths
 
 	n_merge_ths = config->n_workers / WORKERS_PER_MERGE_TH;
 	merge_ths = new thread[config->n_workers / WORKERS_PER_MERGE_TH + 1];
-	for (int i = 0; i < n_merge_ths; i++) {
-		int begin = i * WORKERS_PER_MERGE_TH;
-		int range = WORKERS_PER_MERGE_TH;
-		cout << "[CUBIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
-		merge_ths[i] = std::thread(merge_func, bitmap, begin, range, config, &bitmap_mutex);
-	}
-	if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
-		int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
-		int range = (config->n_workers % WORKERS_PER_MERGE_TH);
-		cout << "[CUBIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
-		merge_ths[n_merge_ths] = std::thread(merge_func, bitmap, begin, range, config, &bitmap_mutex);
-		n_merge_ths ++;
-	}
-	cout << "[CUBIT]: Creating " << n_merge_ths << " merging threads" << endl;
+	// for (int i = 0; i < n_merge_ths; i++) {
+	// 	int begin = i * WORKERS_PER_MERGE_TH;
+	// 	int range = WORKERS_PER_MERGE_TH;
+	// 	cout << "[RABIT]: Range for merge thread " << i << " : [" << begin << " - " << begin+range << ")" << endl;
+	// 	merge_ths[i] = std::thread(run_merge_func, bitmap, begin, range, config, &bitmap_mutex);
+	// }
+	// if ( config->n_workers % WORKERS_PER_MERGE_TH != 0) {
+	// 	int begin = n_merge_ths * WORKERS_PER_MERGE_TH;
+	// 	int range = (config->n_workers % WORKERS_PER_MERGE_TH);
+	// 	cout << "[RABIT]: Range for merge thread " << n_merge_ths << " : [" << begin << " - " << begin+range << ")" << endl;
+	// 	merge_ths[n_merge_ths] = std::thread(run_merge_func, bitmap, begin, range, config, &bitmap_mutex);
+	// 	n_merge_ths ++;
+	// }
+	cout << "[RABIT]: Creating " << n_merge_ths << " merging threads" << endl;
 }

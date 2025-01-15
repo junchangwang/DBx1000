@@ -15,7 +15,7 @@
 #include "output_log.h"
 #include "Date.h"
 #include "perf.h"
-using namespace cubit;
+using namespace rabit;
 #define WAIT_FOR_PERF_U (1000 * 50)
 
 extern bool perf_enabled;
@@ -101,10 +101,10 @@ void chbench_txn_man::init(thread_t * h_thd, workload * h_wl, uint64_t thd_id) {
 
 RC chbench_txn_man::run_txn(int tid, base_query * query) {
 	chbench_query * m_query = (chbench_query *) query;
-#if CHBENCH_EVA_CUBIT && (CHBENCH_EVA_CUBIT == CHBENCH)
+#if CHBENCH_EVA_RABIT && (CHBENCH_EVA_RABIT == CHBENCH)
 	return evaluate_index(m_query);
 #else
-	cubit::Cubit *bitmap = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q6_deliverydate);
+	rabit::Rabit *bitmap = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q6_deliverydate);
 	switch (m_query->type) {
 		case CHBENCH_PAYMENT :
 			return run_payment(tid, m_query); break;
@@ -122,7 +122,7 @@ RC chbench_txn_man::run_txn(int tid, base_query * query) {
 			return run_Q6_btree(tid, m_query); break;
 		case CHBENCH_Q6_BITMAP :
 			if(CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD) {
-/*				bitmap = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q6_quantity);
+/*				bitmap = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q6_quantity);
 				assert(bitmap->config->segmented_btv);*/
 				return run_Q6_bitmap_parallel(tid, m_query);
 			}
@@ -159,7 +159,7 @@ RC chbench_txn_man::evaluate_index(chbench_query * query)
 	itemid_t * item;
 
 	// m_lock is used to sequentially debug and execute evaluate_index()
-	// to evaluate CUBIT. It can be removed in real code.
+	// to evaluate RABIT. It can be removed in real code.
 	static std::mutex m_lock;
 	std::lock_guard<std::mutex> gard(m_lock);
 
@@ -169,7 +169,7 @@ RC chbench_txn_man::evaluate_index(chbench_query * query)
 	std::string t_last = "OUGHTESEPRI";
 
 	/*==========================================================+
-		To evaluate CUBIT, we perform the following query:
+		To evaluate RABIT, we perform the following query:
 
 		EXEC SQL SELECT c_id INTO :c_ids
 		FROM customer
@@ -529,19 +529,19 @@ RC chbench_txn_man::run_new_order(int tid, chbench_query * query) {
 //	r_no->set_value(NO_D_ID, d_id);
 //	r_no->set_value(NO_W_ID, w_id);
 //	insert_row(r_no, _wl->t_neworder);
-	cubit::Cubit *bitmap_d = nullptr;
-	cubit::Cubit *bitmap_ol_num = nullptr;
-	cubit::Cubit *bitmap_q = nullptr;
+	rabit::Rabit *bitmap_d = nullptr;
+	rabit::Rabit *bitmap_ol_num = nullptr;
+	rabit::Rabit *bitmap_q = nullptr;
 	uint64_t inserted_max_row_id;
 
 	if( CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_METHOD || CHBENCH_QUERY_METHOD == CHBenchQueryMethod::BITMAP_PARA_METHOD ) {
 		if( query_number == CHBenchQuery::CHBenchQ1 ) {
-			bitmap_d = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q1_deliverydate);
-			bitmap_ol_num = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q1_ol_number);
+			bitmap_d = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q1_deliverydate);
+			bitmap_ol_num = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q1_ol_number);
 		}
 		else if( query_number == CHBenchQuery::CHBenchQ6 ){
-			bitmap_d = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q6_deliverydate);
-			bitmap_q = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q6_quantity);
+			bitmap_d = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q6_deliverydate);
+			bitmap_q = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q6_quantity);
 		}
 		else {
 			assert(0);
@@ -1242,9 +1242,9 @@ RC chbench_txn_man::run_Q6_bitmap(int tid, chbench_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	cubit::Cubit *bitmap_dd, *bitmap_qt;
-	bitmap_dd = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q6_deliverydate);
-	bitmap_qt = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q6_quantity);
+	rabit::Rabit *bitmap_dd, *bitmap_qt;
+	bitmap_dd = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q6_deliverydate);
+	bitmap_qt = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q6_quantity);
 	ibis::bitvector result;
 	
 	get_bitvector_result(result, bitmap_dd, bitmap_qt, 1, 1);
@@ -1309,7 +1309,7 @@ void chbench_txn_man::run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_b
 {
 	// selectivity 1.8%, read by four thread. so, 10% size of table is ok.
 	row_t *row_buffer = _wl->t_orderline->row_buffer;
-	seg_btv1._and_in_thread(seg_btv2, begin, end);
+	seg_btv1._and_in_thread(&seg_btv2, begin, end);
 	uint64_t n_ids_max = _wl->t_orderline->cur_tab_size * 0.1;
 	int *ids = new int[n_ids_max];
 	// Convert bitvector to ID list
@@ -1320,7 +1320,7 @@ void chbench_txn_man::run_Q6_bitmap_singlethread(SegBtv &seg_btv1, SegBtv &seg_b
 	auto iter1 = seg_btv1.seg_table.find(begin);
 	auto iter2 = seg_btv1.seg_table.find(end);
 	for(; iter1 != iter2; iter1++) {
-		ibis::bitvector *current_result = iter1->second.btv;
+		ibis::bitvector *current_result = iter1->second->btv;
 	for (ibis::bitvector::indexSet is = current_result->firstIndexSet(); is.nIndices() > 0; ++ is) 
 	{
 		const ibis::bitvector::word_t *ii = is.indices();
@@ -1401,10 +1401,10 @@ RC chbench_txn_man::run_Q6_bitmap_parallel(int tid, chbench_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	cubit::Cubit *bitmap_dd, *bitmap_qt;
+	rabit::Rabit *bitmap_dd, *bitmap_qt;
 
-	bitmap_dd = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q6_deliverydate);
-	bitmap_qt = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q6_quantity);
+	bitmap_dd = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q6_deliverydate);
+	bitmap_qt = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q6_quantity);
 
 	ibis::bitvector result;
 	get_bitvector_result(result, bitmap_dd, bitmap_qt, 1, 1);
@@ -1631,51 +1631,38 @@ RC chbench_txn_man::run_Q6_art(int tid, chbench_query * query) {
 	return finish(rc);
 }
 
-void chbench_txn_man::get_bitvector_result(ibis::bitvector &result, cubit::Cubit *cubit1, cubit::Cubit *cubit2, int cubit1_pos, int cubit2_pos)
+void chbench_txn_man::get_bitvector_result(ibis::bitvector &result, rabit::Rabit *rabit1, rabit::Rabit *rabit2, int rabit1_pos, int rabit2_pos)
 {
-	Bitmap *bitmap1 = cubit1->bitmaps[cubit1_pos];
-	Bitmap *bitmap2;
-	if(cubit2)
-		bitmap2 = cubit2->bitmaps[cubit2_pos];
-	while(bitmap1->l_commit_ts > get_ts()) {
-		bitmap1 = bitmap1->next;
-	}
-	if(cubit2) {
-		while(bitmap2->l_commit_ts > get_ts()) {
-			bitmap2 = bitmap2->next;
-		}
-		assert(bitmap1);
-		assert(bitmap2);		
-	}
-	else {
-		assert(bitmap1);
-	}
+	Bitvector *bitmap1 = rabit1->Btvs[rabit1_pos];
+	Bitvector *bitmap2;
+	if(rabit2)
+		bitmap2 = rabit2->Btvs[rabit2_pos];
 
 	result.copy(*bitmap1->btv);
-	TransDesc *trans = bitmap1->l_start_trans;
+	TransDesc *trans = bitmap1->log_shortcut;
 	trans = trans->next;
 	while(trans && trans->l_commit_ts < get_ts()) {
 		for(auto rub : trans->rubs) {
-			if(rub.second.pos.begin()->first == cubit1_pos) {
-				result.setBit(rub.second.row_id, 1, cubit1->config);
-			}
+			// if(rub.second.pos.begin()->first == (uint32_t)rabit1_pos) {
+			result.setBit(rub.second.row_id, 1, rabit1->config);
+			// }
 		}
 		trans = trans->next;
 	}
 
-	if(!cubit2) {
+	if(!rabit2) {
 		return;
 	}
 
 	ibis::bitvector tmp;
 	tmp.copy(*bitmap2->btv);
-	trans = bitmap2->l_start_trans;
+	trans = bitmap2->log_shortcut;
 	trans = trans->next;
 	while(trans && trans->l_commit_ts < get_ts()) {
 		for(auto rub : trans->rubs) {
-			if(rub.second.pos.begin()->first == cubit2_pos) {
-				tmp.setBit(rub.second.row_id, 1, cubit2->config);
-			}
+			// if(rub.second.pos.begin()->first == (uint32_t)rabit2_pos) {
+			tmp.setBit(rub.second.row_id, 1, rabit2->config);
+			// }
 		}
 		trans = trans->next;
 	}
@@ -1878,8 +1865,8 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	cubit::Cubit *bitmap_dd;
-	bitmap_dd = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q1_deliverydate);
+	rabit::Rabit *bitmap_dd;
+	bitmap_dd = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q1_deliverydate);
 
 	ibis::bitvector result;
 	get_bitvector_result(result, bitmap_dd, nullptr, 1, 0);
@@ -1946,7 +1933,7 @@ RC chbench_txn_man::run_Q1_bitmap(int tid, chbench_query * query) {
 	return finish(rc);
 }
 
-void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, cubit::Cubit *bitmap_d, cubit::Cubit *bitmap_number, chbench_q1_data & ans, int wid) {
+void chbench_txn_man::run_Q1_bitmap_fetch_singlethread(int number, rabit::Rabit *bitmap_d, rabit::Rabit *bitmap_number, chbench_q1_data & ans, int wid) {
 
 	set_affinity(wid);
 	// selectivity 36% 
@@ -2034,9 +2021,9 @@ RC chbench_txn_man::run_Q1_bitmap_parallel_fetch(int tid, chbench_query * query)
 	
 	chbench_q1_data ans(16);
 	int cnt = 0;
-	cubit::Cubit *bitmap_d, *bitmap_number;
-	bitmap_d = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q1_deliverydate);
-	bitmap_number = dynamic_cast<cubit::Cubit *>(_wl->bitmap_q1_ol_number);
+	rabit::Rabit *bitmap_d, *bitmap_number;
+	bitmap_d = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q1_deliverydate);
+	bitmap_number = dynamic_cast<rabit::Rabit *>(_wl->bitmap_q1_ol_number);
 
 	auto start = std::chrono::high_resolution_clock::now();
 
